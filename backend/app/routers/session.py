@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.deps import (class_list, get_db, model_version, rate_limit,
+from app.deps import (get_db, model_version, rate_limit,
                       require_auth, reset_rate_limit)
 
 router = APIRouter()
@@ -42,13 +42,6 @@ async def reset_session(request: Request, _=Depends(require_auth)):
     SESSIONS.clear()
     reset_rate_limit()
     return {"success": True, "request_id": getattr(request.state, "request_id", "")}
-
-
-@router.get("/classes")
-async def classes(request: Request):
-    cls = class_list()
-    return {"success": True, "count": len(cls), "classes": cls,
-            "request_id": getattr(request.state, "request_id", "")}
 
 
 @router.get("/sessions")
