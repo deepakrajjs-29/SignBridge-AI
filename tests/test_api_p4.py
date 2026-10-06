@@ -68,9 +68,15 @@ def test_admin_rbac_and_audit():
     assert client.get("/api/v1/admin/models").status_code == 401
     r = client.get("/api/v1/admin/models", headers=AUTH)
     assert r.status_code == 200 and r.json()["models"]
-    r = client.post("/api/v1/admin/promote",
-                    json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
-    assert r.status_code == 200
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    saved = reg_path.read_bytes()  # promote rewrites the live registry: restore after
+    try:
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
+        assert r.status_code == 200
+    finally:
+        reg_path.write_bytes(saved)
     r = client.post("/api/v1/admin/rollback",
                     json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
     assert r.status_code == 200 and "rolled_back_at" in r.json()
@@ -123,3 +129,42 @@ def test_text_to_sign_multiword():  # "thank you" -> items [ISL_002], unsupporte
     b = r.json()
     assert [i["class_id"] for i in b["items"]] == ["ISL_001"]
     assert b["unsupported_words"] == ["xyz"]
+
+
+def test_promote_switches_active_model():  # promote X -> GET /model reports X (restore registry after)
+    import json
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    original = reg_path.read_bytes()  # TRACKED live file: byte-exact restore in finally
+    try:
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "SBAI-MDL-ISL-9.9.9-test", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        b = client.get("/api/v1/model").json()
+        assert b["model"]["model_version"] == "SBAI-MDL-ISL-9.9.9-test", b
+        persisted = json.loads(reg_path.read_text(encoding="utf-8"))
+        assert persisted.get("active_model") == "SBAI-MDL-ISL-9.9.9-test", persisted
+    finally:
+        reg_path.write_bytes(original)
+
+
+def test_prod_refuses_default_secret():  # APP_ENV=production + JWT_SECRET=change-me -> create_app raises RuntimeError
+    import pytest
+    from app.main import create_app
+    import os
+    old_env, old_secret = os.getenv("APP_ENV"), os.getenv("JWT_SECRET")
+    os.environ["APP_ENV"] = "production"
+    os.environ["JWT_SECRET"] = "change-me"
+    try:
+        with pytest.raises(RuntimeError):
+            create_app()
+    finally:
+        if old_env is None:
+            os.environ.pop("APP_ENV", None)
+        else:
+            os.environ["APP_ENV"] = old_env
+        if old_secret is None:
+            os.environ.pop("JWT_SECRET", None)
+        else:
+            os.environ["JWT_SECRET"] = old_secret

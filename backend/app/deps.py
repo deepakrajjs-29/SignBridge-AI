@@ -67,12 +67,33 @@ def get_policy() -> dict:
     return _policy
 
 
-def model_version() -> str:
+def read_registry() -> dict:
+    """Read models/registry.json ({} when the file is absent)."""
     try:
-        reg = json.loads((MODELS / "registry.json").read_text())
-        return reg.get("model_id", os.getenv("MODEL_VERSION", "SBAI-MDL-ISL-1.0.0"))
+        return json.loads((MODELS / "registry.json").read_text())
     except OSError:
-        return os.getenv("MODEL_VERSION", "SBAI-MDL-ISL-1.0.0")
+        return {}
+
+
+def write_registry(reg: dict) -> None:
+    """Persist the model registry (promote path; LF endings like the committed file)."""
+    (MODELS / "registry.json").write_text(json.dumps(reg, indent=2) + "\n",
+                                          encoding="utf-8", newline="\n")
+
+
+def model_version() -> str:
+    reg = read_registry()
+    return (reg.get("active_model") or reg.get("model_id")
+            or os.getenv("MODEL_VERSION", "SBAI-MDL-ISL-1.0.0"))
+
+
+def assert_prod_secret_ok() -> None:
+    """Refuse non-dev boot with the default JWT secret (called from create_app)."""
+    if os.getenv("APP_ENV", "development") == "production" \
+            and os.getenv("JWT_SECRET", "change-me") == "change-me":
+        raise RuntimeError(
+            "Refusing to start with APP_ENV=production and the default "
+            "JWT_SECRET='change-me': set a strong JWT_SECRET before production boot.")
 
 
 def require_auth(authorization: str | None = Header(default=None)) -> str:

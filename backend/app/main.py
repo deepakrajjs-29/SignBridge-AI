@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.deps import class_list, model_version
+from app.deps import assert_prod_secret_ok, class_list, model_version
 from app.routers import admin, predict, session as session_router, speech, stream
 
 APP_NAME = "signbridge-ai"
@@ -31,6 +31,7 @@ def error_envelope(request: Request, code: str, message: str, status: int = 400,
 
 
 def create_app() -> FastAPI:
+    assert_prod_secret_ok()
     app = FastAPI(title=APP_NAME, version="0.2.0")
 
     cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",") if o.strip()]

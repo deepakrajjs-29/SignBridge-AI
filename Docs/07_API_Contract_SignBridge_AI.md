@@ -210,6 +210,11 @@ Response
   "status": "recognized"
 }
 
+> **STUB (owner: P8 container work) — contract only, stays 501:** `POST /api/v1/predict/image`
+> currently returns `501` with `error.code: CV_UNAVAILABLE` ("MediaPipe image pipeline
+> requires the py3.11 container (P8); use /predict with landmarks until then"). The
+> schema above describes the intended future response, not current behavior.
+
 ## 14. Video Upload Prediction
 
 Endpoint: POST /api/v1/predict/video
@@ -231,6 +236,11 @@ Response
   "status": "recognized",
   "processing_time_ms": 184
 }
+
+> **STUB (owner: P8 container work) — contract only, stays 501:** `POST /api/v1/predict/video`
+> currently returns `501` with `error.code: CV_UNAVAILABLE` ("MediaPipe video pipeline
+> requires the py3.11 container (P8); use /predict/sequence with landmarks until then").
+> The schema above describes the intended future response, not current behavior.
 
 For large videos, asynchronous processing may be preferable. The exact maximum upload size must be configured by deployment.
 
@@ -358,6 +368,14 @@ Server message
   "request_id": "req_001"
 }
 
+### Envelope scope
+
+The `{success: false, error: {code, message, details}, request_id}` envelope applies to
+errors raised or returned by matched routes: raised `401 UNAUTHORIZED` / `403 FORBIDDEN` /
+`429 RATE_LIMITED` (via the `HTTPException` handler) and endpoint-built `404` / `422` /
+`413` / `501` JSON bodies. Unknown-route 404s never reach a route and stay
+Starlette-plain (`{"detail": "Not Found"}`) — clients must handle both shapes.
+
 ## 23. HTTP Status Codes
 
 | Code | Meaning | Example |
@@ -374,6 +392,7 @@ Server message
 | 422 | Validation Error | Schema/feature validation failed |
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Unexpected backend error |
+| 501 | Not Implemented | Stubbed endpoint (tts / predict image / video) |
 | 503 | Service Unavailable | Model/service unavailable |
 
 ## 24. Request Validation
@@ -448,6 +467,12 @@ The API may be extended to support downstream communication features. A recogniz
 | POST /api/v1/text | Convert recognized sign sequence into text |
 | POST /api/v1/speech | Convert generated text into speech |
 | POST /api/v1/sign | Convert text into sign-language representation/animation |
+
+> **STUB (owner: P5 wiring) — contract only, stays 501:** `POST /api/v1/tts` currently
+> returns `501` with `error.code: TTS_NOT_CONFIGURED` ("Speech engine not configured
+> (P5 wiring); text echoed for contract testing"). `POST /api/v1/text-to-sign` is
+> implemented (phrase-aware lookup against seeded sign assets, unsupported words
+> reported explicitly) and is NOT a stub.
 
 ## 31. API Testing Requirements
 

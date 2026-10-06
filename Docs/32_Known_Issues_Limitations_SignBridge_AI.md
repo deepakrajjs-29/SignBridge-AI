@@ -100,6 +100,8 @@ The following baseline register is editable. Replace, add, or retire entries as 
 | LIM-010 | Text-to-sign or related generation features may have vocabulary and coverage constraints. | Functional | Medium | Clearly define supported vocabulary and provide unsupported-input feedback. | Open |
 | LIM-011 | Environmental differences between development, testing, and deployment may produce performance variation. | Deployment | Medium | Use reproducible environments and deployment validation. | Open |
 | LIM-012 | AI-generated code or rapid iterative changes may introduce regressions if insufficiently reviewed. | Engineering | High | Apply AI Coding Rules, code review, automated tests, and traceability. | Open |
+| LIM-013 | TensorFlow cold-start: first inference after boot is slow (~60 s) while the model loads and compiles. | Performance | Medium | Warm up with a synthetic (45, 189) predict at startup; document the expected cold-start in deployment. | Open |
+| LIM-014 | MediaPipe artifacts are fetched from CDN downloads (network-dependent; offline/restricted installs fail). | Deployment | Medium | Vendor pinned wheels/artifacts in the py3.11 container (P8); document version pins. | Open |
 
 ## 6. Functional Limitations
 

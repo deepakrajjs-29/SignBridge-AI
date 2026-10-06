@@ -623,10 +623,10 @@ Aging thresholds are editable project parameters.
 
 | Defect ID | Title | Severity | Priority | Status | Owner | Linked Test | Release |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BUG-2026-0001 | [Enter defect] | [Enter] | [Enter] | New | [Enter] | [TC-XXX] | [vX.X] |
-| BUG-2026-0002 | [Enter defect] | [Enter] | [Enter] | New | [Enter] | [TC-XXX] | [vX.X] |
-| BUG-2026-0003 | [Enter defect] | [Enter] | [Enter] | New | [Enter] | [TC-XXX] | [vX.X] |
-| BUG-2026-0004 | [Enter defect] | [Enter] | [Enter] | New | [Enter] | [TC-XXX] | [vX.X] |
+| BUG-2026-0001 | Admin promote did not switch the active model (registry.json left unwritten) | High | P1 | Verified | fix-plan T10 | tests/test_api_p4.py::test_promote_switches_active_model | v0.2.0 |
+| BUG-2026-0002 | Production boot accepted the default JWT_SECRET (no startup guard) | High | P1 | Verified | fix-plan T10 | tests/test_api_p4.py::test_prod_refuses_default_secret | v0.2.0 |
+| BUG-2026-0003 | Stub contracts undocumented (/tts, /predict/image, /predict/video return 501) | Medium | P2 | Verified | fix-plan T10 | tests/test_api_p4.py::test_image_video_501 + test_tts_501_and_t2s | v0.2.0 |
+| BUG-2026-0004 | Error-envelope scope undocumented (unknown-route 404s stay Starlette-plain) | Low | P3 | Verified | fix-plan T10 | tests/test_api_p4.py::test_unauthorized_uses_envelope | v0.2.0 |
 
 ## 43. Retest Record
 

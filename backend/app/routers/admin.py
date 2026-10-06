@@ -8,7 +8,7 @@ import time
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from app.deps import get_db, model_version, require_auth
+from app.deps import get_db, model_version, read_registry, require_auth, write_registry
 
 router = APIRouter(prefix="/admin")
 
@@ -53,6 +53,14 @@ async def promote(body: PromoteBody, request: Request, actor=Depends(require_aut
     from app.models import ModelDeployment
     db = next(get_db())
     db.add(ModelDeployment(model_id=body.model_id, environment=body.environment))
+    reg = read_registry()
+    reg["previous_model"] = reg.get("active_model", reg.get("model_id"))
+    reg["active_model"] = body.model_id
+    reg["model_id"] = body.model_id
+    if isinstance(reg.get("history"), list):
+        reg["history"].append({"model_id": body.model_id,
+                               "environment": body.environment, "action": "promote"})
+    write_registry(reg)
     _audit(db, actor, f"promote:{body.model_id}->{body.environment}", request)
     return {"success": True, "model_id": body.model_id, "environment": body.environment,
             "request_id": getattr(request.state, "request_id", "")}
