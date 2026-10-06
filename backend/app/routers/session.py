@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.deps import (get_db, model_version, rate_limit,
+from app.deps import (get_db, label_of, model_version, rate_limit,
                       require_auth, reset_rate_limit)
 
 router = APIRouter()
@@ -76,8 +76,9 @@ async def session_predictions(sid: str, request: Request, _=Depends(require_auth
             "request_id": getattr(request.state, "request_id", "")})
     return {"success": True, "session_id": sid,
             "predictions": [{"prediction_id": r.prediction_id, "class_id": r.class_id,
-                             "confidence": r.confidence, "status": r.status,
-                             "created": str(r.created_at)} for r in rows],
+                             "label": label_of(r.class_id),
+                              "confidence": r.confidence, "status": r.status,
+                              "created": str(r.created_at)} for r in rows],
             "request_id": getattr(request.state, "request_id", "")}
 
 
