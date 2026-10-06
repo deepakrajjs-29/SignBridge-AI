@@ -7,6 +7,7 @@ import json
 import os
 import time
 from collections import defaultdict
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -124,15 +125,47 @@ def reset_rate_limit() -> None:
     _hits.clear()
 
 
-def get_db():
-    """Yield SQLAlchemy session (SQLite-local, PG via DATABASE_URL)."""
+_engines: dict = {}
+
+
+def _db_url() -> str:
+    """Resolve the DB URL at call time (env honored, cached per URL)."""
+    return os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'signbridge_m1.db'}")
+
+
+def get_engine():
+    """Return the one cached engine for the current DATABASE_URL.
+
+    `create_all` runs once per engine (at creation), not per session.
+    """
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
     import sys
     sys.path.insert(0, str(ROOT / "backend"))
     from app.models import Base
-    url = os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'signbridge_m1.db'}")
-    eng = create_engine(url)
-    Base.metadata.create_all(eng)
-    with Session(eng) as s:
+    url = _db_url()
+    eng = _engines.get(url)
+    if eng is None:
+        eng = create_engine(url)
+        Base.metadata.create_all(eng)
+        _engines[url] = eng
+    return eng
+
+
+@contextmanager
+def get_db_session():
+    """Yield a SQLAlchemy session that is always closed on exit."""
+    from sqlalchemy.orm import Session
+    s = Session(get_engine())
+    try:
+        yield s
+    finally:
+        s.close()
+
+
+def get_db():
+    """Yield SQLAlchemy session (SQLite-local, PG via DATABASE_URL).
+
+    Kept as a thin shim for existing importers; prefer `get_db_session()`.
+    """
+    with get_db_session() as s:
         yield s

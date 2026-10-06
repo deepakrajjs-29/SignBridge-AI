@@ -110,6 +110,34 @@ def test_supported_flags_match_manifest():
         assert bool(assets[class_id].uri) == bool(uri)  # supported flag honesty
 
 
+def test_session_is_closed_after_use(tmp_path, monkeypatch):
+    """get_db_session() must close the session on context exit (spy on close)."""
+    import app.deps as deps_mod
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 't4_close.db'}")
+    closed = []
+    with deps_mod.get_db_session() as s:
+        orig_close = s.close
+
+        def _spy():
+            closed.append(True)
+            return orig_close()
+
+        s.close = _spy
+        assert closed == []
+    assert closed == [True]
+
+
+def test_engine_reused_across_calls(tmp_path, monkeypatch):
+    """get_engine() returns the same cached engine for the same URL."""
+    import app.deps as deps_mod
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 't4_reuse.db'}")
+    e1 = deps_mod.get_engine()
+    e2 = deps_mod.get_engine()
+    assert e1 is e2
+
+
 def test_seed_m1_rerun_keeps_registry_row():
     """Rerunning the owning seed path (database/seed_m1.py) must not reintroduce
     the stale row or wipe URIs: registry-accurate active row survives, no stale

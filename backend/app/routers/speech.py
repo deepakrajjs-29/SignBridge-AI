@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.deps import get_db, label_of, require_auth
+from app.deps import get_db_session, label_of, require_auth
 
 router = APIRouter()
 
@@ -71,18 +71,18 @@ async def text_to_sign(body: T2SBody, request: Request, _=Depends(require_auth))
     from app.models import SignAsset, SignClass
     canonical = {str(c["label"]).lower(): c["label"] for c in class_list()}
     phrases, unsupported = match_phrases(body.text)
-    db = next(get_db())
-    items = []
-    for p in phrases:
-        row = db.query(SignClass).filter(SignClass.label == canonical[p]).first()
-        if row is None:
-            row = db.query(SignClass).filter(SignClass.label.ilike(p)).first()
-        if row is None:
-            unsupported.append(p)
-            continue
-        asset = db.query(SignAsset).filter(SignAsset.class_id == row.class_id).first()
-        items.append({"word": p, "class_id": row.class_id, "label": row.label,
-                      "asset_uri": asset.uri if asset else None,
-                      "supported": bool(asset and asset.uri)})
+    with get_db_session() as db:
+        items = []
+        for p in phrases:
+            row = db.query(SignClass).filter(SignClass.label == canonical[p]).first()
+            if row is None:
+                row = db.query(SignClass).filter(SignClass.label.ilike(p)).first()
+            if row is None:
+                unsupported.append(p)
+                continue
+            asset = db.query(SignAsset).filter(SignAsset.class_id == row.class_id).first()
+            items.append({"word": p, "class_id": row.class_id, "label": row.label,
+                          "asset_uri": asset.uri if asset else None,
+                          "supported": bool(asset and asset.uri)})
     return {"success": True, "items": items, "unsupported_words": unsupported,
             "request_id": getattr(request.state, "request_id", "")}
