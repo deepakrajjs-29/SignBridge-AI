@@ -48,6 +48,17 @@ def _load_seed_fn():
     return mod.seed_sign_assets
 
 
+def _load_seed_m1():
+    """Load database/seed_m1.py (the owning seed path) as a module."""
+    import importlib.util
+
+    path = ROOT / "database" / "seed_m1.py"
+    spec = importlib.util.spec_from_file_location("seed_m1", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def test_models_create_and_seed_shape():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -97,3 +108,28 @@ def test_supported_flags_match_manifest():
         assert class_id in assets
         assert assets[class_id].uri == uri
         assert bool(assets[class_id].uri) == bool(uri)  # supported flag honesty
+
+
+def test_seed_m1_rerun_keeps_registry_row():
+    """Rerunning the owning seed path (database/seed_m1.py) must not reintroduce
+    the stale row or wipe URIs: registry-accurate active row survives, no stale
+    row exists, and asset URIs still match the manifest verbatim."""
+    seed_m1 = _load_seed_m1()
+    reg = json.loads((ROOT / "models" / "registry.json").read_text())
+    expected_version = reg.get("version", reg["model_id"])
+    manifest_path = ROOT / "data" / "assets" / "manifest.csv"
+    with manifest_path.open(newline="", encoding="utf-8") as f:
+        manifest = {r["class_id"]: r["uri"] for r in csv.DictReader(f)}
+    engine = create_engine("sqlite:///:memory:")
+    seed_m1.main(engine=engine)  # first run through the owning seed path
+    seed_m1.main(engine=engine)  # rerun must converge, not reintroduce stale state
+    with Session(engine) as s:
+        rows = {r.model_id: r for r in s.query(ModelVersion).all()}
+        assert reg["model_id"] in rows
+        assert rows[reg["model_id"]].version == expected_version
+        assert rows[reg["model_id"]].status == "active"
+        assert "signbridge-lstm-v1" not in rows  # stale row must not come back
+        assets = {a.class_id: a for a in s.query(SignAsset).all()}
+    assert len(assets) == 50
+    for class_id, uri in manifest.items():
+        assert assets[class_id].uri == uri

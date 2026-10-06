@@ -16,11 +16,25 @@ from sqlalchemy.orm import Session
 from app.models import Base, ModelVersion, SignAsset, SignClass
 
 CLASS_MAP = ROOT / "data" / "dataset" / "annotations" / "class_map.csv"
+MANIFEST = ROOT / "data" / "assets" / "manifest.csv"
 DB_URL = os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'signbridge_m1.db'}")
 
 
-def main() -> None:
-    engine = create_engine(DB_URL)
+def _apply_asset_reseed(engine) -> dict:
+    """Route through the Task 6 reseed so this owning seed path cannot leave the
+    stale model row or empty-URI drift behind (no drops inside)."""
+    import importlib.util
+
+    path = ROOT / "scripts" / "seed_sign_assets.py"
+    spec = importlib.util.spec_from_file_location("seed_sign_assets", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.seed_sign_assets(MANIFEST, engine=engine)
+
+
+def main(engine=None) -> None:
+    if engine is None:
+        engine = create_engine(DB_URL)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with Session(engine) as s:
@@ -49,6 +63,10 @@ def main() -> None:
             )
         )
         s.commit()
+    # Reseed URIs + registry-accurate model row on the same engine so a rerun
+    # of this owning seed path converges instead of reintroducing the stale row.
+    _apply_asset_reseed(engine)
+    with Session(engine) as s:
         n_classes = s.query(SignClass).count()
         n_assets = s.query(SignAsset).count()
         n_models = s.query(ModelVersion).count()
