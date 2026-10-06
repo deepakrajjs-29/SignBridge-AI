@@ -1,0 +1,67 @@
+{
+ "model_id": "SBAI-MDL-ISL-1.0.0",
+ "arch": "GRU128-GRU64-Dense64-Softmax50",
+ "status": "Candidate (M3 gate debt: test 0.824/0.823 below 0.90 gates)",
+ "seq_len": 45,
+ "feat_dim": 189,
+ "classes": 50,
+ "sha256": "e786c2f6ab9c4a332dbc4befc6e187ad302c96758670cf45192a7264c30c8882",
+ "export_parity_200": true,
+ "test": {
+  "test_n": 1650,
+  "accuracy": 0.8242,
+  "macro_f1": 0.823,
+  "infer_ms_per_sample_cpu": 0.36,
+  "worst_5_classes": [
+   {
+    "idx": 43,
+    "p": 0.4,
+    "r": 0.375,
+    "f1": 0.3871
+   },
+   {
+    "idx": 12,
+    "p": 0.4667,
+    "r": 0.4375,
+    "f1": 0.4516
+   },
+   {
+    "idx": 42,
+    "p": 0.5769,
+    "r": 0.4412,
+    "f1": 0.5
+   },
+   {
+    "idx": 39,
+    "p": 0.6207,
+    "r": 0.5455,
+    "f1": 0.5806
+   },
+   {
+    "idx": 49,
+    "p": 0.5385,
+    "r": 0.6562,
+    "f1": 0.5915
+   }
+  ],
+  "gate_acc_90": false,
+  "gate_f1_90": false
+ },
+ "policy": {
+  "threshold": 0.4,
+  "smoothing_window": 5,
+  "val_accepted_acc": 0.8503,
+  "val_coverage": 0.9918,
+  "states": [
+   "Accepted",
+   "Uncertain",
+   "No-Sign",
+   "Tracking-Lost"
+  ]
+ },
+ "challenger_lstm": "test 0.773/0.764 \u2014 GRU promoted on evidence",
+ "fixes": [
+  "handedness canonicalization (U014 slot flip)",
+  "mirror+scale+shift+noise+drop train aug"
+ ]
+}

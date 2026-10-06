@@ -1,0 +1,151 @@
+epoch 1: loss=3.9527 acc=0.0132 val_loss=3.9159 val_acc=0.0183
+  val_f1=0.0011 best=0.0011 wait=0
+epoch 2: loss=3.9310 acc=0.0194 val_loss=3.9147 val_acc=0.0192
+  val_f1=0.0008 best=0.0011 wait=0
+epoch 3: loss=3.9243 acc=0.0164 val_loss=3.9072 val_acc=0.0422
+  val_f1=0.0108 best=0.0108 wait=1
+epoch 4: loss=3.8769 acc=0.0296 val_loss=3.6991 val_acc=0.0449
+  val_f1=0.0073 best=0.0108 wait=0
+epoch 5: loss=3.6744 acc=0.0373 val_loss=3.5184 val_acc=0.0403
+  val_f1=0.0111 best=0.0111 wait=1
+epoch 6: loss=3.5245 acc=0.0407 val_loss=3.3526 val_acc=0.0724
+  val_f1=0.0243 best=0.0243 wait=0
+epoch 7: loss=3.3695 acc=0.0600 val_loss=3.0957 val_acc=0.1054
+  val_f1=0.0487 best=0.0487 wait=0
+epoch 8: loss=3.1297 acc=0.0986 val_loss=2.7529 val_acc=0.1787
+  val_f1=0.1266 best=0.1266 wait=0
+epoch 9: loss=2.8445 acc=0.1533 val_loss=2.5053 val_acc=0.2420
+  val_f1=0.1827 best=0.1827 wait=0
+epoch 10: loss=2.4917 acc=0.2293 val_loss=2.0803 val_acc=0.3630
+  val_f1=0.2859 best=0.2859 wait=0
+epoch 11: loss=2.1723 acc=0.2947 val_loss=1.7854 val_acc=0.4445
+  val_f1=0.3880 best=0.3880 wait=0
+epoch 12: loss=1.9921 acc=0.3321 val_loss=1.6558 val_acc=0.4785
+  val_f1=0.4230 best=0.4230 wait=0
+epoch 13: loss=1.7892 acc=0.3932 val_loss=1.5596 val_acc=0.4702
+  val_f1=0.4114 best=0.4230 wait=0
+epoch 14: loss=1.6514 acc=0.4301 val_loss=1.3613 val_acc=0.5426
+  val_f1=0.4914 best=0.4914 wait=1
+epoch 15: loss=1.4857 acc=0.4826 val_loss=1.2259 val_acc=0.5940
+  val_f1=0.5672 best=0.5672 wait=0
+epoch 16: loss=1.3618 acc=0.5159 val_loss=1.0738 val_acc=0.6489
+  val_f1=0.6088 best=0.6088 wait=0
+epoch 17: loss=1.2879 acc=0.5418 val_loss=1.1941 val_acc=0.6159
+  val_f1=0.5805 best=0.6088 wait=0
+epoch 18: loss=1.1295 acc=0.5936 val_loss=1.1354 val_acc=0.6169
+  val_f1=0.5825 best=0.6088 wait=1
+epoch 19: loss=1.0765 acc=0.6159 val_loss=1.0509 val_acc=0.6517
+  val_f1=0.6229 best=0.6229 wait=2
+epoch 20: loss=1.0354 acc=0.6370 val_loss=0.8485 val_acc=0.7021
+  val_f1=0.6770 best=0.6770 wait=0
+epoch 21: loss=0.9311 acc=0.6704 val_loss=0.7484 val_acc=0.7498
+  val_f1=0.7360 best=0.7360 wait=0
+epoch 22: loss=0.9155 acc=0.6762 val_loss=0.8070 val_acc=0.7360
+  val_f1=0.7177 best=0.7360 wait=0
+epoch 23: loss=0.8316 acc=0.6998 val_loss=0.7613 val_acc=0.7140
+  val_f1=0.6904 best=0.7360 wait=1
+epoch 24: loss=0.8078 acc=0.7151 val_loss=0.7667 val_acc=0.7388
+  val_f1=0.7249 best=0.7360 wait=2
+epoch 25: loss=0.7857 acc=0.7160 val_loss=0.7810 val_acc=0.7269
+  val_f1=0.7019 best=0.7360 wait=3
+epoch 26: loss=0.7208 acc=0.7481 val_loss=0.7018 val_acc=0.7690
+  val_f1=0.7514 best=0.7514 wait=4
+epoch 27: loss=0.7215 acc=0.7458 val_loss=0.6828 val_acc=0.7773
+  val_f1=0.7697 best=0.7697 wait=0
+epoch 28: loss=0.6698 acc=0.7564 val_loss=0.6418 val_acc=0.7809
+  val_f1=0.7744 best=0.7744 wait=0
+epoch 29: loss=0.6281 acc=0.7737 val_loss=0.6458 val_acc=0.7938
+  val_f1=0.7857 best=0.7857 wait=0
+epoch 30: loss=0.6257 acc=0.7758 val_loss=0.6201 val_acc=0.8038
+  val_f1=0.7925 best=0.7925 wait=0
+epoch 31: loss=0.5576 acc=0.7980 val_loss=0.6157 val_acc=0.8002
+  val_f1=0.7845 best=0.7925 wait=0
+epoch 32: loss=0.5652 acc=0.8029 val_loss=0.6256 val_acc=0.8139
+  val_f1=0.8065 best=0.8065 wait=1
+epoch 33: loss=0.5627 acc=0.8043 val_loss=0.6558 val_acc=0.7791
+  val_f1=0.7679 best=0.8065 wait=0
+epoch 34: loss=0.5512 acc=0.8039 val_loss=0.6463 val_acc=0.7947
+  val_f1=0.7818 best=0.8065 wait=1
+epoch 35: loss=0.5195 acc=0.8161 val_loss=0.5623 val_acc=0.8121
+  val_f1=0.7996 best=0.8065 wait=2
+epoch 36: loss=0.5254 acc=0.8141 val_loss=0.6482 val_acc=0.7993
+  val_f1=0.7881 best=0.8065 wait=3
+epoch 37: loss=0.5107 acc=0.8141 val_loss=0.6293 val_acc=0.8084
+  val_f1=0.7991 best=0.8065 wait=4
+epoch 38: loss=0.5022 acc=0.8254 val_loss=0.6336 val_acc=0.8093
+  val_f1=0.7992 best=0.8065 wait=5
+epoch 39: loss=0.4660 acc=0.8310 val_loss=0.6403 val_acc=0.8148
+  val_f1=0.8065 best=0.8065 wait=6
+epoch 40: loss=0.4872 acc=0.8254 val_loss=0.6029 val_acc=0.8249
+  val_f1=0.8183 best=0.8183 wait=7
+epoch 41: loss=0.4108 acc=0.8533 val_loss=0.5756 val_acc=0.8286
+  val_f1=0.8254 best=0.8254 wait=0
+epoch 42: loss=0.3808 acc=0.8601 val_loss=0.5629 val_acc=0.8258
+  val_f1=0.8183 best=0.8254 wait=0
+epoch 43: loss=0.3816 acc=0.8680 val_loss=0.5944 val_acc=0.8213
+  val_f1=0.8170 best=0.8254 wait=1
+epoch 44: loss=0.3574 acc=0.8703 val_loss=0.6207 val_acc=0.8194
+  val_f1=0.8122 best=0.8254 wait=2
+epoch 45: loss=0.3594 acc=0.8680 val_loss=0.5643 val_acc=0.8323
+  val_f1=0.8287 best=0.8287 wait=3
+epoch 46: loss=0.3330 acc=0.8808 val_loss=0.5642 val_acc=0.8341
+  val_f1=0.8296 best=0.8296 wait=0
+epoch 47: loss=0.3354 acc=0.8793 val_loss=0.5753 val_acc=0.8313
+  val_f1=0.8270 best=0.8296 wait=0
+epoch 48: loss=0.3238 acc=0.8872 val_loss=0.5681 val_acc=0.8350
+  val_f1=0.8290 best=0.8296 wait=1
+epoch 49: loss=0.3095 acc=0.8884 val_loss=0.5404 val_acc=0.8323
+  val_f1=0.8275 best=0.8296 wait=2
+epoch 50: loss=0.3162 acc=0.8816 val_loss=0.5492 val_acc=0.8460
+  val_f1=0.8433 best=0.8433 wait=3
+epoch 51: loss=0.3062 acc=0.8869 val_loss=0.5543 val_acc=0.8313
+  val_f1=0.8282 best=0.8433 wait=0
+epoch 52: loss=0.3085 acc=0.8855 val_loss=0.5423 val_acc=0.8378
+  val_f1=0.8354 best=0.8433 wait=1
+epoch 53: loss=0.3191 acc=0.8842 val_loss=0.5536 val_acc=0.8368
+  val_f1=0.8323 best=0.8433 wait=2
+epoch 54: loss=0.3120 acc=0.8891 val_loss=0.5505 val_acc=0.8396
+  val_f1=0.8371 best=0.8433 wait=3
+epoch 55: loss=0.2945 acc=0.8955 val_loss=0.5490 val_acc=0.8396
+  val_f1=0.8375 best=0.8433 wait=4
+epoch 56: loss=0.2900 acc=0.8944 val_loss=0.5654 val_acc=0.8368
+  val_f1=0.8337 best=0.8433 wait=5
+epoch 57: loss=0.2836 acc=0.8929 val_loss=0.5643 val_acc=0.8378
+  val_f1=0.8351 best=0.8433 wait=6
+epoch 58: loss=0.2920 acc=0.8942 val_loss=0.5890 val_acc=0.8332
+  val_f1=0.8300 best=0.8433 wait=7
+epoch 59: loss=0.3073 acc=0.8855 val_loss=0.5593 val_acc=0.8396
+  val_f1=0.8376 best=0.8433 wait=8
+epoch 60: loss=0.2896 acc=0.8912 val_loss=0.5570 val_acc=0.8460
+  val_f1=0.8436 best=0.8436 wait=9
+epoch 61: loss=0.2734 acc=0.8987 val_loss=0.5736 val_acc=0.8405
+  val_f1=0.8381 best=0.8436 wait=0
+epoch 62: loss=0.2765 acc=0.8993 val_loss=0.5738 val_acc=0.8405
+  val_f1=0.8379 best=0.8436 wait=1
+epoch 63: loss=0.2779 acc=0.8974 val_loss=0.5769 val_acc=0.8396
+  val_f1=0.8372 best=0.8436 wait=2
+epoch 64: loss=0.2731 acc=0.8993 val_loss=0.5828 val_acc=0.8378
+  val_f1=0.8357 best=0.8436 wait=3
+epoch 65: loss=0.2635 acc=0.9076 val_loss=0.5814 val_acc=0.8396
+  val_f1=0.8365 best=0.8436 wait=4
+epoch 66: loss=0.2794 acc=0.8961 val_loss=0.5794 val_acc=0.8423
+  val_f1=0.8402 best=0.8436 wait=5
+epoch 67: loss=0.2856 acc=0.8982 val_loss=0.5809 val_acc=0.8414
+  val_f1=0.8391 best=0.8436 wait=6
+epoch 68: loss=0.2693 acc=0.9023 val_loss=0.5837 val_acc=0.8405
+  val_f1=0.8375 best=0.8436 wait=7
+epoch 69: loss=0.2646 acc=0.9012 val_loss=0.5844 val_acc=0.8405
+  val_f1=0.8377 best=0.8436 wait=8
+epoch 70: loss=0.2700 acc=0.9012 val_loss=0.5829 val_acc=0.8405
+  val_f1=0.8380 best=0.8436 wait=9
+epoch 71: loss=0.2513 acc=0.9089 val_loss=0.5825 val_acc=0.8405
+  val_f1=0.8380 best=0.8436 wait=10
+epoch 72: loss=0.2715 acc=0.8997 val_loss=0.5815 val_acc=0.8405
+  val_f1=0.8381 best=0.8436 wait=11
+epoch 73: loss=0.2717 acc=0.9040 val_loss=0.5806 val_acc=0.8387
+  val_f1=0.8362 best=0.8436 wait=12
+epoch 74: loss=0.2640 acc=0.9050 val_loss=0.5779 val_acc=0.8378
+  val_f1=0.8350 best=0.8436 wait=13
+epoch 75: loss=0.2861 acc=0.8972 val_loss=0.5767 val_acc=0.8368
+  val_f1=0.8342 best=0.8436 wait=14
+{"arch": "gru", "epochs": 75, "best_val_f1": 0.8436, "minutes": 4.7}

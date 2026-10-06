@@ -1,0 +1,12 @@
+groups:
+  - name: signbridge-slo
+    rules:
+      - alert: APIHealthDown
+        expr: probe_success{job="signbridge"} == 0
+        for: 2m
+      - alert: InferenceBudgetBreach
+        expr: signbridge_infer_ms_p95 > 200
+        for: 5m
+      - alert: ErrorRateHigh
+        expr: rate(signbridge_http_5xx_total[5m]) > 0.01
+        for: 5m

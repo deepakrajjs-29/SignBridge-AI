@@ -1,0 +1,22 @@
+- main [ref=e3]:
+  - heading "SignBridge AI" [level=1] [ref=e4]
+  - navigation "primary" [ref=e5]:
+    - button "Live" [ref=e6]
+    - button "History" [ref=e7]
+    - button "Vocab" [ref=e8]
+    - button "Admin" [ref=e9]
+    - button "Settings" [ref=e10]
+  - region "settings-help" [ref=e98]:
+    - heading "Settings" [level=2] [ref=e99]
+    - generic [ref=e100]:
+      - text: API token (Bearer for predict/session/admin; open endpoints need none)
+      - textbox "api-token" [ref=e101]: change-me
+    - button "Save" [active] [ref=e102]
+    - status [ref=e109]: Token saved locally.
+    - heading "Help" [level=3] [ref=e103]
+    - list [ref=e104]:
+      - listitem [ref=e105]: Allow camera → Start recognition → review result → Speak/repeat → Clear.
+      - listitem [ref=e106]: Uncertain means low confidence — never treated as definitive.
+      - listitem [ref=e107]: History entries can be deleted anytime; raw video is never stored.
+      - listitem [ref=e108]: Verify high-stakes outputs with a human.
+  - paragraph [ref=e24]: Camera-active indicator shown in Live tab. No video stored by default.

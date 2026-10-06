@@ -1,0 +1,22 @@
+- main [ref=e3]:
+  - heading "SignBridge AI" [level=1] [ref=e4]
+  - navigation "primary" [ref=e5]:
+    - button "Live" [active] [ref=e6]
+    - button "History" [ref=e7]
+    - button "Vocab" [ref=e8]
+    - button "Admin" [ref=e9]
+    - button "Settings" [ref=e10]
+  - region "live-recognition" [ref=e181]:
+    - heading "Live recognition" [level=2] [ref=e182]
+    - status [ref=e183]:
+      - text: "State:"
+      - strong [ref=e184]: Ready
+    - generic "camera-preview" [ref=e185]
+    - generic [ref=e186]:
+      - button "Enable camera" [ref=e187]
+      - button "Start recognition" [disabled] [ref=e188]
+      - button "Speak" [disabled] [ref=e189]
+      - button "Clear" [ref=e190]
+    - group [ref=e191]:
+      - generic "All states (for testers)" [ref=e192]
+  - paragraph [ref=e24]: Camera-active indicator shown in Live tab. No video stored by default.

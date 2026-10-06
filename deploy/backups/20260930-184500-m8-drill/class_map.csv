@@ -1,0 +1,51 @@
+class_id,label,gloss,sign_type,meaning,handedness,source_coverage,notes
+ISL_001,Hello,HELLO,Dynamic,Greeting,Both,ISL500+INCLUDE,Core demo word
+ISL_002,Thank You,THANK_YOU,Dynamic,Gratitude,Both,ISL500+INCLUDE,Core demo word
+ISL_003,Please,PLEASE,Dynamic,Polite request,Both,ISL500+INCLUDE,Core demo word
+ISL_004,Market,MARKET,Dynamic,Daily word,Both,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_005,Yes,YES,Dynamic,Affirmation,Both,ISL500+INCLUDE,Core demo word
+ISL_006,No,NO,Dynamic,Negation,Both,ISL500+INCLUDE,Core demo word
+ISL_007,Morning,MORNING,Dynamic,Time word,Both,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_008,Good Morning,GOOD_MORNING,Dynamic,Greeting,Both,ISL500+INCLUDE,Time-based greeting
+ISL_009,Good Night,GOOD_NIGHT,Dynamic,Greeting,Both,ISL500+INCLUDE,Time-based greeting
+ISL_010,Evening,EVENING,Dynamic,Time word,Both,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_011,Help,HELP,Dynamic,Request assistance,Both,ISL500+INCLUDE,High-priority need
+ISL_012,Water,WATER,Dynamic,Drink request,Both,ISL500+INCLUDE,High-priority need
+ISL_013,Food,FOOD,Dynamic,Meal request,Both,ISL500+INCLUDE,High-priority need
+ISL_014,Man,MAN,Dynamic,People word,Both,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_015,Friend,FRIEND,Dynamic,Relationship,Both,ISL500+INCLUDE,People category
+ISL_016,Family,FAMILY,Dynamic,Relationship,Both,ISL500+INCLUDE,People category
+ISL_017,Doctor,DOCTOR,Dynamic,Medical help,Both,ISL500+INCLUDE,Emergency word
+ISL_018,Medicine,MEDICINE,Dynamic,Medical need,Both,ISL500+INCLUDE,Emergency word
+ISL_019,House,HOUSE,Dynamic,Place word,Both,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_020,Woman,WOMAN,Dynamic,People word,Both,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_021,Mother,MOTHER,Dynamic,People word,Both,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_022,Happy,HAPPY,Dynamic,Emotion,Both,ISL500+INCLUDE,Common word
+ISL_023,Sad,SAD,Dynamic,Emotion,Both,ISL500+INCLUDE,Common word
+ISL_024,Day,DAY,Dynamic,Time reference,Both,ISL500+INCLUDE,Days and Time category
+ISL_025,Time,TIME,Dynamic,Time reference,Both,ISL500+INCLUDE,Days and Time category
+ISL_026,Today,TODAY,Dynamic,Time reference,Both,ISL500+INCLUDE,Days and Time category
+ISL_027,Tomorrow,TOMORROW,Dynamic,Time reference,Both,ISL500+INCLUDE,Days and Time category
+ISL_028,School,SCHOOL,Dynamic,Place,Both,ISL500+INCLUDE,Places category
+ISL_029,Work,WORK,Dynamic,Activity,Both,ISL500+INCLUDE,Jobs category
+ISL_030,Office,OFFICE,Dynamic,Place,Both,ISL500+INCLUDE,Places category
+ISL_031,Night,NIGHT,Dynamic,Time word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_032,What,WHAT,Dynamic,Question word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_033,Where,WHERE,Dynamic,Question word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_034,She,SHE,Dynamic,Pronoun,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_035,Go,GO,Dynamic,Action word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_036,He,HE,Dynamic,Pronoun,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_037,Sister,SISTER,Dynamic,People word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_038,Tea,TEA,Dynamic,Daily word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_039,Student,STUDENT,Dynamic,People word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_040,Drink,DRINK,Dynamic,Daily word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_041,Father,FATHER,Dynamic,People word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_042,Child,CHILD,Dynamic,People word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_043,Car,CAR,Dynamic,Transport word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_044,Eat,EAT,Dynamic,Daily word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_045,Teacher,TEACHER,Dynamic,People word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_046,Sit,SIT,Dynamic,Action word,Right,ISL500+starter40*,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_047,Girl,GIRL,Dynamic,People word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_048,Boy,BOY,Dynamic,People word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_049,Book,BOOK,Dynamic,Daily word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_050,Bus,BUS,Dynamic,Transport word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"

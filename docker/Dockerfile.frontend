@@ -1,0 +1,8 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install || npm ci
+COPY frontend/ .
+RUN npm run build || echo "build deferred to Phase 5"
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html

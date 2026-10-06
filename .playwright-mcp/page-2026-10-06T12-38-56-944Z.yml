@@ -1,0 +1,19 @@
+- main [ref=e3]:
+  - heading "SignBridge AI" [level=1] [ref=e4]
+  - navigation "primary" [ref=e5]:
+    - button "Live" [ref=e6]
+    - button "History" [active] [ref=e7]
+    - button "Vocab" [ref=e8]
+    - button "Admin" [ref=e9]
+    - button "Settings" [ref=e10]
+  - region "history" [ref=e85]:
+    - heading "Recognition history" [level=2] [ref=e86]
+    - paragraph [ref=e87]: Stored predictions per session. Delete any entry or clear the session. Raw video is never stored.
+    - generic [ref=e88]:
+      - text: Session
+      - combobox "session-select" [ref=e89]
+    - button "Refresh" [ref=e90]
+    - alert [ref=e91]: API 401 on /api/v1/sessions
+    - list
+    - paragraph [ref=e92]: No predictions in this session yet.
+  - paragraph [ref=e24]: Camera-active indicator shown in Live tab. No video stored by default.

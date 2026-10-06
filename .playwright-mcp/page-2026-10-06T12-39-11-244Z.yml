@@ -1,0 +1,15 @@
+- main [ref=e3]:
+  - heading "SignBridge AI" [level=1] [ref=e4]
+  - navigation "primary" [ref=e5]:
+    - button "Live" [ref=e6]
+    - button "History" [ref=e7]
+    - button "Vocab" [ref=e8]
+    - button "Admin" [active] [ref=e9]
+    - button "Settings" [ref=e10]
+  - region "admin" [ref=e93]:
+    - heading "Model administration" [level=2] [ref=e94]
+    - alert [ref=e95]: Not authorized — admin is RBAC-gated.
+    - status [ref=e96]: "Admin requires a token: set it in Settings → API token."
+    - button "Refresh" [ref=e97]
+    - list
+  - paragraph [ref=e24]: Camera-active indicator shown in Live tab. No video stored by default.

@@ -1,0 +1,30 @@
+- main [ref=e3]:
+  - heading "SignBridge AI" [level=1] [ref=e4]
+  - navigation "primary" [ref=e5]:
+    - button "Live" [ref=e6]
+    - button "History" [active] [ref=e7]
+    - button "Vocab" [ref=e8]
+    - button "Admin" [ref=e9]
+    - button "Settings" [ref=e10]
+  - region "history" [ref=e171]:
+    - heading "Recognition history" [level=2] [ref=e172]
+    - paragraph [ref=e173]: Stored predictions per session. Delete any entry or clear the session. Raw video is never stored.
+    - generic [ref=e174]:
+      - text: Session
+      - combobox "session-select" [ref=e175]:
+        - option "sess_b9291f9b" [selected]
+        - option "sess_b4d498cb"
+        - option "sess_bdad75f9"
+        - option "sess_3dd9291d"
+        - option "sess_b08a0945"
+        - option "sess_1be0601d"
+        - option "sess_39c30510"
+        - option "sess_875f2d46"
+        - option "sess_3ed3e58e"
+        - option "sess_c2ce6d6a"
+    - button "Refresh" [ref=e176]
+    - list [ref=e177]:
+      - listitem [ref=e178]:
+        - text: (ISL_010, 0.6348) — recognized
+        - button "delete-pred_35ceddc6" [ref=e179]: Delete
+  - paragraph [ref=e24]: Camera-active indicator shown in Live tab. No video stored by default.

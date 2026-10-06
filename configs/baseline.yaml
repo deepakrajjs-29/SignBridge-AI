@@ -1,0 +1,10 @@
+SEQ_LEN: 45
+FEAT_DIM: 189
+MODEL_ID: SBAI-MDL-ISL-1.0.0
+FRAMEWORK: tensorflow-keras
+PYTHON: 3.11
+DB: postgresql+sqlalchemy+alembic
+FRONTEND: react+typescript+tailwind
+RETENTION: {sessions_days: 90, predictions_days: 180, api_logs_days: 30, backups_days: 30}
+RPO: 24h
+RTO: 4h

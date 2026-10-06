@@ -1,0 +1,53 @@
+{
+ "split_id": "SPLIT-1.0",
+ "rule": "signer-separated, frozen test U013-U015",
+ "signers": {
+  "train": [
+   "U001",
+   "U002",
+   "U003",
+   "U004",
+   "U005",
+   "U006",
+   "U007",
+   "U008",
+   "U009",
+   "U010"
+  ],
+  "val": [
+   "U011",
+   "U012"
+  ],
+  "test": [
+   "U013",
+   "U014",
+   "U015"
+  ]
+ },
+ "index": {
+  "train": 4697,
+  "val": 1091,
+  "test": 1650
+ },
+ "stats": {
+  "train": {
+   "n": 4697,
+   "min_per_class": 88,
+   "max_per_class": 103,
+   "classes": 50
+  },
+  "val": {
+   "n": 1091,
+   "min_per_class": 19,
+   "max_per_class": 23,
+   "classes": 50
+  },
+  "test": {
+   "n": 1650,
+   "min_per_class": 31,
+   "max_per_class": 35,
+   "classes": 50
+  }
+ },
+ "leakage_check": "PASS (pairwise signer sets disjoint)"
+}

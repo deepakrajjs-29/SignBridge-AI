@@ -1,0 +1,54 @@
+{
+ "release": "v0.5-RC",
+ "model": "SBAI-MDL-ISL-1.0.0 (Candidate)",
+ "test": {
+  "accuracy": 0.8242,
+  "macro_f1": 0.823
+ },
+ "artifacts": {
+  "models/SBAI-MDL-ISL-1.0.0.keras": {
+   "sha256": "e786c2f6ab9c4a332dbc4befc6e187ad302c96758670cf45192a7264c30c8882",
+   "bytes": 2053224
+  },
+  "models/scaler_mvp50.npz": {
+   "sha256": "f483d4e611df1d0d0cbc563a9d3543f87434f3398ed8403e8bd174ed29ecef01",
+   "bytes": 1874
+  },
+  "models/registry.json": {
+   "sha256": "77b4be89248d072bf330d20fcae2a479da5530f77d7f2df5b4bc6a75c27617aa",
+   "bytes": 1321
+  },
+  "data/dataset/annotations/class_map.csv": {
+   "sha256": "c016963d30007437e8b1ac8a27071c4ad0c4a2dbf0e1b81d75cac4622af9c3ce",
+   "bytes": 5472
+  },
+  "data/dataset/annotations/CURATION-v1.0_manifest.csv": {
+   "sha256": "2627366a3c6d71ab09fe247ad3601b1df6db4542bade5af4cd078e5aec8a2915",
+   "bytes": 1077338
+  },
+  "data/dataset/annotations/SPLIT-1.0.json": {
+   "sha256": "2cfff5a9a0add6a0dc88eedcc53f364a8792e86d0d16d058799bf47980f0b654",
+   "bytes": 787
+  },
+  "data/dataset/processed/tensors_mvp50.json": {
+   "sha256": "2d9e24a56ffa9b5631bb92447e3abeaf38838cc2c6398cb48a6771e4622a59d6",
+   "bytes": 1182
+  },
+  "backend/app/main.py": {
+   "sha256": "a703f19c911fb55273786a1d47ed29a55768dfaf250d743ad37aa11838147aa5",
+   "bytes": 3023
+  },
+  "configs/compat.json": {
+   "sha256": "10fcef55632aba8465a0499130ad40fd73e1a7747ba0bac37ba5c2e56c5e50e6",
+   "bytes": 421
+  },
+  "Docs/00_MVP_SCOPE_ADDENDUM.md": {
+   "sha256": "11e3b9285c7344c181de95202e639aa83e74f3f13fe86e1dcc891a47eb86663a",
+   "bytes": 3222
+  },
+  "plan.md": {
+   "sha256": "98228e1a7950535d7a50e40cbbd6e04908aa1e2307d400b427ffc7f9a1fccde3",
+   "bytes": 22862
+  }
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "threshold": 0.4,
+ "smoothing_window": 5,
+ "val_accepted_acc": 0.8503,
+ "val_coverage": 0.9918,
+ "states": [
+  "Accepted",
+  "Uncertain",
+  "No-Sign",
+  "Tracking-Lost"
+ ]
+}
