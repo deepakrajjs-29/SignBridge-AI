@@ -23,7 +23,7 @@ export function connectStream(
   const t = token();
   const url =
     `${base.replace(/^http/, "ws")}/api/v1/stream?session_id=${sessionId}` +
-    (t ? `&token=${encodeURIComponent(t)}` : "");
+    `&token=${encodeURIComponent(t ?? "")}`;
   const socket = new WebSocket(url);
   socket.onopen = () => socket.send(JSON.stringify({ type: "start" }));
   socket.onmessage = (ev: MessageEvent) => {
@@ -40,6 +40,9 @@ export function connectStream(
     else if (m.type === "error") cb.onError(m.message ?? "stream error");
   };
   socket.onerror = () => cb.onError("WebSocket error — use REST fallback.");
+  socket.onclose = (e) => {
+    if (e.code === 4401) cb.onError("Unauthorized stream (bad token).");
+  };
   return {
     sendFrame: (frame) => socket.send(JSON.stringify({ type: "frame", frame })),
     heartbeat: () => socket.send(JSON.stringify({ type: "heartbeat" })),

@@ -101,6 +101,8 @@ Breaking changes should result in a new API version. Backward-compatible additio
 | WS | /api/v1/stream | Real-time recognition stream | Yes |
 | GET | /api/v1/classes | Get supported sign classes | Optional |
 
+Note: `POST /api/v1/admin/rollback` is audit-only and does not move `active_model` back (only `POST /api/v1/admin/promote` switches the active model).
+
 ## 9. Health Check API
 
 Endpoint: GET /health

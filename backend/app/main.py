@@ -49,10 +49,12 @@ def create_app() -> FastAPI:
         if isinstance(detail, dict):
             code = detail.get("code", f"HTTP_{exc.status_code}")
             message = detail.get("message", str(detail))
+            details = detail.get("details", {})
         else:
             code = f"HTTP_{exc.status_code}"
             message = str(detail) if detail else f"HTTP {exc.status_code} error"
-        return error_envelope(request, code, message, exc.status_code)
+            details = {}
+        return error_envelope(request, code, message, exc.status_code, details)
 
     @app.middleware("http")
     async def request_id_mw(request: Request, call_next):

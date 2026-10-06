@@ -87,7 +87,12 @@ def test_rate_limit_429(monkeypatch):
     monkeypatch.setattr(deps, "RATE_PER_MIN", 2)
     for _ in range(2):
         client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
-    assert client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH).status_code == 429
+    r = client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
+    assert r.status_code == 429
+    b = r.json()
+    assert b["success"] is False
+    assert b["error"]["code"] == "RATE_LIMITED"
+    assert b.get("request_id")
 
 
 def test_single_classes_route():  # exactly one route object serves GET /api/v1/classes
@@ -110,6 +115,16 @@ def test_unauthorized_uses_envelope():  # POST /api/v1/predict, no token -> enve
     b = r.json()
     assert b["success"] is False
     assert b["error"]["code"] == "UNAUTHORIZED"
+    assert b.get("request_id")
+
+
+def test_403_uses_envelope():  # wrong Bearer token -> 403 envelope shape
+    r = client.post("/api/v1/predict", json={"frames": FRAMES},
+                    headers={"Authorization": "Bearer wrong"})
+    assert r.status_code == 403
+    b = r.json()
+    assert b["success"] is False
+    assert b["error"]["code"] == "FORBIDDEN"
     assert b.get("request_id")
 
 
