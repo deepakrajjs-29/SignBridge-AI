@@ -1,11 +1,9 @@
 """T6.1 — WebSocket /api/v1/stream (rolling 45-frame buffer, reset on stop/loss).
 
-Auth (Task 9 decision, option b lenient): accepts `?token=` verified against
-`JWT_SECRET` (same shared secret as the REST Bearer rule); a mismatched token
-closes the socket with 4401. A missing token is still allowed so the existing
-handshake contract (tests/test_ws.py) stays green; browsers cannot send
-Authorization headers on WS upgrades and a URL token would leak the secret
-into logs, so strict WS enforcement rides with the P7 JWT upgrade.
+Auth (Task 9 fix round 1, STRICT-(b) per controller): `?token=` is REQUIRED on
+every handshake and verified against `JWT_SECRET` (same shared secret as the
+REST Bearer rule); a missing OR mismatched token closes the socket with 4401
+before any Ready/status frame is sent. Anonymous sockets are never admitted.
 """
 
 from __future__ import annotations
@@ -26,7 +24,7 @@ router = APIRouter()
 async def stream(ws: WebSocket):
     await ws.accept()
     token = ws.query_params.get("token")
-    if token is not None and token != os.getenv("JWT_SECRET", "change-me"):
+    if token != os.getenv("JWT_SECRET", "change-me"):
         await ws.close(code=4401)
         return
     session_id = ws.query_params.get("session_id", f"sess_{uuid.uuid4().hex[:8]}")
