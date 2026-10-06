@@ -104,3 +104,13 @@ def test_text_to_sign_multiword():  # "thank you" -> items [ISL_002], unsupporte
     b = r.json()
     assert [i["class_id"] for i in b["items"]] == ["ISL_002"]
     assert b["unsupported_words"] == []
+    r = client.post("/api/v1/text-to-sign", json={"text": "good morning"}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    b = r.json()
+    assert [i["class_id"] for i in b["items"]] == ["ISL_008"]
+    assert b["unsupported_words"] == []
+    r = client.post("/api/v1/text-to-sign", json={"text": "hello xyz"}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    b = r.json()
+    assert [i["class_id"] for i in b["items"]] == ["ISL_001"]
+    assert b["unsupported_words"] == ["xyz"]
