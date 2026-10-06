@@ -17,5 +17,11 @@
 - `scripts/backup.py`: 7 artifacts, HASH-OK 7/7, backup 0.0 s / verify 0.1 s locally (attested 2026-09-27). Schedule daily; RPO 24 h, RTO 4 h (restore = copy + warmup + smoke).
 - Monitoring: `deploy/prometheus.yml` + alerts (health down 2 m, p95 > 200 ms 5 m, 5xx rate 5 m).
 
+## Retention sweep (daily cron)
+- `scripts/retention.py`: children-first deletes (feedback → predictions → sessions), tz-aware cutoffs; windows unchanged (sessions 90 d, predictions 180 d, api_logs 30 d).
+- Cron: `0 3 * * * /srv/signbridge/venv/bin/python /srv/signbridge/scripts/retention.py >> /var/log/signbridge/retention.log 2>&1`
+- Requires `DATABASE_URL` (managed PG) in the cron environment.
+- Verify: log line shows `{sessions, predictions, api_logs}` counts; alert on nonzero exit.
+
 ## Known prod gaps (carried, not blocking single-server pilot)
 PG live run, CDN, external pen-test, 24 h soak, browser E2E/axe, MediaPipe image/video (501), JWT proper (shared-secret Bearer live), cold-start 9 s (warmup covers).
