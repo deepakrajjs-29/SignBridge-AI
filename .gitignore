@@ -11,3 +11,6 @@ dist/
 
 # runtime sqlite (dev default DATABASE_URL)
 signbridge_m1.db
+
+# playwright MCP scratch artifacts
+.playwright-mcp/
