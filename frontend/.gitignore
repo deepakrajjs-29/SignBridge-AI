@@ -1,0 +1,4 @@
+# Compiled twins shadow .ts/.tsx sources under Vite resolution (.js wins).
+# Never commit emitted .js next to sources. Today there are no real .js
+# sources under src/, so no `!` exceptions are listed.
+src/**/*.js
