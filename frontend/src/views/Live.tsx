@@ -18,6 +18,22 @@ function toState(apiStatus: string, ok: boolean): RecState {
   return "Uncertain";
 }
 
+export const CAMERA_TIMEOUT_MS = 10000;
+export const CAMERA_ERROR_NOTE =
+  "Camera denied or unavailable. Check browser permission and retry.";
+
+export function requestCameraStream(timeoutMs = CAMERA_TIMEOUT_MS): Promise<MediaStream> {
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error("Camera request timed out after 10 s. Check browser permission and retry."));
+    }, timeoutMs);
+  });
+  return Promise.race([
+    navigator.mediaDevices.getUserMedia({ video: { width: 640 } }),
+    timeout,
+  ]);
+}
+
 export default function Live({ onResult }: { onResult: (p: Prediction) => void }) {
   const [state, setState] = useState<RecState>("Ready");
   const [session, setSession] = useState("");
@@ -42,10 +58,11 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
     []
   );
 
-  async function enableCamera() {
+  async function enableCamera(timeoutMs = CAMERA_TIMEOUT_MS) {
     setNote("");
+    setBusy("Requesting camera…");
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640 } });
+      const s = await requestCameraStream(timeoutMs);
       streamRef.current = s;
       if (videoRef.current) {
         videoRef.current.srcObject = s;
@@ -55,7 +72,9 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
       setState("Tracking");
     } catch {
       setState("Error");
-      setNote("Camera denied or unavailable. Check browser permission and retry.");
+      setNote(CAMERA_ERROR_NOTE);
+    } finally {
+      setBusy("");
     }
   }
 
@@ -136,7 +155,7 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
       <video ref={videoRef} width={320} muted playsInline aria-label="camera-preview" />
       <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
         {!camOn ? (
-          <button type="button" onClick={enableCamera}>
+          <button type="button" onClick={() => enableCamera()}>
             Enable camera
           </button>
         ) : (
