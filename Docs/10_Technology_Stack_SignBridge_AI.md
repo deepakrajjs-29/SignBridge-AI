@@ -228,6 +228,7 @@ The exact Python version should be frozen after compatibility testing with the s
 | sqlalchemy | Database ORM |
 | alembic | Database migration |
 | pytest | Backend testing |
+| prometheus_client | Prometheus metrics exposition (`GET /metrics`) |
 
 ## 19. Frontend Package Stack
 
@@ -317,7 +318,7 @@ For an academic prototype, a single server can host the frontend, backend, and i
 | --- | --- | --- |
 | Python logging | Application logs | [Confirm] |
 | Structured JSON logs | Machine-readable logging | [Confirm] |
-| Prometheus – optional | Metrics | [Optional] |
+| Prometheus | Metrics (`GET /metrics`: `http_requests_total`, `http_5xx_total`, `infer_seconds`, `model_loaded`) + `deploy/alert_rules.yml` | In use |
 | Grafana – optional | Visualization | [Optional] |
 | Sentry – optional | Error tracking | [Optional] |
 

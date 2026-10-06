@@ -16,6 +16,7 @@ import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.deps import FEAT_DIM, SEQ_LEN, get_model, get_policy, get_scaler, label_of, model_version
+from app.metrics import INFER_SECONDS
 
 router = APIRouter()
 
@@ -48,8 +49,9 @@ async def stream(ws: WebSocket):
                     window = np.asarray(buf[-SEQ_LEN:], dtype="float32")
                     mu, sd = get_scaler()
                     t0 = time.perf_counter()
-                    probs = get_model().predict(((window - mu.reshape(189)) / sd.reshape(189)
-                                                 ).astype("float32")[None], verbose=0)[0]
+                    with INFER_SECONDS.time():
+                        probs = get_model().predict(((window - mu.reshape(189)) / sd.reshape(189)
+                                                      ).astype("float32")[None], verbose=0)[0]
                     ci, conf = int(probs.argmax()), float(probs.max())
                     policy = get_policy()
                     state = "Recognized" if conf >= float(policy.get("threshold", 0.4)) else "Uncertain"

@@ -1,12 +1,21 @@
 groups:
   - name: signbridge-slo
     rules:
-      - alert: APIHealthDown
-        expr: probe_success{job="signbridge"} == 0
+      # Backend scrape target down (replaces probe_success, which nothing emits).
+      - alert: BackendDown
+        expr: up{job="signbridge"} == 0
         for: 2m
-      - alert: InferenceBudgetBreach
-        expr: signbridge_infer_ms_p95 > 200
-        for: 5m
+      # Real 5xx rate from the backend's http_5xx_total counter
+      # (replaces signbridge_http_5xx_total, which nothing emits).
       - alert: ErrorRateHigh
-        expr: rate(signbridge_http_5xx_total[5m]) > 0.01
+        expr: rate(http_5xx_total[5m]) > 0.01
+        for: 5m
+      # p95 inference latency over the backend's infer_seconds histogram
+      # (replaces signbridge_infer_ms_p95, which nothing emits).
+      - alert: InferenceLatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(infer_seconds_bucket[5m])) by (le)) > 0.2
+        for: 5m
+      # Model never loaded successfully (backend model_loaded gauge stays 0).
+      - alert: ModelNotLoaded
+        expr: model_loaded == 0
         for: 5m

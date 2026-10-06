@@ -9,9 +9,10 @@ import uuid
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.deps import assert_prod_secret_ok, class_list, model_version
+from app.metrics import HTTP_5XX_TOTAL, HTTP_REQUESTS_TOTAL, exposition
 from app.routers import admin, predict, session as session_router, speech, stream
 
 APP_NAME = "signbridge-ai"
@@ -67,6 +68,25 @@ def create_app() -> FastAPI:
         resp.headers["X-Request-ID"] = request.state.request_id
         resp.headers["X-Process-Time-Ms"] = str(round((time.perf_counter() - t0) * 1000, 2))
         return resp
+
+    @app.middleware("http")
+    async def metrics_mw(request: Request, call_next):
+        # Added after request_id_mw so this is the outer wrapper: 500s produced
+        # by the inner handler are still recorded. /metrics itself is excluded
+        # to avoid scrape feedback loops.
+        resp = await call_next(request)
+        path = request.url.path
+        if path != "/metrics":
+            HTTP_REQUESTS_TOTAL.labels(path=path, code=str(resp.status_code)).inc()
+            if resp.status_code >= 500:
+                HTTP_5XX_TOTAL.inc()
+        return resp
+
+    @app.get("/metrics")
+    async def metrics():
+        # No auth by design: Prometheus scrapes this unauthenticated.
+        data, content_type = exposition()
+        return Response(content=data, media_type=content_type)
 
     @app.get("/health")
     async def health(request: Request):

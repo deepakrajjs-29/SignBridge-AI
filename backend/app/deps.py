@@ -48,6 +48,8 @@ def get_model():
     if _model is None:
         import tensorflow as tf
         _model = tf.keras.models.load_model(MODELS / "SBAI-MDL-ISL-1.0.0.keras")
+        from app.metrics import MODEL_LOADED
+        MODEL_LOADED.set(1)
     return _model
 
 

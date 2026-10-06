@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.deps import (FEAT_DIM, SEQ_LEN, get_model, get_policy, get_scaler,
                       label_of, model_version, rate_limit, require_auth)
+from app.metrics import INFER_SECONDS
 
 router = APIRouter()
 
@@ -51,7 +52,8 @@ def infer(body: PredictBody, request: Request) -> JSONResponse:
         seq = np.concatenate([arr, np.tile(arr[-1:], (SEQ_LEN - len(arr), 1))])
     mu, sd = get_scaler()
     normed = ((seq - mu.reshape(189)) / sd.reshape(189)).astype("float32")
-    probs = get_model().predict(normed[None], verbose=0)[0]
+    with INFER_SECONDS.time():
+        probs = get_model().predict(normed[None], verbose=0)[0]
     ci = int(probs.argmax())
     conf = float(probs[ci])
     policy = get_policy()

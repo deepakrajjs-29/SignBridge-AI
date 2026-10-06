@@ -12,5 +12,6 @@ mediapipe==0.10.14
 tensorflow==2.17.0
 scikit-learn==1.5.1
 pytest==8.3.2
+prometheus_client==0.26.0
 ruff==0.5.5
 black==24.8.0
