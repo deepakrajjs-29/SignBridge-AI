@@ -581,3 +581,9 @@ The API may be extended to support downstream communication features. A recogniz
 | AI/ML Lead | [Enter name] | ________________ | ____________ |
 | Frontend Lead | [Enter name] | ________________ | ____________ |
 | Project Guide | [Enter name] | ________________ | ____________ |
+
+## 38. Environment contract
+Backend auto-loads `backend/.env` then repo-root `.env` at `import app` time (`python-dotenv`; explicit process env wins; resolved file logged).
+Compose runs `APP_ENV=production` and fails fast without `JWT_SECRET` / `POSTGRES_PASSWORD` (`${VAR:?msg}`); `DATABASE_URL` interpolates the DB password.
+`APP_ENV=production` + default `JWT_SECRET=change-me` refuses to boot (`create_app` raises `RuntimeError`); tests pin `JWT_SECRET=test-secret` via `tests/conftest.py`.
+4-origin `CORS_ORIGINS`: `http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000`.

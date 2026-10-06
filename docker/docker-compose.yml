@@ -3,7 +3,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: signbridge
-      POSTGRES_PASSWORD: change-me
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
       POSTGRES_DB: signbridge
     ports: ["5432:5432"]
     healthcheck:
@@ -15,11 +15,13 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
     environment:
-      DATABASE_URL: postgresql+psycopg://signbridge:change-me@db:5432/signbridge
+      APP_ENV: production
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
+      DATABASE_URL: "postgresql+psycopg://signbridge:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/signbridge"
       MODEL_VERSION: SBAI-MDL-ISL-1.0.0
       SEQ_LEN: "45"
       FEAT_DIM: "189"
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000"
     ports: ["8000:8000"]
     depends_on:
       db:
