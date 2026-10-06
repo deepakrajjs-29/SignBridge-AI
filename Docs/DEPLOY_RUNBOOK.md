@@ -15,6 +15,7 @@
 
 ## Backup / RPO-RTO
 - `scripts/backup.py`: 7 artifacts, HASH-OK 7/7, backup 0.0 s / verify 0.1 s locally (attested 2026-09-27). Schedule daily; RPO 24 h, RTO 4 h (restore = copy + warmup + smoke).
+- DB: manifest records `db_kind`; sqlite → file copy, postgres → `pg_dump "$DATABASE_URL" -f postgres.dump` (clear error if `pg_dump` missing). Restore DB: sqlite → copy file back; postgres → `psql "$DATABASE_URL" < postgres.dump`, then confirm `models/registry.json:active_model` matches the deployed model before warmup + smoke.
 - Monitoring: `deploy/prometheus.yml` + alerts (health down 2 m, p95 > 200 ms 5 m, 5xx rate 5 m).
 
 ## Retention sweep (daily cron)
