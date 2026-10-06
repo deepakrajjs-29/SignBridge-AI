@@ -14,6 +14,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
+    # Single worker: the TF SavedModel/keras handle is not fork-safe; scale via
+    # replicas, not workers. --proxy-headers so X-Forwarded-* is honoured.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--workers", "1"]
     environment:
       APP_ENV: production
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
@@ -30,5 +33,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE: "${VITE_API_BASE:-http://localhost:8000}"
     ports: ["3000:80"]
     depends_on: [backend]

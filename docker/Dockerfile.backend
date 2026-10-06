@@ -4,5 +4,15 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY data/dataset/annotations/ ./data/dataset/annotations/
+COPY models/SBAI-MDL-ISL-1.0.0.keras ./models/SBAI-MDL-ISL-1.0.0.keras
+COPY models/scaler_mvp50.npz ./models/scaler_mvp50.npz
+COPY models/registry.json ./models/registry.json
+COPY models/EXP-2026-001-gru-full/policy.json ./models/EXP-2026-001-gru-full/policy.json
+COPY scripts/warmup.py ./scripts/warmup.py
 ENV PYTHONPATH=/app/backend
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 CMD-SHELL python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status==200 else 1)" || exit 1
+# Warmup entrypoint: run "$@" (the uvicorn CMD, overridable via compose `command:`)
+# in the background, poll /health up to 60 s + fire one warmup POST /predict via
+# scripts/warmup.py, then idle on the server pid. Non-zero warmup fails the boot.
+ENTRYPOINT ["sh", "-c", "\"$@\" & SRV=$!; python scripts/warmup.py --wait --base-url http://localhost:8000; RC=$?; if [ $RC -ne 0 ]; then echo \"warmup failed rc=$RC\" >&2; kill $SRV 2>/dev/null; exit $RC; fi; wait $SRV", "warmup-entrypoint"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--workers", "1"]
