@@ -7,7 +7,7 @@ import os
 import time
 import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -41,6 +41,17 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        detail = exc.detail
+        if isinstance(detail, dict):
+            code = detail.get("code", f"HTTP_{exc.status_code}")
+            message = detail.get("message", str(detail))
+        else:
+            code = f"HTTP_{exc.status_code}"
+            message = str(detail) if detail else f"HTTP {exc.status_code} error"
+        return error_envelope(request, code, message, exc.status_code)
 
     @app.middleware("http")
     async def request_id_mw(request: Request, call_next):

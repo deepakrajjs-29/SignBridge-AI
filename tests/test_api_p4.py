@@ -98,6 +98,15 @@ def test_single_classes_route():  # exactly one route object serves GET /api/v1/
     assert len(matches) == 1, f"expected exactly one GET /api/v1/classes route, found {len(matches)}"
 
 
+def test_unauthorized_uses_envelope():  # POST /api/v1/predict, no token -> envelope shape
+    r = client.post("/api/v1/predict", json={"frames": FRAMES})
+    assert r.status_code == 401
+    b = r.json()
+    assert b["success"] is False
+    assert b["error"]["code"] == "UNAUTHORIZED"
+    assert b.get("request_id")
+
+
 def test_text_to_sign_multiword():  # "thank you" -> items [ISL_002], unsupported []
     r = client.post("/api/v1/text-to-sign", json={"text": "thank you"}, headers=AUTH)
     assert r.status_code == 200, r.text[:200]
