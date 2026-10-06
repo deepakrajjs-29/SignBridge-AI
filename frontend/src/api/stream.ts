@@ -1,4 +1,5 @@
 /** T6.1 — WebSocket stream client (REST fallback kept in Live view). */
+import { token } from "./client";
 import type { Prediction } from "./client";
 
 export type StreamState = string;
@@ -19,7 +20,10 @@ export function connectStream(
   stop: () => void;
   socket: WebSocket;
 } {
-  const url = `${base.replace(/^http/, "ws")}/api/v1/stream?session_id=${sessionId}`;
+  const t = token();
+  const url =
+    `${base.replace(/^http/, "ws")}/api/v1/stream?session_id=${sessionId}` +
+    (t ? `&token=${encodeURIComponent(t)}` : "");
   const socket = new WebSocket(url);
   socket.onopen = () => socket.send(JSON.stringify({ type: "start" }));
   socket.onmessage = (ev: MessageEvent) => {

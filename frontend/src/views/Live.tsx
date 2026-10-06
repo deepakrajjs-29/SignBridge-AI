@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Prediction, type RecState } from "../api/client";
+import { connectStream, type StreamCallbacks } from "../api/stream";
 import { MediaPipeProvider, isFiniteFrame } from "../landmarks";
 
 const STATES: RecState[] = [
@@ -14,8 +15,107 @@ const STATES: RecState[] = [
 
 function toState(apiStatus: string, ok: boolean): RecState {
   if (!ok) return "Error";
-  if (apiStatus === "recognized") return "Recognized";
+  // REST sends lowercase "recognized"; WS stream sends "Recognized".
+  if (apiStatus.toLowerCase() === "recognized") return "Recognized";
   return "Uncertain";
+}
+
+export const STREAM_TIMEOUT_MS = 15000;
+
+export function apiBase(): string {
+  return import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+}
+
+export interface RecognizeDeps {
+  base?: string;
+  connect?: typeof connectStream;
+  predict?: (
+    frames: number[][],
+    sessionId: string
+  ) => Promise<{ prediction: Prediction; status: string }>;
+  onState?: (s: RecState) => void;
+  onNote?: (m: string) => void;
+  onPrediction?: (p: Prediction, status: string) => void;
+  onHandle?: (h: { stop: () => void } | null) => void;
+  timeoutMs?: number;
+}
+
+/**
+ * Stream-first recognition with one-shot REST fallback (Task 9).
+ * Tries `connectStream` + `sendFrame` per row; a WS prediction resolves
+ * `{ path: "stream" }`. Any stream error / exception / timeout runs the
+ * unchanged REST `predict` block and resolves `{ path: "rest" }`.
+ * REST failures propagate to the caller (mapped to Error/Tracking-Lost there).
+ */
+export async function recognizeFrames(
+  frames: number[][],
+  sessionId: string,
+  deps: RecognizeDeps = {}
+): Promise<{ path: "stream" | "rest"; status: string }> {
+  const {
+    base = apiBase(),
+    connect = connectStream,
+    predict = (f, sid) => api.predict(f, sid),
+    onState = () => {},
+    onNote = () => {},
+    onPrediction = () => {},
+    onHandle = () => {},
+    timeoutMs = STREAM_TIMEOUT_MS,
+  } = deps;
+
+  let streamStatus = "";
+  const streamed = await new Promise<boolean>((resolve) => {
+    let done = false;
+    let handle: ReturnType<typeof connectStream> | null = null;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try {
+        handle?.stop();
+      } catch {
+        /* socket already closed */
+      }
+      onHandle(null);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => {
+      onNote("Live stream timed out — used REST fallback.");
+      finish(false);
+    }, timeoutMs);
+    try {
+      onState("Tracking");
+      const cb: StreamCallbacks = {
+        onStatus: (st) => {
+          if (st === "Tracking") onState("Tracking");
+          else if (st === "Tracking-Lost") {
+            onState("Tracking-Lost");
+            onNote("Landmark stream lost — reframe hands and retry.");
+          }
+        },
+        onPrediction: (p, st) => {
+          streamStatus = st;
+          onPrediction(p, st);
+          finish(true);
+        },
+        onError: (msg) => {
+          onState("Tracking-Lost");
+          onNote(`${msg} Used REST fallback.`);
+          finish(false);
+        },
+      };
+      handle = connect(base, sessionId, cb);
+      onHandle(handle);
+      for (const f of frames) handle.sendFrame(f);
+    } catch {
+      finish(false);
+    }
+  });
+
+  if (streamed) return { path: "stream", status: streamStatus };
+  const r = await predict(frames, sessionId);
+  onPrediction(r.prediction, r.status);
+  return { path: "rest", status: r.status };
 }
 
 export const CAMERA_TIMEOUT_MS = 10000;
@@ -45,6 +145,7 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const providerRef = useRef<MediaPipeProvider | null>(null);
+  const wsRef = useRef<{ stop: () => void } | null>(null);
 
   function provider(): MediaPipeProvider {
     if (!providerRef.current) providerRef.current = new MediaPipeProvider();
@@ -54,9 +155,24 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
   useEffect(
     () => () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      try {
+        wsRef.current?.stop();
+      } catch {
+        /* socket already closed */
+      }
+      wsRef.current = null;
     },
     []
   );
+
+  function applyPrediction(p: Prediction, status: string) {
+    setResult(p);
+    setConf(p.confidence);
+    onResult(p);
+    setState(toState(status, true));
+    if (status.toLowerCase() !== "recognized")
+      setNote(`Low confidence (${p.confidence}) — shown as Uncertain, not definitive.`);
+  }
 
   async function enableCamera(timeoutMs = CAMERA_TIMEOUT_MS) {
     setNote("");
@@ -94,9 +210,11 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
     }
     setBusy("Loading hand-tracking model (first run downloads ~10 MB)…");
     try {
-      if (!session) {
+      let sid = session;
+      if (!sid) {
         const s = await api.openSession();
-        setSession(s.session_id);
+        sid = s.session_id;
+        setSession(sid);
       }
       setState("Tracking");
       setBusy("Capturing 45 frames — hold the sign steady…");
@@ -107,15 +225,20 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
         setNote("Landmark stream invalid — reframe hands and retry.");
         return;
       }
-      const r = await api.predict(frames, session);
-      setResult(r.prediction);
-      setConf(r.prediction.confidence);
-      onResult(r.prediction);
-      setState(toState(r.status, true));
-      if (r.status !== "recognized")
-        setNote(`Low confidence (${r.prediction.confidence}) — shown as Uncertain, not definitive.`);
+      setBusy("Streaming frames — hold the sign steady…");
+      await recognizeFrames(frames, sid, {
+        onState: setState,
+        onNote: setNote,
+        onPrediction: applyPrediction,
+        onHandle: (h) => {
+          wsRef.current = h;
+        },
+      });
+      wsRef.current = null;
+      setBusy("");
     } catch (e) {
       setBusy("");
+      wsRef.current = null;
       const msg = e instanceof Error ? e.message : "Recognition failed.";
       if (/No hands detected/.test(msg)) {
         setState("Tracking-Lost");
