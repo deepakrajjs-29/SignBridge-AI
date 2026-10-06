@@ -9,6 +9,7 @@ before any Ready/status frame is sent. Anonymous sockets are never admitted.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import time
 import uuid
@@ -40,6 +41,7 @@ async def stream(ws: WebSocket):
         return
     session_id = ws.query_params.get("session_id", f"sess_{uuid.uuid4().hex[:8]}")
     buf: list[list[float]] = []
+    last_infer: float | None = None  # monotonic timestamp of last inference (500 ms throttle)
     await ws.send_json({"type": "status", "state": "Ready", "session_id": session_id})
     try:
         while True:
@@ -50,12 +52,22 @@ async def stream(ws: WebSocket):
                 await ws.send_json({"type": "status", "state": "Tracking", "session_id": session_id})
             elif kind == "frame":
                 frame = msg.get("frame")
-                if not isinstance(frame, list) or len(frame) != FEAT_DIM:
+                # REST parity (predict.py): list, len == FEAT_DIM, all-finite floats.
+                # Reject before append so a bad frame never poisons the window or
+                # reaches np.asarray (which would raise and wedge the socket).
+                if (not isinstance(frame, list) or len(frame) != FEAT_DIM
+                        or any(isinstance(v, bool) or not isinstance(v, (int, float))
+                               or not math.isfinite(float(v)) for v in frame)):
                     await ws.send_json({"type": "error", "code": "INVALID_INPUT",
                                         "message": f"frame must be {FEAT_DIM} floats"})
                     continue
                 buf.append(frame)
+                buf = buf[-SEQ_LEN:]  # rolling cap: buffer never exceeds one window
                 if len(buf) >= SEQ_LEN:
+                    now = time.monotonic()
+                    if last_infer is not None and (now - last_infer) < 0.5:
+                        continue  # backpressure: at most one inference per 500 ms
+                    last_infer = now  # first window (None) always infers immediately
                     window = np.asarray(buf[-SEQ_LEN:], dtype="float32")
                     mu, sd = get_scaler()
                     t0 = time.perf_counter()

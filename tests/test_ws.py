@@ -5,6 +5,7 @@ Auth (Task 9 STRICT-(b)): `?token=` is required and verified against
 """
 
 import os
+import time
 
 import numpy as np
 from fastapi.testclient import TestClient
@@ -60,3 +61,65 @@ def test_ws_rejects_wrong_token():
             raise AssertionError("wrong-token handshake should have been closed with 4401")
         except WebSocketDisconnect as e:
             assert e.code == 4401
+
+
+def test_ws_malformed_frame_stays_open():
+    """['oops']*189 -> error frame, socket usable afterwards."""
+    with client.websocket_connect(f"/api/v1/stream?session_id=sess_malformed&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        ws.send_json({"type": "frame", "frame": ["oops"] * 189})
+        err = ws.receive_json()
+        assert err["type"] == "error"
+        assert err["code"] == "INVALID_INPUT"
+        for f in FRAMES:
+            ws.send_json({"type": "frame", "frame": f})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction"
+        assert pred["prediction"]["class_id"].startswith("ISL_")
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+
+
+def test_ws_nan_frame_rejected():
+    """NaN frame -> error frame, no prediction emitted for it."""
+    with client.websocket_connect(f"/api/v1/stream?session_id=sess_nan&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for f in FRAMES[:44]:
+            ws.send_json({"type": "frame", "frame": f})
+        ws.send_json({"type": "frame", "frame": [float("nan")] * 189})
+        err = ws.receive_json()
+        assert err["type"] == "error"
+        assert err["code"] == "INVALID_INPUT"
+        # Socket usable: one more good frame completes the window -> prediction.
+        ws.send_json({"type": "frame", "frame": FRAMES[44]})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction"
+        assert pred["prediction"]["class_id"].startswith("ISL_")
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+
+
+def test_ws_flood_is_bounded():
+    """200 rapid frames -> prediction received, round-trip < 30 s."""
+    with client.websocket_connect(f"/api/v1/stream?session_id=sess_flood&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        t0 = time.monotonic()
+        frame = [0.1] * 189
+        for _ in range(200):
+            ws.send_json({"type": "frame", "frame": frame})
+        pred = None
+        while pred is None:
+            msg = ws.receive_json()
+            if msg.get("type") == "prediction":
+                pred = msg
+        dt = time.monotonic() - t0
+        assert pred["prediction"]["class_id"].startswith("ISL_")
+        assert dt < 30, f"flood round-trip took {dt:.1f}s, expected < 30s"
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
