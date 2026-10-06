@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 
@@ -23,7 +24,16 @@ class PredictBody(BaseModel):
     session_id: str = ""
 
 
-def infer(body: PredictBody, request: Request) -> JSONResponse:
+def run_inference(batch: np.ndarray) -> np.ndarray:
+    """Pure sync TF inference: (1, SEQ_LEN, FEAT_DIM) batch -> class probs.
+
+    Blocking (~ms-scale `model.predict`); always run via
+    `await asyncio.to_thread(...)` so the event loop stays free.
+    """
+    return get_model().predict(batch, verbose=0)[0]
+
+
+async def infer(body: PredictBody, request: Request) -> JSONResponse:
     t0 = time.perf_counter()
     arr = np.asarray(body.frames, dtype="float32")
     if arr.ndim != 2 or arr.shape[1] != FEAT_DIM:
@@ -53,7 +63,7 @@ def infer(body: PredictBody, request: Request) -> JSONResponse:
     mu, sd = get_scaler()
     normed = ((seq - mu.reshape(189)) / sd.reshape(189)).astype("float32")
     with INFER_SECONDS.time():
-        probs = get_model().predict(normed[None], verbose=0)[0]
+        probs = await asyncio.to_thread(run_inference, normed[None])
     ci = int(probs.argmax())
     conf = float(probs[ci])
     policy = get_policy()
@@ -74,17 +84,17 @@ def infer(body: PredictBody, request: Request) -> JSONResponse:
 
 @router.post("/predict")
 async def predict(body: PredictBody, request: Request, _=Depends(require_auth), __=Depends(rate_limit)):
-    return infer(body, request)
+    return await infer(body, request)
 
 
 @router.post("/recognize")
 async def recognize_alias(body: PredictBody, request: Request, _=Depends(require_auth), __=Depends(rate_limit)):
-    return infer(body, request)
+    return await infer(body, request)
 
 
 @router.post("/predict/sequence")
 async def predict_sequence(body: PredictBody, request: Request, _=Depends(require_auth), __=Depends(rate_limit)):
-    return infer(body, request)
+    return await infer(body, request)
 
 
 @router.post("/predict/image")

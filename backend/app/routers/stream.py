@@ -8,6 +8,7 @@ before any Ready/status frame is sent. Anonymous sockets are never admitted.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 import uuid
@@ -19,6 +20,15 @@ from app.deps import FEAT_DIM, SEQ_LEN, get_model, get_policy, get_scaler, label
 from app.metrics import INFER_SECONDS
 
 router = APIRouter()
+
+
+def run_stream_inference(batch: np.ndarray) -> np.ndarray:
+    """Pure sync TF inference: (1, SEQ_LEN, FEAT_DIM) batch -> class probs.
+
+    Blocking (~ms-scale `model.predict`); always run via
+    `await asyncio.to_thread(...)` so the stream loop stays responsive.
+    """
+    return get_model().predict(batch, verbose=0)[0]
 
 
 @router.websocket("/stream")
@@ -50,8 +60,10 @@ async def stream(ws: WebSocket):
                     mu, sd = get_scaler()
                     t0 = time.perf_counter()
                     with INFER_SECONDS.time():
-                        probs = get_model().predict(((window - mu.reshape(189)) / sd.reshape(189)
-                                                      ).astype("float32")[None], verbose=0)[0]
+                        probs = await asyncio.to_thread(
+                            run_stream_inference,
+                            ((window - mu.reshape(189)) / sd.reshape(189)).astype("float32")[None],
+                        )
                     ci, conf = int(probs.argmax()), float(probs.max())
                     policy = get_policy()
                     state = "Recognized" if conf >= float(policy.get("threshold", 0.4)) else "Uncertain"

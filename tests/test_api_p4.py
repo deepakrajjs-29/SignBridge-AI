@@ -164,6 +164,34 @@ def test_promote_switches_active_model():  # promote X -> GET /model reports X (
         reg_path.write_bytes(original)
 
 
+def test_parallel_predicts_overlap():  # 4 concurrent predicts wall-time < 3x single-predict wall-time
+    import asyncio
+    import time as _time
+
+    import httpx
+
+    async def _one(cli):
+        r = await cli.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        return r.json()
+
+    async def _run(n):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as cli:
+            await _one(cli)  # untimed warmup: cold TF load + graph trace, outside the measurement
+            t0 = _time.perf_counter()
+            await _one(cli)
+            single = _time.perf_counter() - t0
+            t0 = _time.perf_counter()
+            await asyncio.gather(*[_one(cli) for _ in range(n)])
+            total = _time.perf_counter() - t0
+            return single, total
+
+    single, total = asyncio.run(_run(4))
+    print(f"\n[overlap] single={single:.3f}s total4={total:.3f}s ratio={total / single:.2f}x")
+    assert total < 3 * single, f"no overlap: single={single:.3f}s total4={total:.3f}s"
+
+
 def test_prod_refuses_default_secret():  # APP_ENV=production + JWT_SECRET=change-me -> create_app raises RuntimeError
     import pytest
     from app.main import create_app
