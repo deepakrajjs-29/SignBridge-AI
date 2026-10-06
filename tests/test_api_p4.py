@@ -82,3 +82,25 @@ def test_rate_limit_429(monkeypatch):
     for _ in range(2):
         client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
     assert client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH).status_code == 429
+
+
+def test_single_classes_route():  # exactly one route object serves GET /api/v1/classes
+    matches = []
+    for r in app.routes:
+        if getattr(r, "path", "") == "/api/v1/classes" and "GET" in (getattr(r, "methods", None) or set()):
+            matches.append(r)
+        inner = getattr(getattr(r, "original_router", None), "routes", None) or []
+        prefix = getattr(getattr(r, "include_context", None), "prefix", "") or ""
+        for q in inner:
+            if prefix + getattr(q, "path", "") == "/api/v1/classes" \
+                    and "GET" in (getattr(q, "methods", None) or set()):
+                matches.append(q)
+    assert len(matches) == 1, f"expected exactly one GET /api/v1/classes route, found {len(matches)}"
+
+
+def test_text_to_sign_multiword():  # "thank you" -> items [ISL_002], unsupported []
+    r = client.post("/api/v1/text-to-sign", json={"text": "thank you"}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    b = r.json()
+    assert [i["class_id"] for i in b["items"]] == ["ISL_002"]
+    assert b["unsupported_words"] == []

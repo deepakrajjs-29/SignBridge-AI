@@ -28,3 +28,13 @@ def test_predict_with_session_logs_and_history_reads():
     h2 = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH).json()
     assert all(p["prediction_id"] != pid for p in h2["predictions"])
     assert client.get("/api/v1/sessions/nope/predictions", headers=AUTH).status_code == 404
+
+
+def test_session_predictions_include_label():  # every item has non-empty "label"
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": sid}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    h = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH).json()
+    assert h["predictions"], "expected at least one logged prediction"
+    for p in h["predictions"]:
+        assert p.get("label"), f"prediction missing non-empty label: {p}"
