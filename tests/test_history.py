@@ -38,3 +38,34 @@ def test_session_predictions_include_label():  # every item has non-empty "label
     assert h["predictions"], "expected at least one logged prediction"
     for p in h["predictions"]:
         assert p.get("label"), f"prediction missing non-empty label: {p}"
+
+
+def test_log_failure_is_logged_not_silent(monkeypatch, caplog):
+    """Monkeypatched db.add raising -> predict still 200 AND a log record exists."""
+    import contextlib
+    import logging
+
+    import app.routers.session as sess
+
+    class _FailingDB:
+        def get(self, *args, **kwargs):
+            return object()  # FK parents present -> reach the failing add
+        def add(self, *args, **kwargs):
+            raise RuntimeError("db down")
+        def commit(self):
+            pass
+
+    @contextlib.contextmanager
+    def _failing_session():
+        yield _FailingDB()
+
+    monkeypatch.setattr(sess, "get_db_session", _failing_session)
+    before = sess.PREDICTION_ERRORS_TOTAL._value.get()
+    with caplog.at_level(logging.ERROR, logger=sess.logger.name):
+        r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": "sess_boom"},
+                        headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    assert r.json()["prediction"].get("prediction_id", "").startswith("pred_")
+    assert sess.PREDICTION_ERRORS_TOTAL._value.get() == before + 1
+    assert any(rec.levelno >= logging.ERROR and "log_prediction" in rec.getMessage()
+               for rec in caplog.records), "expected log_prediction failure to be logged"
