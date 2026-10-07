@@ -1,8 +1,9 @@
 """T8.2 — prod smoke suite (health/model/classes/predict/tts/t2s/history/admin/ws)."""
 import os, sys
-os.environ.setdefault("JWT_SECRET", "test-secret")
-sys.path.insert(0, "D:/Projects/SignBridge/backend")
 from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault("JWT_SECRET", "test-secret")
+sys.path.insert(0, str(ROOT / "backend"))
 import numpy as np
 from fastapi.testclient import TestClient
 from app.main import app

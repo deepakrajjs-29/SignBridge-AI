@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 os.environ.setdefault("JWT_SECRET", "test-secret")
-ROOT = Path("D:/Projects/SignBridge")
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from fastapi.testclient import TestClient
 from app.main import app
