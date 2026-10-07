@@ -375,3 +375,58 @@ def test_request_is_logged():  # GET /health -> ApiLog row with its request_id
         assert row is not None, f"expected ApiLog row for request_id={rid}"
         assert row.path == "/health"
         assert row.status_code == 200
+
+
+def test_metrics_not_logged():  # GET /metrics -> zero ApiLog rows; /health still logs
+    import os
+    os.environ["SAMPLE_RATE"] = "1.0"
+    r = client.get("/metrics")
+    assert r.status_code == 200, r.text[:200]
+    rid = r.headers.get("X-Request-ID")
+    assert rid
+    from app.deps import get_db_session
+    from app.models import ApiLog
+    with get_db_session() as db:
+        assert db.get(ApiLog, rid) is None, f"GET /metrics must not write ApiLog row rid={rid}"
+    r2 = client.get("/health")
+    assert r2.status_code == 200, r2.text[:200]
+    rid2 = r2.json().get("request_id") or r2.headers.get("X-Request-ID")
+    assert rid2
+    with get_db_session() as db:
+        row = db.get(ApiLog, rid2)
+        assert row is not None and row.path == "/health"
+
+
+def test_api_log_never_breaks_responses(monkeypatch):  # SAMPLE_RATE 1.0 vs 0.0 identical; DB down still 200 + no row
+    import contextlib
+
+    import app.deps as deps_mod
+
+    real_session = deps_mod.get_db_session
+    monkeypatch.setenv("SAMPLE_RATE", "1.0")
+    r1 = client.get("/health")
+    assert r1.status_code == 200, r1.text[:200]
+    monkeypatch.setenv("SAMPLE_RATE", "0.0")
+    r2 = client.get("/health")
+    assert r2.status_code == r1.status_code == 200, (r1.text[:200], r2.text[:200])
+    b1, b2 = r1.json(), r2.json()
+    b1.pop("request_id", None)
+    b2.pop("request_id", None)
+    assert b1 == b2
+
+    monkeypatch.setenv("SAMPLE_RATE", "1.0")
+
+    @contextlib.contextmanager
+    def _failing_session():
+        raise RuntimeError("db down")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(deps_mod, "get_db_session", _failing_session)
+    r3 = client.get("/health")
+    assert r3.status_code == 200, r3.text[:200]
+    assert r3.json().get("status") == "ok"
+    rid3 = r3.json().get("request_id") or r3.headers.get("X-Request-ID")
+    assert rid3
+    from app.models import ApiLog
+    with real_session() as db:
+        assert db.get(ApiLog, rid3) is None, f"failed insert must leave no ApiLog row rid={rid3}"

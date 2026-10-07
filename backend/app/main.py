@@ -96,6 +96,10 @@ def create_app() -> FastAPI:
         # already exists. Never alters the response: insert failures are
         # swallowed after a best-effort attempt (stderr line at most).
         resp = await call_next(request)
+        path = request.url.path
+        if path == "/metrics":
+            # Mirror metrics_mw exclusion: scrapes (~1/30s) must not write ApiLog noise rows.
+            return resp
         try:
             try:
                 rate = float(os.getenv("SAMPLE_RATE", "1.0"))
@@ -107,7 +111,7 @@ def create_app() -> FastAPI:
                 from app.models import ApiLog
                 with get_db_session() as db:
                     db.add(ApiLog(request_id=getattr(request.state, "request_id", "") or "",
-                                  path=request.url.path, status_code=resp.status_code))
+                                  path=path, status_code=resp.status_code))
                     db.commit()
         except Exception as exc:
             import sys
