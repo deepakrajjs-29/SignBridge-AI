@@ -17,12 +17,10 @@ import uuid
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.deps import FEAT_DIM, SEQ_LEN, get_model, get_policy, get_scaler, label_of, model_version
+from app.deps import FEAT_DIM, NOSIGN_ENERGY, SEQ_LEN, get_model, get_policy, get_scaler, label_of, model_version
 from app.metrics import INFER_SECONDS
 
 router = APIRouter()
-
-NOSIGN_ENERGY = 1e-6
 
 
 def run_stream_inference(batch: np.ndarray) -> np.ndarray:
@@ -75,6 +73,10 @@ async def stream(ws: WebSocket):
                     # No-Sign energy gate (Task 11): blank windows answer
                     # "No-Sign" BEFORE any model call (same rule as predict.py;
                     # checked pre-normalization — see predict.py note).
+                    # Sentinel contract: ISL_000 is intentionally
+                    # out-of-vocabulary; the carried label ("No sign detected")
+                    # is what renders; the response is never persisted;
+                    # argmax is deliberately not attached (model call).
                     if float(np.abs(window).max()) < NOSIGN_ENERGY:
                         await ws.send_json({
                             "type": "prediction", "state": "No-Sign", "session_id": session_id,

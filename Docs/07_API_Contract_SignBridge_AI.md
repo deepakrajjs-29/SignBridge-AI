@@ -355,6 +355,8 @@ Server message
 | processing | Input is being processed |
 | error | Request could not be processed |
 
+No-sign uses REST status `no-sign` / WS state `No-Sign` with sentinel prediction `{"class_id": "ISL_000", "label": "No sign detected", "confidence": 0.0}` (never persisted; `prediction_id` is `""`).
+
 ## 22. Error Response Contract
 
 {

@@ -11,13 +11,11 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.deps import (FEAT_DIM, SEQ_LEN, get_model, get_policy, get_scaler,
+from app.deps import (FEAT_DIM, NOSIGN_ENERGY, SEQ_LEN, get_model, get_policy, get_scaler,
                       label_of, model_version, rate_limit, require_auth)
 from app.metrics import INFER_SECONDS
 
 router = APIRouter()
-
-NOSIGN_ENERGY = 1e-6
 
 
 class PredictBody(BaseModel):
@@ -67,6 +65,10 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
     # BEFORE any model call. NOTE: the check is deliberately pre-normalization:
     # with the shipped scaler zeros normalize to max abs ~= 0.67, so a
     # post-norm gate could never fire for blank input.
+    # Sentinel contract: ISL_000 is intentionally out-of-vocabulary; the
+    # carried label ("No sign detected") is what renders; the response is
+    # never persisted (prediction_id ""); argmax is deliberately not
+    # attached (it would require a model call).
     if float(np.abs(seq).max()) < NOSIGN_ENERGY:
         ms = round((time.perf_counter() - t0) * 1000, 2)
         return JSONResponse(content={

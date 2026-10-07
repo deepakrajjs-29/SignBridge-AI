@@ -21,6 +21,9 @@ FEAT_DIM = int(os.getenv("FEAT_DIM", "189"))
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me")
 RATE_PER_MIN = int(os.getenv("RATE_PER_MIN", "60"))
 
+# No-sign energy gate (Task 11): shared by predict.py and stream.py.
+NOSIGN_ENERGY = 1e-6
+
 _model = None
 _scaler = None
 _policy = {"threshold": 0.4, "smoothing_window": 5}
