@@ -91,7 +91,25 @@ async def promote(body: PromoteBody, request: Request, actor=Depends(require_aut
 
 @router.post("/rollback")
 async def rollback(body: PromoteBody, request: Request, actor=Depends(require_auth)):
+    from fastapi.responses import JSONResponse
+    reg = read_registry()
+    previous = reg.get("previous_model")
+    if not previous:
+        return JSONResponse(status_code=404, content={
+            "success": False,
+            "error": {"code": "NO_ROLLBACK_STATE",
+                      "message": "no previous model to roll back to",
+                      "details": {}},
+            "request_id": getattr(request.state, "request_id", "")})
+    current = reg.get("active_model", reg.get("model_id"))
+    reg["previous_model"] = current
+    reg["active_model"] = previous
+    reg["model_id"] = previous
+    if isinstance(reg.get("history"), list):
+        reg["history"].append({"model_id": previous,
+                               "environment": body.environment, "action": "rollback"})
+    write_registry(reg)
     with get_db_session() as db:
-        _audit(db, actor, f"rollback:{body.model_id}->{body.environment}", request)
-        return {"success": True, "model_id": body.model_id, "environment": body.environment,
+        _audit(db, actor, f"rollback:{previous}->{body.environment}", request)
+        return {"success": True, "model_id": previous, "environment": body.environment,
                 "rolled_back_at": time.time(), "request_id": getattr(request.state, "request_id", "")}

@@ -70,16 +70,16 @@ def test_admin_rbac_and_audit():
     assert r.status_code == 200 and r.json()["models"]
     from app.deps import MODELS
     reg_path = MODELS / "registry.json"
-    saved = reg_path.read_bytes()  # promote rewrites the live registry: restore after
+    saved = reg_path.read_bytes()  # promote/rollback rewrite the live registry: restore after
     try:
         r = client.post("/api/v1/admin/promote",
                         json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
         assert r.status_code == 200
+        r = client.post("/api/v1/admin/rollback",
+                        json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
+        assert r.status_code == 200 and "rolled_back_at" in r.json()
     finally:
         reg_path.write_bytes(saved)
-    r = client.post("/api/v1/admin/rollback",
-                    json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"}, headers=AUTH)
-    assert r.status_code == 200 and "rolled_back_at" in r.json()
 
 
 def test_rate_limit_429(monkeypatch):
@@ -272,6 +272,64 @@ def test_promote_unknown_model_422():  # Task 14: garbage model_id rejected, ste
         assert r.status_code == 200, r.text[:200]
     finally:
         reg_path.write_bytes(saved)
+
+
+def test_rollback_restores_previous_model():  # Task 16: promote X -> rollback -> active back
+    import json
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    original = reg_path.read_bytes()  # TRACKED live file: byte-exact restore in finally
+    try:
+        base = json.loads(original.decode("utf-8"))
+        base["active_model"] = "SBAI-MDL-ISL-1.0.0"
+        base["previous_model"] = "HIST-PREV-1"
+        hist = base.get("history")
+        if not isinstance(hist, list):
+            base["history"] = hist = []
+        for mid in ("SBAI-MDL-ISL-1.0.0", "HIST-PREV-1"):
+            if not any(isinstance(h, dict) and h.get("model_id") == mid for h in hist):
+                hist.append({"model_id": mid, "environment": "staging", "action": "stage"})
+        reg_path.write_text(json.dumps(base, indent=2) + "\n", encoding="utf-8", newline="\n")
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "HIST-PREV-1", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        assert json.loads(reg_path.read_text(encoding="utf-8"))["active_model"] == "HIST-PREV-1"
+        r = client.post("/api/v1/admin/rollback",
+                        json={"model_id": "HIST-PREV-1", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        b = r.json()
+        assert b["success"] is True
+        assert b["model_id"] == "SBAI-MDL-ISL-1.0.0", b
+        assert "rolled_back_at" in b
+        persisted = json.loads(reg_path.read_text(encoding="utf-8"))
+        assert persisted.get("active_model") == "SBAI-MDL-ISL-1.0.0", persisted
+        assert persisted.get("previous_model") == "HIST-PREV-1", persisted
+        assert client.get("/api/v1/model").json()["model"]["model_version"] == "SBAI-MDL-ISL-1.0.0"
+    finally:
+        reg_path.write_bytes(original)
+
+
+def test_rollback_empty_404():  # Task 16: no previous_model -> 404 NO_ROLLBACK_STATE
+    import json
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    original = reg_path.read_bytes()  # TRACKED live file: byte-exact restore in finally
+    try:
+        reg_path.write_text(json.dumps({"model_id": "SBAI-MDL-ISL-1.0.0",
+                                        "active_model": "SBAI-MDL-ISL-1.0.0"},
+                                       indent=2) + "\n", encoding="utf-8", newline="\n")
+        r = client.post("/api/v1/admin/rollback",
+                        json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 404, r.text[:200]
+        b = r.json()
+        assert b["success"] is False
+        assert b["error"]["code"] == "NO_ROLLBACK_STATE", b
+        assert b.get("request_id")
+    finally:
+        reg_path.write_bytes(original)
 
 
 def test_predict_unknown_session_404():  # Task 12: ghost session_ids rejected, empty stays session-less

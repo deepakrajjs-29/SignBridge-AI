@@ -102,7 +102,9 @@ Breaking changes should result in a new API version. Backward-compatible additio
 | WS | /api/v1/stream | Real-time recognition stream | Yes |
 | GET | /api/v1/classes | Get supported sign classes | Optional |
 
-Note: `POST /api/v1/admin/rollback` is audit-only and does not move `active_model` back (only `POST /api/v1/admin/promote` switches the active model).
+Note: `POST /api/v1/admin/rollback` swaps `active_model` ↔ `previous_model` in
+`models/registry.json` (audit-logged) and returns the restored `model_id`; with no
+`previous_model` recorded it returns `404` with `error.code: NO_ROLLBACK_STATE`.
 
 ## 9. Health Check API
 

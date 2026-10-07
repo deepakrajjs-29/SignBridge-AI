@@ -11,7 +11,7 @@
 4. Run smoke again on prod URL; check Prometheus alerts (`deploy/alert_rules.yml`).
 
 ## Rollback (<5 min, drilled)
-- Restore prior `.keras` to `models/SBAI-MDL-ISL-1.0.0.keras`, redeploy/restart, warmup, smoke. Drill 2026-09-27: GRU→LSTM→GRU all OK, hash-verified.
+- `POST /api/v1/admin/rollback` swaps `active_model` ↔ `previous_model` in `models/registry.json` (audit-logged; `404 NO_ROLLBACK_STATE` when nothing to revert), then redeploy/restart, warmup, smoke. Drill 2026-09-27: GRU→LSTM→GRU all OK, hash-verified.
 
 ## Backup / RPO-RTO
 - `scripts/backup.py`: 7 artifacts, HASH-OK 7/7, backup 0.0 s / verify 0.1 s locally (attested 2026-09-27). Schedule daily; RPO 24 h, RTO 4 h (restore = copy + warmup + smoke).
