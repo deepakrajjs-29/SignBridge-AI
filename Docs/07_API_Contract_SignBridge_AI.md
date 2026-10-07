@@ -99,6 +99,7 @@ Breaking changes should result in a new API version. Backward-compatible additio
 | POST | /api/v1/session | Create recognition session | Yes |
 | DELETE | /api/v1/session/{id} | End recognition session (stored row marked `closed`) | Yes |
 | DELETE | /api/v1/sessions/{id}/purge | Permanently delete session + its predictions + feedback (404 unknown) | Yes |
+| POST | /api/v1/feedback | Submit feedback for a prediction `{prediction_id, actual_class_id?, rating?}` → 200 + row (404 unknown prediction) | Yes |
 | WS | /api/v1/stream | Real-time recognition stream | Yes |
 | GET | /api/v1/classes | Get supported sign classes | Optional |
 

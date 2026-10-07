@@ -111,6 +111,8 @@ Table name: users
 | created_at | TIMESTAMP |  | No | Account creation time |
 | updated_at | TIMESTAMP |  | No | Last update time |
 
+Note: the `users` table is intentionally kept (no endpoints yet) as the anchor for future auth work.
+
 ## 8. Sign Classes Table
 
 Table name: sign_classes

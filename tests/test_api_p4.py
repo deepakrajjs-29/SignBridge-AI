@@ -359,3 +359,19 @@ def test_open_endpoints_throttled(monkeypatch):  # Task 17: >limit rapid /health
     assert b["success"] is False
     assert b["error"]["code"] == "RATE_LIMITED"
     assert b.get("request_id")
+
+
+def test_request_is_logged():  # GET /health -> ApiLog row with its request_id
+    import os
+    os.environ["SAMPLE_RATE"] = "1.0"
+    r = client.get("/health")
+    assert r.status_code == 200, r.text[:200]
+    rid = r.json().get("request_id") or r.headers.get("X-Request-ID")
+    assert rid
+    from app.deps import get_db_session
+    from app.models import ApiLog
+    with get_db_session() as db:
+        row = db.get(ApiLog, rid)
+        assert row is not None, f"expected ApiLog row for request_id={rid}"
+        assert row.path == "/health"
+        assert row.status_code == 200

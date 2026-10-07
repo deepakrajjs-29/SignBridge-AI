@@ -118,3 +118,24 @@ def test_sessions_limit_clamped():  # Task 17: limit=1000 -> at most 200 items o
     r = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH)
     assert r.status_code == 200, r.text[:200]
     assert len(r.json()["predictions"]) <= 50
+
+
+def test_feedback_roundtrip():  # predict w/ session -> POST feedback -> 200; bogus id -> 404
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": sid}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    pid = r.json()["prediction"].get("prediction_id")
+    assert pid
+    r = client.post("/api/v1/feedback", json={"prediction_id": pid, "rating": 5}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    b = r.json()
+    assert b["success"] is True
+    assert b.get("feedback_id")
+    from app.deps import get_db_session
+    from app.models import Feedback
+    with get_db_session() as db:
+        assert db.query(Feedback).filter(Feedback.prediction_id == pid).count() >= 1
+    r = client.post("/api/v1/feedback", json={"prediction_id": "pred_bogus_000", "rating": 1},
+                    headers=AUTH)
+    assert r.status_code == 404, r.text[:200]
+    assert r.json()["error"]["code"] == "NOT_FOUND"

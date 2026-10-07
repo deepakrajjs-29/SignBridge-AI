@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.deps import assert_prod_secret_ok, class_list, model_version, rate_limit
 from app.metrics import HTTP_5XX_TOTAL, HTTP_REQUESTS_TOTAL, exposition
-from app.routers import admin, predict, session as session_router, speech, stream
+from app.routers import admin, feedback, predict, session as session_router, speech, stream
 
 APP_NAME = "signbridge-ai"
 SEQ_LEN = int(os.getenv("SEQ_LEN", "45"))
@@ -88,6 +88,32 @@ def create_app() -> FastAPI:
                 HTTP_5XX_TOTAL.inc()
         return resp
 
+    @app.middleware("http")
+    async def api_log_mw(request: Request, call_next):
+        # Task 18: sampled ApiLog insert ({request_id, path, status_code}).
+        # Added after request_id_mw/metrics_mw so this is the outermost wrapper:
+        # the response path runs after the inner middlewares, so request_id
+        # already exists. Never alters the response: insert failures are
+        # swallowed after a best-effort attempt (stderr line at most).
+        resp = await call_next(request)
+        try:
+            try:
+                rate = float(os.getenv("SAMPLE_RATE", "1.0"))
+            except ValueError:
+                rate = 1.0
+            import random
+            if random.random() < rate:
+                from app.deps import get_db_session
+                from app.models import ApiLog
+                with get_db_session() as db:
+                    db.add(ApiLog(request_id=getattr(request.state, "request_id", "") or "",
+                                  path=request.url.path, status_code=resp.status_code))
+                    db.commit()
+        except Exception as exc:
+            import sys
+            print(f"api_log insert failed: {exc}", file=sys.stderr)
+        return resp
+
     @app.get("/metrics")
     async def metrics():
         # No auth by design: Prometheus scrapes this unauthenticated.
@@ -115,6 +141,7 @@ def create_app() -> FastAPI:
 
     app.include_router(predict.router, prefix="/api/v1", tags=["predict"])
     app.include_router(session_router.router, prefix="/api/v1", tags=["session"])
+    app.include_router(feedback.router, prefix="/api/v1", tags=["feedback"])
     app.include_router(speech.router, prefix="/api/v1", tags=["speech"])
     app.include_router(stream.router, prefix="/api/v1", tags=["stream"])
     app.include_router(admin.router, prefix="/api/v1", tags=["admin"])
