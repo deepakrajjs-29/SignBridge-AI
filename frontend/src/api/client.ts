@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export const PREDICT_TIMEOUT_MS = 120_000;
 export const DEFAULT_TIMEOUT_MS = 15_000;

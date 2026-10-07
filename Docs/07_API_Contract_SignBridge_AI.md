@@ -598,4 +598,7 @@ The API may be extended to support downstream communication features. A recogniz
 Backend auto-loads `backend/.env` then repo-root `.env` at `import app` time (`python-dotenv`; explicit process env wins; resolved file logged).
 Compose runs `APP_ENV=production` and fails fast without `JWT_SECRET` / `POSTGRES_PASSWORD` (`${VAR:?msg}`); `DATABASE_URL` interpolates the DB password.
 `APP_ENV=production` + default `JWT_SECRET=change-me` refuses to boot (`create_app` raises `RuntimeError`); tests pin `JWT_SECRET=test-secret` via `tests/conftest.py`.
-4-origin `CORS_ORIGINS`: `http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000`.
+ 4-origin `CORS_ORIGINS`: `http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000`.
+`APP_ENV=production` disables the interactive docs (`/docs`, `/redoc`, `/openapi.json` return 404; `create_app` gates on `APP_ENV` at call time, same pattern as the prod-secret guard).
+Every response carries minimal security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
+Frontend `VITE_API_BASE` falls back to `http://localhost:8000` on unset OR empty string (`||`, not `??`).

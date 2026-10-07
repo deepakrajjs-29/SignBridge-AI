@@ -70,6 +70,28 @@ describe("client timeouts", () => {
   });
 });
 
+describe("env base fallback", () => {
+  test("empty VITE_API_BASE falls back to localhost", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_API_BASE", "");
+    const fetchMock = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit): Promise<Response> =>
+        new Response(JSON.stringify({ success: true, status: "ok" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const mod = await import("./client");
+      await mod.api.health();
+      expect(String(fetchMock.mock.calls[0][0])).toMatch(/^http:\/\/localhost:8000\//);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe("capture deadline", () => {
   test("capture aborts past its deadline", async () => {
     vi.useFakeTimers();

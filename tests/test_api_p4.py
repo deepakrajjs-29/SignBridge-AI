@@ -483,6 +483,29 @@ def test_rate_limit_tiers_isolated(monkeypatch):  # open and guarded buckets do 
     assert client.get("/health").status_code == 200
 
 
+def test_docs_disabled_in_production():  # APP_ENV=production -> /docs 404, /health 200
+    import os
+    from fastapi.testclient import TestClient
+    from app.main import create_app
+    old_env = os.getenv("APP_ENV")
+    os.environ["APP_ENV"] = "production"
+    try:
+        prod_app = create_app()
+    finally:
+        if old_env is None:
+            os.environ.pop("APP_ENV", None)
+        else:
+            os.environ["APP_ENV"] = old_env
+    prod_client = TestClient(prod_app)
+    try:
+        assert prod_client.get("/docs").status_code == 404
+        assert prod_client.get("/redoc").status_code == 404
+        assert prod_client.get("/openapi.json").status_code == 404
+        assert prod_client.get("/health").status_code == 200
+    finally:
+        reset_rate_limit()
+
+
 def test_promote_visible_on_model_immediately():  # promote X -> GET /model reports X (no stale cache)
     import json
     from app.deps import MODELS

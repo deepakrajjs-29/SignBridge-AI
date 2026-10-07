@@ -24,7 +24,7 @@ export function toState(apiStatus: string, ok: boolean): RecState {
 export const STREAM_TIMEOUT_MS = 15000;
 
 export function apiBase(): string {
-  return import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+  return import.meta.env.VITE_API_BASE || "http://localhost:8000";
 }
 
 export interface RecognizeDeps {

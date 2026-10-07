@@ -40,7 +40,11 @@ def error_envelope(request: Request, code: str, message: str, status: int = 400,
 
 def create_app() -> FastAPI:
     assert_prod_secret_ok()
-    app = FastAPI(title=APP_NAME, version="0.2.0")
+    is_prod = os.getenv("APP_ENV", "development") == "production"
+    app = FastAPI(title=APP_NAME, version="0.2.0",
+                  docs_url=None if is_prod else "/docs",
+                  redoc_url=None if is_prod else "/redoc",
+                  openapi_url=None if is_prod else "/openapi.json")
 
     cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",") if o.strip()]
     app.add_middleware(
@@ -74,6 +78,15 @@ def create_app() -> FastAPI:
             return error_envelope(request, "INTERNAL", "Unhandled error", 500)
         resp.headers["X-Request-ID"] = request.state.request_id
         resp.headers["X-Process-Time-Ms"] = str(round((time.perf_counter() - t0) * 1000, 2))
+        return resp
+
+    @app.middleware("http")
+    async def security_headers_mw(request: Request, call_next):
+        # Minimal hardening headers on every response (prod and dev alike).
+        resp = await call_next(request)
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["X-Frame-Options"] = "DENY"
+        resp.headers["Referrer-Policy"] = "no-referrer"
         return resp
 
     @app.middleware("http")
