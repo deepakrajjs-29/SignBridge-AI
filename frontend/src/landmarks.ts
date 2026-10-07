@@ -25,22 +25,90 @@ export interface LandmarkProvider {
   capture(video: HTMLVideoElement, frames?: number, deadlineMs?: number): Promise<number[][]>;
 }
 
-let shared: Promise<HandLandmarker> | null = null;
-function landmarker(): Promise<HandLandmarker> {
-  if (!shared) {
-    shared = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
-      return HandLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+export type LandmarkerDelegate = "GPU" | "CPU";
+
+/** Creation attempt order: GPU first, CPU fallback (first success wins). */
+const DELEGATE_ORDER: LandmarkerDelegate[] = ["GPU", "CPU"];
+
+export const DOWNLOAD_ERROR_MESSAGE =
+  "Hand-tracking model failed to download (network needed once). Retry online.";
+export const DELEGATE_ERROR_MESSAGE =
+  "Hand-tracking failed to start (GPU delegate unsupported and CPU fallback failed). Try a different browser or device.";
+
+export interface LandmarkerDeps {
+  resolveFileset?: typeof FilesetResolver.forVisionTasks;
+  create?: typeof HandLandmarker.createFromOptions;
+}
+
+function codedError(message: string, code: "DOWNLOAD" | "DELEGATE"): Error {
+  return Object.assign(new Error(message), { code });
+}
+
+/**
+ * Internal creation seam (exported for tests): resolves the wasm fileset
+ * once, then tries each delegate in order and returns the first success.
+ * Fileset (network) failures throw a DOWNLOAD-coded error; exhausting all
+ * delegates throws a DELEGATE-coded error so callers stay truthful.
+ */
+export async function createLandmarker(
+  delegates: LandmarkerDelegate[] = DELEGATE_ORDER,
+  deps: LandmarkerDeps = {}
+): Promise<HandLandmarker> {
+  const resolveFileset = deps.resolveFileset ?? FilesetResolver.forVisionTasks;
+  const create = deps.create ?? HandLandmarker.createFromOptions;
+  let fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
+  try {
+    fileset = await resolveFileset(WASM_BASE);
+  } catch {
+    throw codedError(DOWNLOAD_ERROR_MESSAGE, "DOWNLOAD");
+  }
+  for (const delegate of delegates) {
+    try {
+      return await create(fileset, {
+        baseOptions: { modelAssetPath: MODEL_URL, delegate },
         runningMode: "VIDEO",
         numHands: 2,
       });
-    })();
+    } catch {
+      // Try the next delegate (GPU failure falls through to CPU).
+    }
+  }
+  throw codedError(DELEGATE_ERROR_MESSAGE, "DELEGATE");
+}
+
+let shared: Promise<HandLandmarker> | null = null;
+/** Shared singleton (exported for tests); happy-path creation is unchanged. */
+export function landmarker(): Promise<HandLandmarker> {
+  if (!shared) {
+    shared = createLandmarker(DELEGATE_ORDER);
     shared.catch(() => {
       shared = null; // allow retry after failure
     });
   }
   return shared;
+}
+
+/**
+ * Clears the shared landmarker, closing the underlying instance.
+ * Safe no-op when nothing was ever created.
+ */
+export function dispose(): void {
+  const pending = shared;
+  shared = null;
+  if (pending) {
+    pending.then(
+      (lm) => {
+        try {
+          lm.close();
+        } catch {
+          /* already closed */
+        }
+      },
+      () => {
+        /* creation failed — nothing to close */
+      }
+    );
+  }
 }
 
 function blank(): number[][][] {
@@ -56,6 +124,13 @@ export class MediaPipeProvider implements LandmarkProvider {
   status: ProviderStatus = "idle";
   error = "";
   progress = "";
+
+  /** Releases the shared on-device model. Safe no-op if never created. */
+  dispose(): void {
+    // Bare `dispose()` resolves to the module-level function (methods are
+    // properties, not lexical bindings), so this is not recursive.
+    dispose();
+  }
 
   async capture(
     video: HTMLVideoElement,
@@ -84,9 +159,12 @@ export class MediaPipeProvider implements LandmarkProvider {
     let lm: HandLandmarker;
     try {
       lm = await landmarker();
-    } catch {
+    } catch (e) {
       this.status = "error";
-      this.error = "Hand-tracking model failed to download (network needed once). Retry online.";
+      // Truthful errors: delegate exhaustion (unsupported device/browser)
+      // must not masquerade as a network download failure.
+      const code = (e as { code?: string } | null)?.code;
+      this.error = code === "DELEGATE" ? DELEGATE_ERROR_MESSAGE : DOWNLOAD_ERROR_MESSAGE;
       throw new Error(this.error);
     }
     abortIfPastDeadline();

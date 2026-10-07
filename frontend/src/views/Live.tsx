@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Prediction, type RecState } from "../api/client";
 import { connectStream, type StreamCallbacks } from "../api/stream";
-import { MediaPipeProvider, isFiniteFrame } from "../landmarks";
+import { MediaPipeProvider, dispose as disposeLandmarker, isFiniteFrame } from "../landmarks";
 
 const STATES: RecState[] = [
   "Ready",
@@ -162,6 +162,12 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
         /* socket already closed */
       }
       wsRef.current = null;
+      try {
+        providerRef.current?.dispose();
+      } catch {
+        /* provider already disposed */
+      }
+      disposeLandmarker();
     },
     []
   );
