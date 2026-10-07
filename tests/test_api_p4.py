@@ -345,3 +345,17 @@ def test_predict_unknown_session_404():  # Task 12: ghost session_ids rejected, 
     # empty session_id stays session-less exactly as today: still 200
     r = client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
     assert r.status_code == 200, r.text[:200]
+
+
+def test_open_endpoints_throttled(monkeypatch):  # Task 17: >limit rapid /health -> 429 envelope
+    import app.main as main_mod
+    assert main_mod.OPEN_RATE_PER_MIN == 120  # verbatim throttle for open GETs
+    monkeypatch.setattr(main_mod, "OPEN_RATE_PER_MIN", 2)
+    for _ in range(2):
+        assert client.get("/health").status_code == 200
+    r = client.get("/health")
+    assert r.status_code == 429
+    b = r.json()
+    assert b["success"] is False
+    assert b["error"]["code"] == "RATE_LIMITED"
+    assert b.get("request_id")

@@ -7,17 +7,23 @@ import os
 import time
 import uuid
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-from app.deps import assert_prod_secret_ok, class_list, model_version
+from app.deps import assert_prod_secret_ok, class_list, model_version, rate_limit
 from app.metrics import HTTP_5XX_TOTAL, HTTP_REQUESTS_TOTAL, exposition
 from app.routers import admin, predict, session as session_router, speech, stream
 
 APP_NAME = "signbridge-ai"
 SEQ_LEN = int(os.getenv("SEQ_LEN", "45"))
 FEAT_DIM = int(os.getenv("FEAT_DIM", "189"))
+OPEN_RATE_PER_MIN = 120
+
+
+def open_rate_limit(request: Request) -> None:
+    """Throttle for the open GETs (health/model/classes): 120/min/IP via the shared limiter."""
+    return rate_limit(request, limit=OPEN_RATE_PER_MIN)
 
 
 def error_envelope(request: Request, code: str, message: str, status: int = 400, details: dict | None = None):
@@ -89,12 +95,12 @@ def create_app() -> FastAPI:
         return Response(content=data, media_type=content_type)
 
     @app.get("/health")
-    async def health(request: Request):
+    async def health(request: Request, _=Depends(open_rate_limit)):
         return {"success": True, "status": "ok", "model_version": model_version(),
                 "request_id": request.state.request_id}
 
     @app.get("/api/v1/model")
-    async def model_info(request: Request):
+    async def model_info(request: Request, _=Depends(open_rate_limit)):
         return {"success": True,
                 "model": {"model_id": "signbridge-gru-v1", "model_version": model_version(),
                           "seq_len": SEQ_LEN, "feat_dim": FEAT_DIM,
@@ -102,7 +108,7 @@ def create_app() -> FastAPI:
                 "request_id": request.state.request_id}
 
     @app.get("/api/v1/classes")
-    async def classes(request: Request):
+    async def classes(request: Request, _=Depends(open_rate_limit)):
         cls = class_list()
         return {"success": True, "count": len(cls), "classes": cls,
                 "request_id": request.state.request_id}

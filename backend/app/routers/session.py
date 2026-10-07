@@ -98,11 +98,12 @@ async def reset_session(request: Request, _=Depends(require_auth)):
 
 
 @router.get("/sessions")
-async def list_sessions(request: Request, _=Depends(require_auth)):
+async def list_sessions(request: Request, limit: int = 50, _=Depends(require_auth)):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from app.models import RecognitionSession
+    eff = min(max(limit, 1), 200)
     with get_db_session() as db:
         rows = db.query(RecognitionSession).all()
         live = [{"session_id": sid, **{k: v for k, v in s.items() if k != "predictions"},
@@ -111,16 +112,17 @@ async def list_sessions(request: Request, _=Depends(require_auth)):
         stored = [{"session_id": r.session_id, "status": r.status,
                    "created": str(r.created_at), "live_predictions": 0}
                   for r in rows if r.session_id not in known]
-        return {"success": True, "sessions": live + stored,
+        return {"success": True, "sessions": (live + stored)[:eff],
                 "request_id": getattr(request.state, "request_id", "")}
 
 
 @router.get("/sessions/{sid}/predictions")
-async def session_predictions(sid: str, request: Request, _=Depends(require_auth)):
+async def session_predictions(sid: str, request: Request, limit: int = 50, _=Depends(require_auth)):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from app.models import Prediction
+    eff = min(max(limit, 1), 200)
     with get_db_session() as db:
         rows = db.query(Prediction).filter(Prediction.session_id == sid).all()
         if not rows and sid not in SESSIONS:
@@ -131,7 +133,7 @@ async def session_predictions(sid: str, request: Request, _=Depends(require_auth
                 "predictions": [{"prediction_id": r.prediction_id, "class_id": r.class_id,
                                  "label": label_of(r.class_id),
                                   "confidence": r.confidence, "status": r.status,
-                                  "created": str(r.created_at)} for r in rows],
+                                  "created": str(r.created_at)} for r in rows[:eff]],
                 "request_id": getattr(request.state, "request_id", "")}
 
 

@@ -93,3 +93,28 @@ def test_close_marks_closed_and_purge_removes():  # Task 12: real close (DB clos
         assert db.query(Prediction).filter(Prediction.session_id == sid).all() == []
     # purging twice: second purge is 404 unknown
     assert client.delete(f"/api/v1/sessions/{sid}/purge", headers=AUTH).status_code == 404
+
+
+def test_sessions_limit_clamped():  # Task 17: limit=1000 -> at most 200 items on both list endpoints
+    from app.routers.session import log_prediction
+    # seed >200 sessions (session open carries no rate limit)
+    for _ in range(210):
+        r = client.post("/api/v1/session", json={}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+    r = client.get("/api/v1/sessions?limit=1000", headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    assert len(r.json()["sessions"]) <= 200
+    # default limit is 50
+    r = client.get("/api/v1/sessions", headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    assert len(r.json()["sessions"]) <= 50
+    # predictions list clamped too: seed via log_prediction (bypasses predict rate limit)
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    for _ in range(210):
+        log_prediction(sid, "ISL_001", 0.9, "signbridge-gru-v1")
+    r = client.get(f"/api/v1/sessions/{sid}/predictions?limit=1000", headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    assert len(r.json()["predictions"]) <= 200
+    r = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    assert len(r.json()["predictions"]) <= 50
