@@ -120,6 +120,51 @@ def test_ws_blank_frames_yield_no_sign():
         assert ws.receive_json()["state"] == "Ready"
 
 
+def test_ws_recognized_persists_to_history():
+    """Stream with a real sid -> GET predictions contains the streamed class."""
+    AUTHH = {"Authorization": f"Bearer {SECRET}"}
+    sid = client.post("/api/v1/session", json={}, headers=AUTHH).json()["session_id"]
+    frames = (np.random.default_rng(1).normal(0, 0.5, (45, 189))).tolist()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for f in frames:
+            ws.send_json({"type": "frame", "frame": f})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction"
+        assert pred["state"] == "Recognized", pred
+        class_id = pred["prediction"]["class_id"]
+        # Same class repeated on this socket must not duplicate history rows.
+        time.sleep(0.6)  # pass the 500 ms inference throttle
+        for f in frames:
+            ws.send_json({"type": "frame", "frame": f})
+        pred2 = ws.receive_json()
+        assert pred2["type"] == "prediction"
+        assert pred2["state"] == "Recognized", pred2
+        assert pred2["prediction"]["class_id"] == class_id, pred2
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+    h = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTHH).json()
+    matches = [p for p in h["predictions"] if p["class_id"] == class_id]
+    assert matches, h
+    assert len(matches) == 1, f"expected exactly one history row for {class_id}: {h}"
+    # No-Sign predictions must NOT be persisted on the same session.
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for _ in range(45):
+            ws.send_json({"type": "frame", "frame": [0.0] * 189})
+        blank = ws.receive_json()
+        assert blank["type"] == "prediction" and blank["state"] == "No-Sign", blank
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+    h2 = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTHH).json()
+    assert all(p["class_id"] != "ISL_000" for p in h2["predictions"]), h2
+    assert len(h2["predictions"]) == 1, h2
+
+
 def test_ws_flood_is_bounded():
     """200 rapid frames -> prediction received, round-trip < 30 s."""
     with client.websocket_connect(f"/api/v1/stream?session_id=sess_flood&token={SECRET}") as ws:

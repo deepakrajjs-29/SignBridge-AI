@@ -19,6 +19,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.deps import FEAT_DIM, NOSIGN_ENERGY, SEQ_LEN, get_model, get_policy, get_scaler, label_of, model_version
 from app.metrics import INFER_SECONDS
+from app.routers.session import SESSIONS, log_prediction
 
 router = APIRouter()
 
@@ -40,8 +41,13 @@ async def stream(ws: WebSocket):
         await ws.close(code=4401)
         return
     session_id = ws.query_params.get("session_id", f"sess_{uuid.uuid4().hex[:8]}")
+    # Task 13 decision: auto-register the stream session_id in-memory at
+    # handshake so the later log_prediction() write has a known parent (the
+    # DB session row itself is still created lazily by log_prediction).
+    SESSIONS.setdefault(session_id, {"user_id": "", "created": time.time(), "predictions": []})
     buf: list[list[float]] = []
     last_infer: float | None = None  # monotonic timestamp of last inference (500 ms throttle)
+    last_logged: str | None = None  # class_id of the last persisted prediction on this socket
     await ws.send_json({"type": "status", "state": "Ready", "session_id": session_id})
     try:
         while True:
@@ -95,13 +101,20 @@ async def stream(ws: WebSocket):
                     ci, conf = int(probs.argmax()), float(probs.max())
                     policy = get_policy()
                     state = "Recognized" if conf >= float(policy.get("threshold", 0.4)) else "Uncertain"
+                    class_id = f"ISL_{ci + 1:03d}"
                     await ws.send_json({
                         "type": "prediction", "state": state, "session_id": session_id,
-                        "prediction": {"class_id": f"ISL_{ci + 1:03d}",
-                                       "label": label_of(f"ISL_{ci + 1:03d}"),
+                        "prediction": {"class_id": class_id,
+                                       "label": label_of(class_id),
                                        "confidence": round(conf, 4)},
                         "model_version": model_version(),
                         "processing_time_ms": round((time.perf_counter() - t0) * 1000, 2)})
+                    # Task 13: persist Recognized predictions to History via
+                    # log_prediction, only when the class differs from the last
+                    # logged one on this socket. No-Sign/Uncertain never persist.
+                    if state == "Recognized" and class_id != last_logged:
+                        log_prediction(session_id, class_id, round(conf, 4), model_version())
+                        last_logged = class_id
             elif kind == "heartbeat":
                 await ws.send_json({"type": "status", "state": "Tracking", "session_id": session_id})
             elif kind in ("stop", "tracking-lost"):
