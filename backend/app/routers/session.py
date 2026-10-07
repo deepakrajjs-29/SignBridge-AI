@@ -26,6 +26,23 @@ PREDICTION_ERRORS_TOTAL = Counter(
 
 router = APIRouter()
 SESSIONS: dict[str, dict] = {}
+MAX_SESSIONS = 1000
+
+
+def _store_session(sid: str, data: dict) -> None:
+    """Insert one live session, evicting oldest-created entries past the cap.
+
+    SESSIONS is bounded at MAX_SESSIONS (1000): when a *new* id arrives at a
+    full store, oldest-`created` entries are evicted first so the newest
+    insert is always kept. Updating an existing id never evicts.
+    """
+    if sid not in SESSIONS:
+        while len(SESSIONS) >= MAX_SESSIONS:
+            oldest = min(SESSIONS.items(), key=lambda kv: kv[1].get("created", 0))[0]
+            if oldest == sid:  # pragma: no cover — defensive; cannot happen on insert
+                break
+            del SESSIONS[oldest]
+    SESSIONS[sid] = data
 
 
 class SessionBody(BaseModel):
@@ -35,7 +52,7 @@ class SessionBody(BaseModel):
 @router.post("/session")
 async def open_session(body: SessionBody, request: Request, _=Depends(require_auth)):
     sid = f"sess_{uuid.uuid4().hex[:8]}"
-    SESSIONS[sid] = {"user_id": body.user_id, "created": time.time(), "predictions": []}
+    _store_session(sid, {"user_id": body.user_id, "created": time.time(), "predictions": []})
     return {"success": True, "session_id": sid, "request_id": getattr(request.state, "request_id", "")}
 
 
@@ -194,7 +211,7 @@ def log_prediction(session_id: str, class_id: str, confidence: float, model_id: 
         from app.models import ModelVersion, Prediction, RecognitionSession, SignClass
         with get_db_session() as db:
             if session_id not in SESSIONS:
-                SESSIONS[session_id] = {"user_id": "", "created": time.time(), "predictions": []}
+                _store_session(session_id, {"user_id": "", "created": time.time(), "predictions": []})
             if db.get(RecognitionSession, session_id) is None:
                 db.add(RecognitionSession(session_id=session_id, status="active"))
                 db.commit()

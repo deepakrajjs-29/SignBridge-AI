@@ -430,3 +430,77 @@ def test_api_log_never_breaks_responses(monkeypatch):  # SAMPLE_RATE 1.0 vs 0.0 
     from app.models import ApiLog
     with real_session() as db:
         assert db.get(ApiLog, rid3) is None, f"failed insert must leave no ApiLog row rid={rid3}"
+
+
+def test_sessions_cache_evicts_oldest():  # 1001 entries -> len<=1000, newest kept
+    from app.routers import session as session_mod
+    assert session_mod.MAX_SESSIONS == 1000  # verbatim cap for the in-memory store
+    session_mod.SESSIONS.clear()
+    try:
+        for i in range(1001):
+            session_mod._store_session(f"sess_test_{i:04d}",
+                                       {"user_id": "u", "created": float(i), "predictions": []})
+        assert len(session_mod.SESSIONS) <= 1000
+        assert "sess_test_1000" in session_mod.SESSIONS  # newest kept
+        assert "sess_test_0000" not in session_mod.SESSIONS  # oldest evicted
+    finally:
+        session_mod.SESSIONS.clear()
+
+
+def test_auth_uses_constant_time_compare():  # require_auth compares via hmac.compare_digest
+    import inspect
+
+    import app.deps as deps_mod
+    assert "compare_digest" in inspect.getsource(deps_mod.require_auth)
+    # wrong-token 403 path unchanged
+    r = client.post("/api/v1/predict", json={"frames": FRAMES},
+                    headers={"Authorization": "Bearer wrong"})
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "FORBIDDEN"
+
+
+def test_rate_limit_tiers_isolated(monkeypatch):  # open and guarded buckets do not share
+    import app.deps as deps_mod
+    import app.main as main_mod
+    monkeypatch.setattr(main_mod, "OPEN_RATE_PER_MIN", 2)
+    monkeypatch.setattr(deps_mod, "RATE_PER_MIN", 2)
+    # exhaust the OPEN budget: /health 429s ...
+    assert client.get("/health").status_code == 200
+    assert client.get("/health").status_code == 200
+    assert client.get("/health").status_code == 429
+    # ... while the GUARDED tier still serves 200
+    for _ in range(2):
+        r = client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+    assert client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH).status_code == 429
+    reset_rate_limit()
+    # and vice versa: exhaust GUARDED ...
+    for _ in range(2):
+        r = client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+    assert client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH).status_code == 429
+    # ... while the OPEN tier still serves 200
+    assert client.get("/health").status_code == 200
+
+
+def test_promote_visible_on_model_immediately():  # promote X -> GET /model reports X (no stale cache)
+    import json
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    original = reg_path.read_bytes()  # TRACKED live file: byte-exact restore in finally
+    try:
+        assert client.get("/api/v1/model").status_code == 200  # warm the registry cache
+        reg = json.loads(original.decode("utf-8"))
+        hist = reg.get("history")
+        if not isinstance(hist, list):
+            reg["history"] = hist = []
+        hist.append({"model_id": "HIST-MODEL-T22", "environment": "staging", "action": "stage"})
+        reg_path.write_text(json.dumps(reg, indent=2) + "\n", encoding="utf-8", newline="\n")
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "HIST-MODEL-T22", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        b = client.get("/api/v1/model").json()  # must follow the promote immediately
+        assert b["model"]["model_version"] == "HIST-MODEL-T22", b
+    finally:
+        reg_path.write_bytes(original)

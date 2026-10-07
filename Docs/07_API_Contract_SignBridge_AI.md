@@ -138,6 +138,10 @@ Response 200
 
 The actual values must match the deployed model configuration.
 
+> **Registry/policy caching:** `read_registry`/`get_policy` (and the class list) are
+> cached in-process; edits to `models/registry.json`, `policy.json`, or `class_map.csv`
+> take effect on service restart (restart picks up CSV/registry edits).
+
 ## 11. Single Prediction API
 
 Endpoint: POST /api/v1/predict

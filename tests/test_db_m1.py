@@ -161,3 +161,29 @@ def test_seed_m1_rerun_keeps_registry_row():
     assert len(assets) == 50
     for class_id, uri in manifest.items():
         assert assets[class_id].uri == uri
+
+
+def test_version_reader_cached(monkeypatch):
+    """Two read_registry()/model_version() calls -> one underlying file read (spy)."""
+    import pathlib
+
+    import app.deps as deps_mod
+
+    reads = []
+    orig = pathlib.Path.read_text
+
+    def _count(self, *args, **kwargs):
+        if self.name == "registry.json":
+            reads.append(1)
+        return orig(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "read_text", _count)
+    deps_mod._read_registry_cached.cache_clear()
+    deps_mod._registry_mtime_ns = None
+    try:
+        deps_mod.read_registry()
+        deps_mod.model_version()
+        assert len(reads) == 1, f"expected 1 registry file read, got {len(reads)}"
+    finally:
+        deps_mod._read_registry_cached.cache_clear()
+        deps_mod._registry_mtime_ns = None

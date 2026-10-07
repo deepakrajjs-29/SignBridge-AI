@@ -27,12 +27,13 @@ def hand_present(hand: np.ndarray) -> bool:
 
 
 def canonicalize(frames: np.ndarray) -> np.ndarray:
-    """Dominant-hand-first slot order (handedness-invariant representation).
+    """Least-active-hand-first seating; deterministic, train/serve identical.
 
     MediaPipe slot order follows image-side detection, so a left-handed
     signer lands in slot 0 while right-handed signers land in slot 1
-    (observed: U014 vs all others). Sorting slots by per-sequence activity
-    makes train/inference features signer-invariant. Deterministic.
+    (observed: U014 vs all others). Seating the least-active hand first
+    (swap on tie) makes train/inference features signer-invariant.
+    Deterministic.
     """
     act = np.array([np.count_nonzero(frames[:, h]) for h in range(HANDS)])
     if act[1] > act[0]:

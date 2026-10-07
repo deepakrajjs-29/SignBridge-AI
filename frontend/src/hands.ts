@@ -20,7 +20,7 @@ function handPresent(hand: number[][]): boolean {
   return false;
 }
 
-/** Dominant-hand-first slot order (mirrors canonicalize(); swap on tie). */
+/** Least-active-hand-first seating; deterministic, train/serve identical (mirrors canonicalize(); swap on tie). */
 export function canonicalize(frames: Frames): Frames {
   let a0 = 0;
   let a1 = 0;

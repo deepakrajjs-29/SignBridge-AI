@@ -11,7 +11,8 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-from app.deps import assert_prod_secret_ok, class_list, model_version, rate_limit
+from app.deps import (assert_prod_secret_ok, class_list, model_version,
+                    open_rate_limit as _open_tier_limit)
 from app.metrics import HTTP_5XX_TOTAL, HTTP_REQUESTS_TOTAL, exposition
 from app.routers import admin, feedback, predict, session as session_router, speech, stream
 
@@ -22,8 +23,8 @@ OPEN_RATE_PER_MIN = 120
 
 
 def open_rate_limit(request: Request) -> None:
-    """Throttle for the open GETs (health/model/classes): 120/min/IP via the shared limiter."""
-    return rate_limit(request, limit=OPEN_RATE_PER_MIN)
+    """Throttle for the open GETs (health/model/classes): 120/min/IP on the open tier bucket."""
+    return _open_tier_limit(request, limit=OPEN_RATE_PER_MIN)
 
 
 def error_envelope(request: Request, code: str, message: str, status: int = 400, details: dict | None = None):

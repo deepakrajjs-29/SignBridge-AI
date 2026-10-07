@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import copy
 import csv
+import hmac
 import json
 import os
 import time
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +29,6 @@ NOSIGN_ENERGY = 1e-6
 
 _model = None
 _scaler = None
-_policy = {"threshold": 0.4, "smoothing_window": 5}
 _classes: list[dict] = []
 
 
@@ -65,26 +67,90 @@ def get_scaler():
     return _scaler
 
 
-def get_policy() -> dict:
-    global _policy
-    p = MODELS / "EXP-2026-001-gru-full" / "policy.json"
-    if p.exists():
-        _policy = json.loads(p.read_text())
-    return _policy
+def _registry_path() -> Path:
+    return MODELS / "registry.json"
 
 
-def read_registry() -> dict:
-    """Read models/registry.json ({} when the file is absent)."""
+def _policy_path() -> Path:
+    return MODELS / "EXP-2026-001-gru-full" / "policy.json"
+
+
+def _file_mtime_ns(path: Path) -> int | None:
     try:
-        return json.loads((MODELS / "registry.json").read_text())
+        return path.stat().st_mtime_ns
+    except OSError:
+        return None
+
+
+_registry_mtime_ns: int | None = None
+_policy_mtime_ns: int | None = None
+
+
+@lru_cache(maxsize=1)
+def _read_registry_cached() -> dict:
+    """Underlying cached registry file read (one entry; keyed by nothing).
+
+    Never call directly: go through read_registry(), which guards on mtime
+    so on-disk edits (including direct writes outside write_registry()) are
+    picked up, and returns a deepcopy so callers cannot mutate the cache.
+    """
+    try:
+        return json.loads(_registry_path().read_text())
     except OSError:
         return {}
 
 
+@lru_cache(maxsize=1)
+def _read_policy_cached() -> dict:
+    """Underlying cached policy file read; see _read_registry_cached."""
+    try:
+        return json.loads(_policy_path().read_text())
+    except OSError:
+        return {"threshold": 0.4, "smoothing_window": 5}
+
+
+def get_policy() -> dict:
+    """Return the decode policy (cached file read; deepcopy per call).
+
+    Cached in-process; a restart picks up policy.json edits. Restarts are
+    also the documented pickup path for CSV/registry edits.
+    """
+    global _policy_mtime_ns
+    mtime = _file_mtime_ns(_policy_path())
+    if mtime != _policy_mtime_ns:
+        _read_policy_cached.cache_clear()
+        _policy_mtime_ns = mtime
+    return copy.deepcopy(_read_policy_cached())
+
+
+def read_registry() -> dict:
+    """Read models/registry.json ({} when the file is absent).
+
+    Cached in-process (lru_cache); any on-disk change is picked up via an
+    mtime guard, and write_registry() clears the cache explicitly on every
+    write path (promote/rollback). Restart picks up CSV/registry edits.
+    Returns a deepcopy so callers cannot mutate the cached entry.
+    """
+    global _registry_mtime_ns
+    mtime = _file_mtime_ns(_registry_path())
+    if mtime != _registry_mtime_ns:
+        _read_registry_cached.cache_clear()
+        _registry_mtime_ns = mtime
+    return copy.deepcopy(_read_registry_cached())
+
+
 def write_registry(reg: dict) -> None:
-    """Persist the model registry (promote path; LF endings like the committed file)."""
+    """Persist the model registry (promote path; LF endings like the committed file).
+
+    Clears the read_registry() cache (and refreshes its mtime guard) so the
+    next read — e.g. GET /model right after a promote/rollback — sees the
+    just-written content immediately.
+    """
+    global _registry_mtime_ns
     (MODELS / "registry.json").write_text(json.dumps(reg, indent=2) + "\n",
                                           encoding="utf-8", newline="\n")
+    _read_registry_cached.cache_clear()
+    _registry_mtime_ns = _file_mtime_ns(_registry_path())
 
 
 def model_version() -> str:
@@ -105,23 +171,49 @@ def assert_prod_secret_ok() -> None:
 def require_auth(authorization: str | None = Header(default=None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail={"code": "UNAUTHORIZED", "message": "Bearer token required"})
-    if authorization.split(" ", 1)[1] != JWT_SECRET:
+    token = authorization.split(" ", 1)[1]
+    try:
+        ok = hmac.compare_digest(token.encode("utf-8"), JWT_SECRET.encode("utf-8"))
+    except Exception:
+        ok = False
+    if not ok:
         raise HTTPException(status_code=403, detail={"code": "FORBIDDEN", "message": "Invalid token"})
     return "authenticated"
 
 
-_hits: dict[str, list[float]] = defaultdict(list)
+_hits: dict[tuple[str, str], list[float]] = defaultdict(list)
 
 
-def rate_limit(request: Request, limit: int | None = None) -> None:
-    limit = RATE_PER_MIN if limit is None else limit
-    key = request.client.host if request.client else "unknown"
+def _check_rate_limit(request: Request, limit: int, tier: str) -> None:
+    """Shared sliding-window limiter keyed by (client IP, tier)."""
+    ip = request.client.host if request.client else "unknown"
+    key = (ip, tier)
     now = time.time()
     window = [t for t in _hits[key] if now - t < 60]
     _hits[key] = window
     if len(window) >= limit:
         raise HTTPException(status_code=429, detail={"code": "RATE_LIMITED", "message": "Too many requests"})
     window.append(now)
+
+
+def rate_limit(request: Request, limit: int | None = None) -> None:
+    """Guarded-tier limiter (predict/session/admin/...): RATE_PER_MIN per IP.
+
+    Bucket key is (IP, "guarded"), isolated from the open tier, so hammering
+    the open GETs can never 429 legitimate authed traffic (and vice versa).
+    """
+    limit = RATE_PER_MIN if limit is None else limit
+    return _check_rate_limit(request, limit, "guarded")
+
+
+def open_rate_limit(request: Request, limit: int | None = None) -> None:
+    """Open-tier limiter (health/model/classes): 120/min per IP by default.
+
+    Bucket key is (IP, "open"), isolated from the guarded tier. The caller
+    (app.main) passes OPEN_RATE_PER_MIN explicitly; the default mirrors it.
+    """
+    limit = 120 if limit is None else limit
+    return _check_rate_limit(request, limit, "open")
 
 
 def reset_rate_limit() -> None:
