@@ -62,6 +62,19 @@ def match_phrases(text: str) -> tuple[list[str], list[str]]:
     return matched, leftover
 
 
+def _escape_like(pattern: str, escape: str = "\\") -> str:
+    """Escape LIKE specials (``%``, ``_``, ``[``) and the escape char itself.
+
+    The ``text-to-sign`` fallback queries ``SignClass.label.ilike(p)``; without
+    escaping, user text containing wildcards would match arbitrary classes
+    instead of being reported as unsupported.
+    """
+    return (pattern.replace(escape, escape * 2)
+                   .replace("%", escape + "%")
+                   .replace("_", escape + "_")
+                   .replace("[", escape + "["))
+
+
 @router.post("/text-to-sign")
 async def text_to_sign(body: T2SBody, request: Request, _=Depends(require_auth)):
     import sys
@@ -76,7 +89,8 @@ async def text_to_sign(body: T2SBody, request: Request, _=Depends(require_auth))
         for p in phrases:
             row = db.query(SignClass).filter(SignClass.label == canonical[p]).first()
             if row is None:
-                row = db.query(SignClass).filter(SignClass.label.ilike(p)).first()
+                row = db.query(SignClass).filter(
+                    SignClass.label.ilike(_escape_like(p), escape="\\")).first()
             if row is None:
                 unsupported.append(p)
                 continue

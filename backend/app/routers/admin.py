@@ -45,12 +45,35 @@ async def list_models(request: Request, _=Depends(require_auth)):
                 "request_id": getattr(request.state, "request_id", "")}
 
 
+def _known_model_ids() -> set[str]:
+    """Model ids promote may point at: on-disk ``models/*.keras`` stems plus registry-history ids."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from app.deps import MODELS
+    known = {p.stem for p in MODELS.glob("*.keras")}
+    hist = read_registry().get("history")
+    if isinstance(hist, list):
+        for h in hist:
+            if isinstance(h, dict) and h.get("model_id"):
+                known.add(str(h["model_id"]))
+    return known
+
+
 @router.post("/promote")
 async def promote(body: PromoteBody, request: Request, actor=Depends(require_auth)):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from app.models import ModelDeployment
+    from fastapi.responses import JSONResponse
+    if body.model_id not in _known_model_ids():
+        return JSONResponse(status_code=422, content={
+            "success": False,
+            "error": {"code": "UNKNOWN_MODEL",
+                      "message": f"unknown model_id: {body.model_id}",
+                      "details": {"model_id": body.model_id}},
+            "request_id": getattr(request.state, "request_id", "")})
     with get_db_session() as db:
         db.add(ModelDeployment(model_id=body.model_id, environment=body.environment))
         reg = read_registry()

@@ -147,19 +147,20 @@ def test_text_to_sign_multiword():  # "thank you" -> items [ISL_002], unsupporte
 
 
 def test_promote_switches_active_model():  # promote X -> GET /model reports X (restore registry after)
+    # Task 14: promote now validates model_id, so use the on-disk stem (was a garbage id).
     import json
     from app.deps import MODELS
     reg_path = MODELS / "registry.json"
     original = reg_path.read_bytes()  # TRACKED live file: byte-exact restore in finally
     try:
         r = client.post("/api/v1/admin/promote",
-                        json={"model_id": "SBAI-MDL-ISL-9.9.9-test", "environment": "staging"},
+                        json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"},
                         headers=AUTH)
         assert r.status_code == 200, r.text[:200]
         b = client.get("/api/v1/model").json()
-        assert b["model"]["model_version"] == "SBAI-MDL-ISL-9.9.9-test", b
+        assert b["model"]["model_version"] == "SBAI-MDL-ISL-1.0.0", b
         persisted = json.loads(reg_path.read_text(encoding="utf-8"))
-        assert persisted.get("active_model") == "SBAI-MDL-ISL-9.9.9-test", persisted
+        assert persisted.get("active_model") == "SBAI-MDL-ISL-1.0.0", persisted
     finally:
         reg_path.write_bytes(original)
 
@@ -222,6 +223,55 @@ def test_prod_refuses_default_secret():  # APP_ENV=production + JWT_SECRET=chang
             os.environ.pop("JWT_SECRET", None)
         else:
             os.environ["JWT_SECRET"] = old_secret
+
+
+def test_t2s_wildcards_unsupported():  # Task 14: "%" and "___" -> items [], unsupported lists them
+    from app.routers.speech import _escape_like
+    assert _escape_like("%") == "\\%"
+    assert _escape_like("___") == "\\_\\_\\_"
+    assert _escape_like("[a]") == "\\[a]"
+    assert _escape_like("a\\b") == "a\\\\b"
+    assert _escape_like("hello") == "hello"  # exact match untouched: no specials, no change
+    for text, expected in (("%", ["%"]), ("___", ["___"])):
+        r = client.post("/api/v1/text-to-sign", json={"text": text}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        b = r.json()
+        assert b["items"] == []
+        assert b["unsupported_words"] == expected
+
+
+def test_promote_unknown_model_422():  # Task 14: garbage model_id rejected, stems/history ids accepted
+    import json
+    from app.deps import MODELS
+    reg_path = MODELS / "registry.json"
+    saved = reg_path.read_bytes()  # promote rewrites the live registry: restore after
+    try:
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "NOPE-DOES-NOT-EXIST-999", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 422, r.text[:200]
+        b = r.json()
+        assert b["success"] is False
+        assert b["error"]["code"] == "UNKNOWN_MODEL"
+        assert b.get("request_id")
+        persisted = json.loads(reg_path.read_text(encoding="utf-8"))
+        assert persisted.get("active_model") != "NOPE-DOES-NOT-EXIST-999", persisted
+        # on-disk stem still accepted
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "SBAI-MDL-ISL-1.0.0", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        # registry-history id accepted
+        reg = json.loads(reg_path.read_text(encoding="utf-8"))
+        reg.setdefault("history", []).append(
+            {"model_id": "HIST-MODEL-1", "environment": "staging", "action": "stage"})
+        reg_path.write_text(json.dumps(reg, indent=2) + "\n", encoding="utf-8", newline="\n")
+        r = client.post("/api/v1/admin/promote",
+                        json={"model_id": "HIST-MODEL-1", "environment": "staging"},
+                        headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+    finally:
+        reg_path.write_bytes(saved)
 
 
 def test_predict_unknown_session_404():  # Task 12: ghost session_ids rejected, empty stays session-less
