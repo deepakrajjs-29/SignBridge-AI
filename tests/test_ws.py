@@ -6,12 +6,14 @@ Auth (Task 9 STRICT-(b)): `?token=` is required and verified against
 
 import os
 import time
+import uuid
 
 import numpy as np
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.main import app
+from app.routers.session import SESSIONS
 
 client = TestClient(app)
 FRAMES = (np.random.default_rng(2).normal(0, 0.5, (45, 189))).tolist()
@@ -19,10 +21,19 @@ FRAMES = (np.random.default_rng(2).normal(0, 0.5, (45, 189))).tolist()
 # Same lookup rule as backend/app/routers/stream.py so the suite passes
 # whether JWT_SECRET is set in the env or falls back to the default.
 SECRET = os.getenv("JWT_SECRET", "change-me")
+AUTHH = {"Authorization": f"Bearer {SECRET}"}
+
+
+def _new_sid() -> str:
+    """Pre-create a session via REST (WS handshake requires a known sid)."""
+    r = client.post("/api/v1/session", json={}, headers=AUTHH)
+    assert r.status_code == 200, r.text
+    return r.json()["session_id"]
 
 
 def test_ws_flow():
-    with client.websocket_connect(f"/api/v1/stream?session_id=sess_e2e&token={SECRET}") as ws:
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
         assert ws.receive_json()["type"] == "status"
         ws.send_json({"type": "start"})
         assert ws.receive_json()["state"] == "Tracking"
@@ -65,7 +76,8 @@ def test_ws_rejects_wrong_token():
 
 def test_ws_malformed_frame_stays_open():
     """['oops']*189 -> error frame, socket usable afterwards."""
-    with client.websocket_connect(f"/api/v1/stream?session_id=sess_malformed&token={SECRET}") as ws:
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
         assert ws.receive_json()["type"] == "status"
         ws.send_json({"type": "start"})
         assert ws.receive_json()["state"] == "Tracking"
@@ -84,7 +96,8 @@ def test_ws_malformed_frame_stays_open():
 
 def test_ws_nan_frame_rejected():
     """NaN frame -> error frame, no prediction emitted for it."""
-    with client.websocket_connect(f"/api/v1/stream?session_id=sess_nan&token={SECRET}") as ws:
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
         assert ws.receive_json()["type"] == "status"
         ws.send_json({"type": "start"})
         assert ws.receive_json()["state"] == "Tracking"
@@ -105,7 +118,8 @@ def test_ws_nan_frame_rejected():
 
 def test_ws_blank_frames_yield_no_sign():
     """45 all-zero frames -> prediction with state "No-Sign", never "Recognized"."""
-    with client.websocket_connect(f"/api/v1/stream?session_id=sess_blank&token={SECRET}") as ws:
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
         assert ws.receive_json()["type"] == "status"
         ws.send_json({"type": "start"})
         assert ws.receive_json()["state"] == "Tracking"
@@ -167,7 +181,8 @@ def test_ws_recognized_persists_to_history():
 
 def test_ws_flood_is_bounded():
     """200 rapid frames -> prediction received, round-trip < 30 s."""
-    with client.websocket_connect(f"/api/v1/stream?session_id=sess_flood&token={SECRET}") as ws:
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
         assert ws.receive_json()["type"] == "status"
         ws.send_json({"type": "start"})
         assert ws.receive_json()["state"] == "Tracking"
@@ -188,3 +203,30 @@ def test_ws_flood_is_bounded():
         assert dt < 30, f"flood round-trip took {dt:.1f}s, expected < 30s"
         ws.send_json({"type": "stop"})
         assert ws.receive_json()["state"] == "Ready"
+
+
+def test_ws_unknown_session_rejected():
+    """Unknown sid handshake -> UNKNOWN_SESSION error + close, nothing created."""
+    ghost = f"sess_ghost_{uuid.uuid4().hex[:8]}"
+    assert ghost not in SESSIONS
+    with client.websocket_connect(f"/api/v1/stream?session_id={ghost}&token={SECRET}") as ws:
+        err = ws.receive_json()
+        assert err["type"] == "error" and err["code"] == "UNKNOWN_SESSION", err
+        try:
+            ws.receive_json()
+            raise AssertionError("unknown-sid handshake should have been closed")
+        except WebSocketDisconnect as e:
+            assert e.code == 4404
+    # NOTHING created: no in-memory entry and no lazy DB row (REST still 404s).
+    assert ghost not in SESSIONS
+    r = client.get(f"/api/v1/sessions/{ghost}/predictions", headers=AUTHH)
+    assert r.status_code == 404, r.text
+    # Missing session_id is rejected the same way.
+    with client.websocket_connect(f"/api/v1/stream?token={SECRET}") as ws:
+        err = ws.receive_json()
+        assert err["type"] == "error" and err["code"] == "UNKNOWN_SESSION", err
+        try:
+            ws.receive_json()
+            raise AssertionError("missing-sid handshake should have been closed")
+        except WebSocketDisconnect:
+            pass

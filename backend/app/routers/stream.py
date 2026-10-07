@@ -4,6 +4,12 @@ Auth (Task 9 fix round 1, STRICT-(b) per controller): `?token=` is REQUIRED on
 every handshake and verified against `JWT_SECRET` (same shared secret as the
 REST Bearer rule); a missing OR mismatched token closes the socket with 4401
 before any Ready/status frame is sent. Anonymous sockets are never admitted.
+
+Session (Task 13 fix round 1): `?session_id=` must already exist — created via
+`POST /api/v1/session`, i.e. known to `is_session_known()` (live in-memory
+table and/or an active DB row, mirroring the REST UNKNOWN_SESSION rule). A
+missing or unknown id gets `{"type":"error","code":"UNKNOWN_SESSION",...}`
+followed by close(4404); NOTHING is created and nothing is persisted.
 """
 
 from __future__ import annotations
@@ -12,14 +18,13 @@ import asyncio
 import math
 import os
 import time
-import uuid
 
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.deps import FEAT_DIM, NOSIGN_ENERGY, SEQ_LEN, get_model, get_policy, get_scaler, label_of, model_version
 from app.metrics import INFER_SECONDS
-from app.routers.session import SESSIONS, log_prediction
+from app.routers.session import is_session_known, log_prediction
 
 router = APIRouter()
 
@@ -40,11 +45,16 @@ async def stream(ws: WebSocket):
     if token != os.getenv("JWT_SECRET", "change-me"):
         await ws.close(code=4401)
         return
-    session_id = ws.query_params.get("session_id", f"sess_{uuid.uuid4().hex[:8]}")
-    # Task 13 decision: auto-register the stream session_id in-memory at
-    # handshake so the later log_prediction() write has a known parent (the
-    # DB session row itself is still created lazily by log_prediction).
-    SESSIONS.setdefault(session_id, {"user_id": "", "created": time.time(), "predictions": []})
+    session_id = ws.query_params.get("session_id", "")
+    # Task 13 fix round 1: parity with the REST UNKNOWN_SESSION rule (Task 12)
+    # — never auto-register. Unknown/missing ids are rejected here so the WS
+    # path cannot reopen the ghost-session hole; log_prediction()'s lazy row
+    # is then only ever reached for already-known sessions.
+    if not session_id or not is_session_known(session_id):
+        await ws.send_json({"type": "error", "code": "UNKNOWN_SESSION",
+                            "message": "unknown session"})
+        await ws.close(code=4404)
+        return
     buf: list[list[float]] = []
     last_infer: float | None = None  # monotonic timestamp of last inference (500 ms throttle)
     last_logged: str | None = None  # class_id of the last persisted prediction on this socket

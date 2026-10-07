@@ -303,6 +303,8 @@ The WebSocket interface is intended for low-latency camera interaction. The clie
 Connection
 wss://<domain>/api/v1/stream?session_id=sess_001
 
+`session_id` must already exist (created via `POST /api/v1/session`); unknown/missing IDs get `{"type":"error","code":"UNKNOWN_SESSION"}` and the socket is closed with 4404 — nothing is created.
+
 Client message
 {
   "type": "frame",
