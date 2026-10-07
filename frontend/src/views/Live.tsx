@@ -241,12 +241,19 @@ export default function Live({ onResult }: { onResult: (p: Prediction) => void }
       setBusy("");
       wsRef.current = null;
       const msg = e instanceof Error ? e.message : "Recognition failed.";
+      const code = e instanceof Error ? (e as { code?: string }).code : undefined;
       if (/No hands detected/.test(msg)) {
         setState("Tracking-Lost");
       } else {
         setState("Error");
       }
-      setNote(msg + " All video processing stays on this device.");
+      // Timeout errors (fetchWithTimeout code "TIMEOUT", capture deadline)
+      // reach the existing note UI with a retry hint.
+      setNote(
+        code === "TIMEOUT"
+          ? `${msg} Retry — the request timed out. All video processing stays on this device.`
+          : msg + " All video processing stays on this device."
+      );
     }
   }
 

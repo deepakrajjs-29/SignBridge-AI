@@ -1,17 +1,52 @@
 const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
+export const PREDICT_TIMEOUT_MS = 120_000;
+export const DEFAULT_TIMEOUT_MS = 15_000;
+
 export function token(): string {
   return localStorage.getItem("sb_token") || "change-me";
+}
+
+export async function fetchWithTimeout(
+  url: string,
+  init: RequestInit | undefined,
+  ms: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const userSignal = init?.signal as AbortSignal | undefined;
+  if (userSignal) {
+    if (userSignal.aborted) controller.abort();
+    else userSignal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const err = new Error(`Request timed out after ${ms} ms — retry.`);
+      (err as { code?: string }).code = "TIMEOUT";
+      reject(err);
+    }, ms);
+  });
+  try {
+    return await Promise.race([fetch(url, { ...init, signal: controller.signal }), timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const t = token();
   if (t) headers["Authorization"] = `Bearer ${t}`;
-  const r = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
-  });
+  const ms = path.startsWith("/api/v1/predict") ? PREDICT_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+  const r = await fetchWithTimeout(
+    `${BASE}${path}`,
+    {
+      ...init,
+      headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
+    },
+    ms
+  );
   const body = (await r.json()) as T & { success: boolean; error?: { code: string; message: string } };
   if (!r.ok || body.success === false) {
     const err = new Error(body.error?.message ?? `API ${r.status} on ${path}`);

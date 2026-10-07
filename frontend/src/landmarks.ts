@@ -22,7 +22,7 @@ export interface LandmarkProvider {
   status: ProviderStatus;
   error: string;
   progress: string;
-  capture(video: HTMLVideoElement, frames?: number): Promise<number[][]>;
+  capture(video: HTMLVideoElement, frames?: number, deadlineMs?: number): Promise<number[][]>;
 }
 
 let shared: Promise<HandLandmarker> | null = null;
@@ -49,13 +49,19 @@ function blank(): number[][][] {
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
+export const CAPTURE_DEADLINE_MS = 60000;
+
 export class MediaPipeProvider implements LandmarkProvider {
   readonly name = "mediapipe-handlandmarker (on-device)";
   status: ProviderStatus = "idle";
   error = "";
   progress = "";
 
-  async capture(video: HTMLVideoElement, frames = 45): Promise<number[][]> {
+  async capture(
+    video: HTMLVideoElement,
+    frames = 45,
+    deadlineMs = CAPTURE_DEADLINE_MS
+  ): Promise<number[][]> {
     this.error = "";
     this.progress = "";
     if (video.readyState < 2 || video.videoWidth === 0) {
@@ -63,6 +69,17 @@ export class MediaPipeProvider implements LandmarkProvider {
       this.error = "Camera frame not ready — re-enable camera and retry.";
       throw new Error(this.error);
     }
+    const fail = (message: string): never => {
+      this.status = "error";
+      this.error = message;
+      throw new Error(this.error);
+    };
+    const deadlineMessage = () =>
+      `Capture timed out after ${Math.round(deadlineMs / 1000)} s — reframe hands and retry.`;
+    const start = Date.now();
+    const abortIfPastDeadline = () => {
+      if (Date.now() - start > deadlineMs) fail(deadlineMessage());
+    };
     this.status = "loading-model";
     let lm: HandLandmarker;
     try {
@@ -72,10 +89,12 @@ export class MediaPipeProvider implements LandmarkProvider {
       this.error = "Hand-tracking model failed to download (network needed once). Retry online.";
       throw new Error(this.error);
     }
+    abortIfPastDeadline();
     this.status = "capturing";
     const raw: Frames = [];
     try {
       for (let t = 0; t < frames; t++) {
+        abortIfPastDeadline();
         let pts = blank();
         try {
           const res = lm.detectForVideo(video, performance.now());
@@ -87,7 +106,21 @@ export class MediaPipeProvider implements LandmarkProvider {
         }
         raw.push(pts);
         this.progress = `Capturing ${t + 1}/${frames} — hold the sign steady`;
-        await nextFrame();
+        const remaining = deadlineMs - (Date.now() - start);
+        if (remaining <= 0) fail(deadlineMessage());
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            nextFrame(),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => reject(new Error(deadlineMessage())), remaining);
+            }),
+          ]);
+        } catch {
+          fail(deadlineMessage());
+        } finally {
+          if (timer !== undefined) clearTimeout(timer);
+        }
       }
     } finally {
       this.progress = "";
@@ -108,7 +141,11 @@ export class DemoProvider {
   status: ProviderStatus = "ready";
   error = "";
   progress = "";
-  async capture(_video?: HTMLVideoElement, frames = 45): Promise<number[][]> {
+  async capture(
+    _video?: HTMLVideoElement,
+    frames = 45,
+    _deadlineMs = CAPTURE_DEADLINE_MS
+  ): Promise<number[][]> {
     const out: number[][] = [];
     for (let t = 0; t < frames; t++) out.push(new Array(189).fill(((t * 37) % 11) * 0.01));
     return out;
