@@ -1,10 +1,22 @@
-const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+export function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const envBase = import.meta.env.VITE_API_BASE;
+    return envBase && envBase.trim() !== "" ? envBase.trim() : "";
+  }
+  return import.meta.env.VITE_API_BASE || "http://localhost:8000";
+}
+
+export const BASE = getBaseUrl();
 
 export const PREDICT_TIMEOUT_MS = 120_000;
 export const DEFAULT_TIMEOUT_MS = 15_000;
 
 export function token(): string {
   return localStorage.getItem("sb_token") || "change-me";
+}
+
+export function setToken(newToken: string): void {
+  localStorage.setItem("sb_token", newToken);
 }
 
 export async function fetchWithTimeout(
@@ -72,52 +84,107 @@ export interface Prediction {
   prediction_id?: string;
 }
 
+export interface ModelInfo {
+  model_id: string;
+  model_version: string;
+  seq_len: number;
+  feat_dim: number;
+  architecture: string;
+}
+
+export interface ClassItem {
+  class_id: string;
+  label: string;
+  sign_type: string;
+}
+
+export interface SessionItem {
+  session_id: string;
+  user_id?: string;
+  created?: number;
+  status?: string;
+  live_predictions?: number;
+}
+
+export interface AdminModelItem {
+  model_id: string;
+  version: string;
+  status: string;
+}
+
 export const api = {
-  health: () => req<{ status: string }>("/health"),
-  model: () => req<{ model: { model_id: string; model_version: string } }>("/api/v1/model"),
+  health: () => req<{ success: boolean; status: string; model_version: string; request_id: string }>("/health"),
+  model: () => req<{ success: boolean; model: ModelInfo; request_id: string }>("/api/v1/model"),
   classes: () =>
-    req<{ count: number; classes: { class_id: string; label: string; sign_type: string }[] }>(
+    req<{ success: boolean; count: number; classes: ClassItem[]; request_id: string }>(
       "/api/v1/classes"
     ),
   openSession: (user_id = "") =>
-    req<{ session_id: string }>("/api/v1/session", {
+    req<{ success: boolean; session_id: string; request_id: string }>("/api/v1/session", {
       method: "POST",
       body: JSON.stringify({ user_id }),
     }),
+  resetSession: () =>
+    req<{ success: boolean; request_id: string }>("/api/v1/session/reset", {
+      method: "POST",
+    }),
   closeSession: (sid: string) =>
-    req(`/api/v1/session/${sid}`, { method: "DELETE" }),
+    req<{ success: boolean; session_id: string; request_id: string }>(`/api/v1/session/${sid}`, {
+      method: "DELETE",
+    }),
+  purgeSession: (sid: string) =>
+    req<{ success: boolean; session_id: string; request_id: string }>(`/api/v1/sessions/${sid}/purge`, {
+      method: "DELETE",
+    }),
   predict: (frames: number[][], session_id = "", sequence_id = "") =>
     req<{
+      success: boolean;
       prediction: Prediction;
       status: string;
       model_version: string;
       processing_time_ms: number;
+      sequence_id?: string;
+      request_id?: string;
     }>("/api/v1/predict", {
       method: "POST",
       body: JSON.stringify({ frames, session_id, sequence_id }),
     }),
-  sessions: () => req<{ sessions: { session_id: string; status?: string }[] }>("/api/v1/sessions"),
-  sessionPredictions: (sid: string) =>
-    req<{ predictions: (Prediction & { status: string })[] }>(`/api/v1/sessions/${sid}/predictions`),
-  deletePrediction: (pid: string) => req(`/api/v1/history/${pid}`, { method: "DELETE" }),
+  sessions: (limit = 50) =>
+    req<{ success: boolean; sessions: SessionItem[]; request_id?: string }>(`/api/v1/sessions?limit=${limit}`),
+  sessionPredictions: (sid: string, limit = 50) =>
+    req<{ success: boolean; predictions: (Prediction & { status: string; timestamp?: number; created?: string })[]; request_id?: string }>(
+      `/api/v1/sessions/${sid}/predictions?limit=${limit}`
+    ),
+  deletePrediction: (pid: string) =>
+    req<{ success: boolean; request_id?: string }>(`/api/v1/history/${pid}`, { method: "DELETE" }),
+  feedback: (prediction_id: string, actual_class_id?: string, rating?: number) =>
+    req<{ success: boolean; request_id?: string }>("/api/v1/feedback", {
+      method: "POST",
+      body: JSON.stringify({ prediction_id, actual_class_id, rating }),
+    }),
   tts: (text: string) =>
-    req<{ audio_url?: string }>("/api/v1/tts", { method: "POST", body: JSON.stringify({ text }) }),
+    req<{ success: boolean; audio_url?: string; request_id?: string }>("/api/v1/tts", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
   textToSign: (text: string) =>
     req<{
+      success: boolean;
       items: { word: string; class_id: string; label: string; supported: boolean }[];
       unsupported_words: string[];
+      request_id?: string;
     }>("/api/v1/text-to-sign", { method: "POST", body: JSON.stringify({ text }) }),
   adminModels: () =>
-    req<{ models: { model_id: string; version: string; status: string }[] }>(
+    req<{ success: boolean; models: AdminModelItem[]; request_id?: string }>(
       "/api/v1/admin/models"
     ),
-  promote: (model_id: string, environment: string) =>
-    req("/api/v1/admin/promote", {
+  promote: (model_id: string, environment = "production") =>
+    req<{ success: boolean; request_id?: string }>("/api/v1/admin/promote", {
       method: "POST",
       body: JSON.stringify({ model_id, environment }),
     }),
-  rollback: (model_id: string, environment: string) =>
-    req("/api/v1/admin/rollback", {
+  rollback: (model_id: string, environment = "production") =>
+    req<{ success: boolean; request_id?: string }>("/api/v1/admin/rollback", {
       method: "POST",
       body: JSON.stringify({ model_id, environment }),
     }),

@@ -21,8 +21,13 @@ export function connectStream(
   socket: WebSocket;
 } {
   const t = token();
+  const wsPrefix = base
+    ? base.replace(/^http/, "ws")
+    : typeof window !== "undefined"
+    ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`
+    : "ws://127.0.0.1:8000";
   const url =
-    `${base.replace(/^http/, "ws")}/api/v1/stream?session_id=${sessionId}` +
+    `${wsPrefix}/api/v1/stream?session_id=${sessionId}` +
     `&token=${encodeURIComponent(t ?? "")}`;
   const socket = new WebSocket(url);
   socket.onopen = () => socket.send(JSON.stringify({ type: "start" }));
