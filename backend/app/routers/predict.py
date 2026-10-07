@@ -54,6 +54,15 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
             "success": False,
             "error": {"code": "PAYLOAD_TOO_LARGE", "message": "max 600 frames", "details": {}},
             "request_id": getattr(request.state, "request_id", "")})
+    # Task 12: reject ghost sessions — unknown non-empty session_id 404s;
+    # empty stays session-less exactly as today (no 404 for empty).
+    if body.session_id:
+        from app.routers.session import is_session_known
+        if not is_session_known(body.session_id):
+            return JSONResponse(status_code=404, content={
+                "success": False,
+                "error": {"code": "UNKNOWN_SESSION", "message": "unknown session", "details": {}},
+                "request_id": getattr(request.state, "request_id", "")})
     # fixed 45-frame window: uniform-sample / repeat-pad (same as training)
     if len(arr) >= SEQ_LEN:
         idx = np.linspace(0, len(arr) - 1, SEQ_LEN).astype(int)

@@ -69,3 +69,27 @@ def test_log_failure_is_logged_not_silent(monkeypatch, caplog):
     assert sess.PREDICTION_ERRORS_TOTAL._value.get() == before + 1
     assert any(rec.levelno >= logging.ERROR and "log_prediction" in rec.getMessage()
                for rec in caplog.records), "expected log_prediction failure to be logged"
+
+
+def test_close_marks_closed_and_purge_removes():  # Task 12: real close (DB closed) + children-first purge
+    from app.deps import get_db_session
+    from app.models import Prediction, RecognitionSession
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": sid}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    pid = r.json()["prediction"]["prediction_id"]
+    assert pid
+    assert client.delete(f"/api/v1/session/{sid}", headers=AUTH).status_code == 200
+    with get_db_session() as db:
+        row = db.get(RecognitionSession, sid)
+        assert row is not None and row.status == "closed", row
+    # closed session rejects new predictions as unknown
+    r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": sid}, headers=AUTH)
+    assert r.status_code == 404 and "UNKNOWN_SESSION" in r.text, r.text[:200]
+    # purge removes children-first (feedback -> predictions -> session row)
+    assert client.delete(f"/api/v1/sessions/{sid}/purge", headers=AUTH).status_code == 200
+    with get_db_session() as db:
+        assert db.get(RecognitionSession, sid) is None
+        assert db.query(Prediction).filter(Prediction.session_id == sid).all() == []
+    # purging twice: second purge is 404 unknown
+    assert client.delete(f"/api/v1/sessions/{sid}/purge", headers=AUTH).status_code == 404

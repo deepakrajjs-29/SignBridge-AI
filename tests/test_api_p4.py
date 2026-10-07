@@ -222,3 +222,18 @@ def test_prod_refuses_default_secret():  # APP_ENV=production + JWT_SECRET=chang
             os.environ.pop("JWT_SECRET", None)
         else:
             os.environ["JWT_SECRET"] = old_secret
+
+
+def test_predict_unknown_session_404():  # Task 12: ghost session_ids rejected, empty stays session-less
+    import uuid
+    ghost = f"sess_ghost_{uuid.uuid4().hex[:8]}"  # unique per run: never seeded, never persisted
+    r = client.post("/api/v1/predict", json={"frames": FRAMES, "session_id": ghost},
+                    headers=AUTH)
+    assert r.status_code == 404, r.text[:200]
+    b = r.json()
+    assert b["success"] is False
+    assert b["error"]["code"] == "UNKNOWN_SESSION"
+    assert b.get("request_id")
+    # empty session_id stays session-less exactly as today: still 200
+    r = client.post("/api/v1/predict", json={"frames": FRAMES}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]

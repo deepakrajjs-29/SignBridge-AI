@@ -94,10 +94,11 @@ Breaking changes should result in a new API version. Backward-compatible additio
 | --- | --- | --- | --- |
 | GET | /health | Service health check | No / restricted |
 | GET | /api/v1/model | Get active model information | Optional |
-| POST | /api/v1/predict | Recognize a sign from image/features | Yes |
+| POST | /api/v1/predict | Recognize a sign from image/features (unknown non-empty `session_id` → 404 `UNKNOWN_SESSION`) | Yes |
 | POST | /api/v1/predict/sequence | Recognize a temporal sequence | Yes |
 | POST | /api/v1/session | Create recognition session | Yes |
-| DELETE | /api/v1/session/{id} | End recognition session | Yes |
+| DELETE | /api/v1/session/{id} | End recognition session (stored row marked `closed`) | Yes |
+| DELETE | /api/v1/sessions/{id}/purge | Permanently delete session + its predictions + feedback (404 unknown) | Yes |
 | WS | /api/v1/stream | Real-time recognition stream | Yes |
 | GET | /api/v1/classes | Get supported sign classes | Optional |
 

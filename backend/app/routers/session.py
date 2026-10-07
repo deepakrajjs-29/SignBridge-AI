@@ -41,11 +41,52 @@ async def open_session(body: SessionBody, request: Request, _=Depends(require_au
 
 @router.delete("/session/{sid}")
 async def close_session(sid: str, request: Request, _=Depends(require_auth)):
-    if sid not in SESSIONS:
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from app.models import RecognitionSession
+    live = sid in SESSIONS
+    stored = False
+    try:
+        with get_db_session() as db:
+            row = db.get(RecognitionSession, sid)
+            if row is not None:
+                stored = True
+                row.status = "closed"
+                db.commit()
+    except Exception:
+        logger.exception("close_session DB mark-closed failed for session_id=%s", sid)
+    if not live and not stored:
         return JSONResponse(status_code=404, content={
             "success": False, "error": {"code": "NOT_FOUND", "message": "unknown session", "details": {}},
             "request_id": getattr(request.state, "request_id", "")})
-    del SESSIONS[sid]
+    SESSIONS.pop(sid, None)
+    return {"success": True, "session_id": sid, "request_id": getattr(request.state, "request_id", "")}
+
+
+@router.delete("/sessions/{sid}/purge")
+async def purge_session(sid: str, request: Request, _=Depends(require_auth)):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from app.models import Feedback, Prediction, RecognitionSession
+    live = sid in SESSIONS
+    with get_db_session() as db:
+        row = db.get(RecognitionSession, sid)
+        if row is None and not live:
+            return JSONResponse(status_code=404, content={
+                "success": False, "error": {"code": "NOT_FOUND", "message": "unknown session", "details": {}},
+                "request_id": getattr(request.state, "request_id", "")})
+        # children-first (Task 5 learning): feedback -> predictions -> session row
+        pids = [r.prediction_id for r in
+                db.query(Prediction).filter(Prediction.session_id == sid).all()]
+        if pids:
+            db.query(Feedback).filter(Feedback.prediction_id.in_(pids)).delete(synchronize_session=False)
+        db.query(Prediction).filter(Prediction.session_id == sid).delete(synchronize_session=False)
+        if row is not None:
+            db.delete(row)
+        db.commit()
+    SESSIONS.pop(sid, None)
     return {"success": True, "session_id": sid, "request_id": getattr(request.state, "request_id", "")}
 
 
@@ -110,6 +151,28 @@ async def delete_prediction(pid: str, request: Request, _=Depends(require_auth))
                 "request_id": getattr(request.state, "request_id", "")})
         return {"success": True, "prediction_id": pid,
                 "request_id": getattr(request.state, "request_id", "")}
+
+
+def is_session_known(sid: str) -> bool:
+    """True when a non-empty session id is live or stored-active (Task 12).
+
+    Live in-memory sessions always count; DB rows count unless `closed`.
+    DB lookup failures fail closed (False) so ghost sessions are never
+    silently adopted. Never raises.
+    """
+    if sid in SESSIONS:
+        return True
+    try:
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+        from app.models import RecognitionSession
+        with get_db_session() as db:
+            row = db.get(RecognitionSession, sid)
+            return row is not None and getattr(row, "status", "active") != "closed"
+    except Exception:
+        logger.exception("is_session_known lookup failed for session_id=%s", sid)
+        return False
 
 
 def log_prediction(session_id: str, class_id: str, confidence: float, model_id: str) -> str:
