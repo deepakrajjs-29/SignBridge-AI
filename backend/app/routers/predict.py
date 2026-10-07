@@ -17,6 +17,8 @@ from app.metrics import INFER_SECONDS
 
 router = APIRouter()
 
+NOSIGN_ENERGY = 1e-6
+
 
 class PredictBody(BaseModel):
     frames: list[list[float]] = Field(..., description="T x 189 landmark features")
@@ -60,6 +62,20 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
         seq = arr[idx]
     else:
         seq = np.concatenate([arr, np.tile(arr[-1:], (SEQ_LEN - len(arr), 1))])
+    # No-Sign energy gate (Task 11): all-blank/low-energy windows
+    # (max abs < NOSIGN_ENERGY on the windowed raw sequence) short-circuit
+    # BEFORE any model call. NOTE: the check is deliberately pre-normalization:
+    # with the shipped scaler zeros normalize to max abs ~= 0.67, so a
+    # post-norm gate could never fire for blank input.
+    if float(np.abs(seq).max()) < NOSIGN_ENERGY:
+        ms = round((time.perf_counter() - t0) * 1000, 2)
+        return JSONResponse(content={
+            "success": True,
+            "prediction": {"class_id": "ISL_000", "label": "No sign detected",
+                           "confidence": 0.0, "prediction_id": ""},
+            "status": "no-sign", "model_version": model_version(),
+            "processing_time_ms": ms, "sequence_id": body.sequence_id or f"seq_{uuid.uuid4().hex[:8]}",
+            "request_id": getattr(request.state, "request_id", "")})
     mu, sd = get_scaler()
     normed = ((seq - mu.reshape(189)) / sd.reshape(189)).astype("float32")
     with INFER_SECONDS.time():

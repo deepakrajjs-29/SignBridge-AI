@@ -103,6 +103,23 @@ def test_ws_nan_frame_rejected():
         assert ws.receive_json()["state"] == "Ready"
 
 
+def test_ws_blank_frames_yield_no_sign():
+    """45 all-zero frames -> prediction with state "No-Sign", never "Recognized"."""
+    with client.websocket_connect(f"/api/v1/stream?session_id=sess_blank&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for _ in range(45):
+            ws.send_json({"type": "frame", "frame": [0.0] * 189})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction"
+        assert pred["state"] == "No-Sign", pred
+        assert pred["state"] != "Recognized"
+        assert "prediction" in pred  # neutral prediction stays attached
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+
+
 def test_ws_flood_is_bounded():
     """200 rapid frames -> prediction received, round-trip < 30 s."""
     with client.websocket_connect(f"/api/v1/stream?session_id=sess_flood&token={SECRET}") as ws:
@@ -114,7 +131,10 @@ def test_ws_flood_is_bounded():
         for _ in range(200):
             ws.send_json({"type": "frame", "frame": frame})
         pred = None
+        deadline = t0 + 30  # bounded: a future no-prediction regression fails instead of hanging
         while pred is None:
+            if time.monotonic() > deadline:
+                raise AssertionError("no prediction within 30 s (flood round-trip deadline exceeded)")
             msg = ws.receive_json()
             if msg.get("type") == "prediction":
                 pred = msg

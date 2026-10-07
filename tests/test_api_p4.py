@@ -192,6 +192,17 @@ def test_parallel_predicts_overlap():  # 4 concurrent predicts wall-time < 3x si
     assert total < 3 * single, f"no overlap: single={single:.3f}s total4={total:.3f}s"
 
 
+def test_blank_frames_yield_no_sign():  # zeros -> status "no-sign", not recognized
+    zeros = [[0.0] * 189] * 45
+    r = client.post("/api/v1/predict", json={"frames": zeros}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    b = r.json()
+    assert b["success"] is True
+    assert b["status"] == "no-sign", b
+    assert b["status"] != "recognized"
+    assert "prediction" in b  # neutral prediction stays attached, never recognized
+
+
 def test_prod_refuses_default_secret():  # APP_ENV=production + JWT_SECRET=change-me -> create_app raises RuntimeError
     import pytest
     from app.main import create_app

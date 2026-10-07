@@ -13,10 +13,11 @@ const STATES: RecState[] = [
   "Error",
 ];
 
-function toState(apiStatus: string, ok: boolean): RecState {
+export function toState(apiStatus: string, ok: boolean): RecState {
   if (!ok) return "Error";
-  // REST sends lowercase "recognized"; WS stream sends "Recognized".
+  // REST sends lowercase "recognized"/"no-sign"; WS stream sends "Recognized"/"No-Sign".
   if (apiStatus.toLowerCase() === "recognized") return "Recognized";
+  if (apiStatus.toLowerCase() === "no-sign") return "No-Sign";
   return "Uncertain";
 }
 

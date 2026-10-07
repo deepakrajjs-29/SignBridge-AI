@@ -4,6 +4,7 @@ import {
   CAMERA_TIMEOUT_MS,
   recognizeFrames,
   requestCameraStream,
+  toState,
 } from "./Live";
 import type { Prediction, RecState } from "../api/client";
 import type { StreamCallbacks } from "../api/stream";
@@ -128,5 +129,12 @@ describe("Live stream-first recognition with REST fallback", () => {
     expect(predict).not.toHaveBeenCalled();
     expect(delivered.cur?.p.label).toBe("thanks");
     expect(stop).toHaveBeenCalledOnce();
+  });
+
+  test("toState maps no-sign to No-Sign", () => {
+    expect(toState("no-sign", true)).toBe("No-Sign");
+    expect(toState("recognized", true)).toBe("Recognized");
+    expect(toState("uncertain", true)).toBe("Uncertain");
+    expect(toState("recognized", false)).toBe("Error");
   });
 });

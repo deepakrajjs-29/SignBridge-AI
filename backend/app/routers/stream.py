@@ -22,6 +22,8 @@ from app.metrics import INFER_SECONDS
 
 router = APIRouter()
 
+NOSIGN_ENERGY = 1e-6
+
 
 def run_stream_inference(batch: np.ndarray) -> np.ndarray:
     """Pure sync TF inference: (1, SEQ_LEN, FEAT_DIM) batch -> class probs.
@@ -69,8 +71,20 @@ async def stream(ws: WebSocket):
                         continue  # backpressure: at most one inference per 500 ms
                     last_infer = now  # first window (None) always infers immediately
                     window = np.asarray(buf[-SEQ_LEN:], dtype="float32")
-                    mu, sd = get_scaler()
                     t0 = time.perf_counter()
+                    # No-Sign energy gate (Task 11): blank windows answer
+                    # "No-Sign" BEFORE any model call (same rule as predict.py;
+                    # checked pre-normalization — see predict.py note).
+                    if float(np.abs(window).max()) < NOSIGN_ENERGY:
+                        await ws.send_json({
+                            "type": "prediction", "state": "No-Sign", "session_id": session_id,
+                            "prediction": {"class_id": "ISL_000",
+                                           "label": "No sign detected",
+                                           "confidence": 0.0},
+                            "model_version": model_version(),
+                            "processing_time_ms": round((time.perf_counter() - t0) * 1000, 2)})
+                        continue
+                    mu, sd = get_scaler()
                     with INFER_SECONDS.time():
                         probs = await asyncio.to_thread(
                             run_stream_inference,
