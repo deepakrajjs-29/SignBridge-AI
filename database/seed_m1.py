@@ -71,8 +71,9 @@ def main(engine=None) -> None:
         n_assets = s.query(SignAsset).count()
         n_models = s.query(ModelVersion).count()
     print(f"seed ok: classes={n_classes} assets={n_assets} models={n_models} db={DB_URL}")
-    assert n_classes == 50, f"expected 50 classes, got {n_classes}"
-    assert n_assets == 50, f"expected 50 assets, got {n_assets}"
+    expected = len(rows)
+    assert n_classes == expected, f"expected {expected} classes, got {n_classes}"
+    assert n_assets == expected, f"expected {expected} assets, got {n_assets}"
 
 
 if __name__ == "__main__":
