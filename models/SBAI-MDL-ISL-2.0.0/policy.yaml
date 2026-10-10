@@ -1,0 +1,15 @@
+model_id: SBAI-MDL-ISL-2.0.0
+arch: LSTM128-LSTM64-Dense64-Softmax100
+challenger: GRU128-GRU64-Dense64-Softmax100 (SBAI-GRU-100)
+seq_len: 45
+feat_dim: 189
+classes: 100
+classmap: classmap.csv
+scaler: scaler_100.npz
+threshold: 0.4
+smoothing_window: 5
+states: [Accepted, Uncertain, No-Sign, Tracking-Lost]
+calibration: val-only threshold/window (mirrors 1.0.0 policy; re-calibrate on real full train)
+seed: 7
+optimizer: Adam 1e-3
+protocol: smoke 5-epoch starter then full <=150 epochs, early-stop patience 15 on val macro-F1, checkpoint best-only

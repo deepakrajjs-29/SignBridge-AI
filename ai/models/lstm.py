@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-SEQ_LEN, FEAT_DIM, NCLASS = 45, 189, 50
+SEQ_LEN, FEAT_DIM, NCLASS = 45, 189, 100
 
 
 def build_lstm(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
@@ -19,7 +19,7 @@ def build_lstm(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
     x = layers.Dense(64, activation="relu")(x)
     x = layers.Dropout(0.2)(x)
     out = layers.Dense(nclass, activation="softmax")(x)
-    model = keras.Model(inp, out, name="SBAI-LSTM-50")
+    model = keras.Model(inp, out, name="SBAI-LSTM-100")
     model.compile(optimizer=keras.optimizers.Adam(1e-3),
                   loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     return model
@@ -35,7 +35,7 @@ def build_gru(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
     x = layers.Dense(64, activation="relu")(x)
     x = layers.Dropout(0.2)(x)
     out = layers.Dense(nclass, activation="softmax")(x)
-    model = keras.Model(inp, out, name="SBAI-GRU-50")
+    model = keras.Model(inp, out, name="SBAI-GRU-100")
     model.compile(optimizer=keras.optimizers.Adam(1e-3),
                   loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     return model
