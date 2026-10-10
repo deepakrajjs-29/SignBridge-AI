@@ -18,7 +18,7 @@ def setup_function(_):
 def test_open_endpoints():
     assert client.get("/health").status_code == 200
     assert client.get("/api/v1/model").status_code == 200
-    assert client.get("/api/v1/classes").json()["count"] == 50
+    assert client.get("/api/v1/classes").json()["count"] == 100
 
 
 def test_predict_200_and_alias():

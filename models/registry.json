@@ -1,5 +1,6 @@
 {
  "model_id": "SBAI-MDL-ISL-1.0.0",
+ "active_model": "SBAI-MDL-ISL-2.0.0",
  "arch": "GRU128-GRU64-Dense64-Softmax50",
  "status": "Candidate (M3 gate debt: test 0.824/0.823 below 0.90 gates)",
  "seq_len": 45,

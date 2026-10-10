@@ -1,4 +1,8 @@
-"""T4.1 — prediction endpoints with real GRU inference (45,189)."""
+"""T4.1 — prediction endpoints with real inference (45,189).
+
+Task 7: weights resolve via app.deps.get_model() from the registry-active
+model (SBAI-MDL-ISL-2.0.0 Softmax100); class ids render ISL_001-100 through
+label_of(), envelopes 422/413/429 unchanged."""
 
 from __future__ import annotations
 

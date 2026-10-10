@@ -28,7 +28,9 @@ RATE_PER_MIN = int(os.getenv("RATE_PER_MIN", "60"))
 NOSIGN_ENERGY = 1e-6
 
 _model = None
+_model_for: str | None = None
 _scaler = None
+_scaler_for: str | None = None
 _classes: list[dict] = []
 
 
@@ -49,21 +51,38 @@ def label_of(class_id: str) -> str:
     return class_id
 
 
+def _active_keras_path() -> Path:
+    """Artifact path for the registry-active model (Task 7: 2.0.0 Softmax100)."""
+    if model_version() == "SBAI-MDL-ISL-2.0.0":
+        return MODELS / "SBAI-MDL-ISL-2.0.0" / "SBAI-LSTM-100.keras"
+    return MODELS / "SBAI-MDL-ISL-1.0.0.keras"
+
+
+def _active_scaler_path() -> Path:
+    if model_version() == "SBAI-MDL-ISL-2.0.0":
+        return MODELS / "SBAI-MDL-ISL-2.0.0" / "scaler_100.npz"
+    return MODELS / "scaler_mvp50.npz"
+
+
 def get_model():
-    global _model
-    if _model is None:
+    global _model, _model_for
+    want = model_version()
+    if _model is None or _model_for != want:
         import tensorflow as tf
-        _model = tf.keras.models.load_model(MODELS / "SBAI-MDL-ISL-1.0.0.keras")
+        _model = tf.keras.models.load_model(_active_keras_path())
+        _model_for = want
         from app.metrics import MODEL_LOADED
         MODEL_LOADED.set(1)
     return _model
 
 
 def get_scaler():
-    global _scaler
-    if _scaler is None:
-        d = np.load(MODELS / "scaler_mvp50.npz")
+    global _scaler, _scaler_for
+    want = model_version()
+    if _scaler is None or _scaler_for != want:
+        d = np.load(_active_scaler_path())
         _scaler = (d["mean"].astype("float32"), d["std"].astype("float32"))
+        _scaler_for = want
     return _scaler
 
 

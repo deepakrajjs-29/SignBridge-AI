@@ -145,10 +145,16 @@ def create_app() -> FastAPI:
 
     @app.get("/api/v1/model")
     async def model_info(request: Request, _=Depends(open_rate_limit)):
+        from app.deps import read_registry
+        reg = read_registry()
+        mid = model_version()
+        entry = reg.get("models", {}).get(mid, {}) if isinstance(reg.get("models"), dict) else {}
+        arch = entry.get("arch") or reg.get("arch") or \
+            "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"
         return {"success": True,
-                "model": {"model_id": "signbridge-gru-v1", "model_version": model_version(),
+                "model": {"model_id": mid, "model_version": mid,
                           "seq_len": SEQ_LEN, "feat_dim": FEAT_DIM,
-                          "architecture": "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"},
+                          "architecture": arch},
                 "request_id": request.state.request_id}
 
     @app.get("/api/v1/classes")
