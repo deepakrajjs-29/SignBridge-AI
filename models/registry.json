@@ -1,6 +1,7 @@
 {
  "model_id": "SBAI-MDL-ISL-1.0.0",
  "active_model": "SBAI-MDL-ISL-2.0.0",
+ "active_model_note": "Serving pointer: model_version()/loader serve active_model (2.0.0 Softmax100). Top-level model_id/arch/classes/status describe the immutable 1.0.0 deployed record (Task 6 gate-pinned); per-version detail lives under models{}.",
  "arch": "GRU128-GRU64-Dense64-Softmax50",
  "status": "Candidate (M3 gate debt: test 0.824/0.823 below 0.90 gates)",
  "seq_len": 45,

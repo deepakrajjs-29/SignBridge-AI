@@ -1,4 +1,10 @@
-"""T4.3 — TTS stub (501 until engine configured) + text-to-sign asset lookup."""
+"""T4.3 — TTS stub (501 until engine configured) + text-to-sign asset lookup.
+
+Task 7 contract (100-class serving): ``match_phrases`` is longest-phrase-first
+(max 3 words) against the 100-label vocabulary; ``text_to_sign`` LIKE-escapes
+user text (``_escape_like``), joins ``SignClass`` → ``SignAsset`` for the photo
+URI, and reports ``supported=bool(asset and uri)`` per item.
+"""
 
 from __future__ import annotations
 
@@ -89,11 +95,14 @@ async def text_to_sign(body: T2SBody, request: Request, _=Depends(require_auth))
         for p in phrases:
             row = db.query(SignClass).filter(SignClass.label == canonical[p]).first()
             if row is None:
+                # LIKE fallback stays escaped: "%"/"_"/"[" in user text must not
+                # wildcard-match arbitrary classes (Task 7: LIKE-escape preserved).
                 row = db.query(SignClass).filter(
                     SignClass.label.ilike(_escape_like(p), escape="\\")).first()
             if row is None:
                 unsupported.append(p)
                 continue
+            # Task 7: SignAsset photo-URI join; supported iff a row AND uri exist.
             asset = db.query(SignAsset).filter(SignAsset.class_id == row.class_id).first()
             items.append({"word": p, "class_id": row.class_id, "label": row.label,
                           "asset_uri": asset.uri if asset else None,

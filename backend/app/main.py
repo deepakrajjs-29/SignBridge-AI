@@ -149,12 +149,17 @@ def create_app() -> FastAPI:
         reg = read_registry()
         mid = model_version()
         entry = reg.get("models", {}).get(mid, {}) if isinstance(reg.get("models"), dict) else {}
-        arch = entry.get("arch") or reg.get("arch") or \
+        # Task 7r1: per-id known arch so the fallback can never report Softmax50
+        # for the 2.0.0 Softmax100 entry (registry entry wins first).
+        known_arch = {"SBAI-MDL-ISL-2.0.0": "LSTM128-LSTM64-Dense64-Softmax100",
+                      "SBAI-MDL-ISL-1.0.0": "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"}
+        arch = entry.get("arch") or known_arch.get(mid) or reg.get("arch") or \
             "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"
+        nclass = entry.get("classes") or (100 if mid == "SBAI-MDL-ISL-2.0.0" else 50)
         return {"success": True,
                 "model": {"model_id": mid, "model_version": mid,
                           "seq_len": SEQ_LEN, "feat_dim": FEAT_DIM,
-                          "architecture": arch},
+                          "architecture": arch, "classes": nclass},
                 "request_id": request.state.request_id}
 
     @app.get("/api/v1/classes")
