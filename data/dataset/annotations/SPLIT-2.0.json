@@ -1,0 +1,43 @@
+{
+ "split_id": "SPLIT-2.0",
+ "seed": 200,
+ "rule": "signer-separated deterministic shuffle, nominal 70/15/15 by signer",
+ "train_signers": [
+  "U001",
+  "U002",
+  "U003",
+  "U004",
+  "U007",
+  "U008",
+  "U010",
+  "U011",
+  "U012",
+  "U013",
+  "U014"
+ ],
+ "val_signers": [
+  "U005",
+  "U009"
+ ],
+ "test_signers": [
+  "U006",
+  "U015"
+ ],
+ "signer_counts": {
+  "train": 11,
+  "val": 2,
+  "test": 2
+ },
+ "feature": {
+  "seq_len": 45,
+  "dim": 189,
+  "dtype": "float32"
+ },
+ "augment": "train-only (translate \u00b10.1, scale, rotate, speed jitter, frame-drop, noise; no mirror)",
+ "batch_weights": {
+  "train": 0.7,
+  "val": 0.2,
+  "test": 0.1
+ },
+ "leakage_check": "PASS (pairwise signer sets disjoint)"
+}
