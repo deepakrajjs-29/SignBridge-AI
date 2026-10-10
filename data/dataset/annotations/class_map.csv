@@ -49,3 +49,53 @@ ISL_047,Girl,GIRL,Dynamic,People word,Right,ISL500,"CR-001 swap-in (v2): in-voca
 ISL_048,Boy,BOY,Dynamic,People word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
 ISL_049,Book,BOOK,Dynamic,Daily word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
 ISL_050,Bus,BUS,Dynamic,Transport word,Right,ISL500,"CR-001 swap-in (v2): in-vocabulary replacement, all-dynamic 50-word MVP"
+ISL_051,Sorry,SORRY,Dynamic,Apology,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_052,Welcome,WELCOME,Dynamic,Greeting,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_053,Bye,BYE,Dynamic,Greeting,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_054,Love,LOVE,Dynamic,Emotion,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_055,Good,GOOD,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_056,Bad,BAD,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_057,Name,NAME,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_058,How,HOW,Dynamic,Question word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_059,When,WHEN,Dynamic,Question word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_060,Why,WHY,Dynamic,Question word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_061,Who,WHO,Dynamic,Question word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_062,Which,WHICH,Dynamic,Question word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_063,Want,WANT,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_064,Need,NEED,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_065,Like,LIKE,Dynamic,General,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_066,Come,COME,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_067,Stay,STAY,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_068,Wait,WAIT,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_069,Stop,STOP,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_070,Start,START,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_071,Open,OPEN,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_072,Close,CLOSE,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_073,Take,TAKE,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_074,Give,GIVE,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_075,Buy,BUY,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_076,Pay,PAY,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_077,Walk,WALK,Dynamic,Action word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_078,Speak,SPEAK,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_079,Listen,LISTEN,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_080,Look,LOOK,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_081,Read,READ,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_082,Write,WRITE,Dynamic,Activity,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_083,Milk,MILK,Dynamic,Daily word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_084,Rice,RICE,Dynamic,Daily word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_085,Bread,BREAD,Dynamic,Daily word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_086,Fruit,FRUIT,Dynamic,Daily word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_087,Hospital,HOSPITAL,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_088,Pain,PAIN,Dynamic,Medical need,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_089,Road,ROAD,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_090,Train,TRAIN,Dynamic,Transport word,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_091,Station,STATION,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_092,City,CITY,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_093,Village,VILLAGE,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_094,Shop,SHOP,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_095,Bank,BANK,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_096,Park,PARK,Dynamic,Place,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_097,Week,WEEK,Dynamic,Time reference,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_098,Month,MONTH,Dynamic,Time reference,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_099,Year,YEAR,Dynamic,Time reference,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
+ISL_100,Yesterday,YESTERDAY,Dynamic,Time reference,Both,ISL500+INCLUDE,ISL100 big-bang vocab freeze
