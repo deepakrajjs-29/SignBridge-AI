@@ -1,0 +1,23 @@
+{
+ "thresholds": {
+  "0.3": {
+   "coverage": 1.0,
+   "accepted_acc": 1.0
+  },
+  "0.4": {
+   "coverage": 0.988,
+   "accepted_acc": 1.0
+  },
+  "0.5": {
+   "coverage": 0.98,
+   "accepted_acc": 1.0
+  },
+  "0.6": {
+   "coverage": 0.974,
+   "accepted_acc": 1.0
+  }
+ },
+ "chosen_threshold": 0.3,
+ "smoothing_window": 5,
+ "note": "val-only; window=5 carried over (utterance-level synthetic data cannot calibrate streaming smoothing \u2014 recalibrate on real val)"
+}

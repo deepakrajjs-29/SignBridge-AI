@@ -6,10 +6,10 @@ feat_dim: 189
 classes: 100
 classmap: classmap.csv
 scaler: scaler_100.npz
-threshold: 0.4
+threshold: 0.3
 smoothing_window: 5
 states: [Accepted, Uncertain, No-Sign, Tracking-Lost]
-calibration: val-only threshold/window (mirrors 1.0.0 policy; re-calibrate on real full train)
+calibration: val-only on synthetic EXP-2026-002 (coverage>=0.9 sweep {0.3,0.4,0.5,0.6} -> 0.3); window=5 carried over, recalibrate on real val
 seed: 7
 optimizer: Adam 1e-3
 protocol: smoke 5-epoch starter then full <=150 epochs, early-stop patience 15 on val macro-F1, checkpoint best-only

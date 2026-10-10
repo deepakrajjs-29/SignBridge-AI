@@ -63,5 +63,18 @@
  "fixes": [
   "handedness canonicalization (U014 slot flip)",
   "mirror+scale+shift+noise+drop train aug"
- ]
+ ],
+ "models": {
+  "SBAI-MDL-ISL-2.0.0": {
+   "model_id": "SBAI-MDL-ISL-2.0.0",
+   "arch": "LSTM128-LSTM64-Dense64-Softmax100",
+   "status": "Registered SYNTHETIC-trained stub \u2014 production gates NOT cleared until real-data full train + frozen-test rescoring",
+   "classes": 100,
+   "artifacts_dir": "models/SBAI-MDL-ISL-2.0.0",
+   "sha256_lstm": "61fa5c164ab23fa00da9e4fa66b670bc25b28a29e414648338cbf0cab18f4b79",
+   "measured_test_acc": 1.0,
+   "measured_test_f1": 1.0,
+   "eval": "models/SBAI-MDL-ISL-2.0.0/eval.json"
+  }
+ }
 }

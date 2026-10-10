@@ -1,1 +1,35 @@
-{"acc_threshold_note": "STUB — projected acceptance targets, NOT measured. No real GPU training was run for 2.0.0 per task allowance; accuracy/macro-F1 require a full <=150-epoch train before promotion. Latency/FPS below are REAL CPU measurements on this machine.","accuracy": 0.92,"export_parity_200": true,"fps": 75.5,"fps_protocol": "REAL — sustained batch throughput 200 samples batch_size=1 predict loop total time, 1000/mean_ms (mean 13.24 ms/sample)","gate_acc_90": true,"gate_f1_90": true,"gate_fps_15": true,"gate_p95_200ms": true,"latency_ms_protocol": "REAL — per-sample predict TERM, batch_size=1, 200 random (45,189) float32 samples, CPU, TF 2.x oneDNN on Win11","latency_p50_ms": 132.99,"latency_p95_ms": 159.89,"latency_p99_ms": 181.45,"macro_f1": 0.91,"model_id": "SBAI-MDL-ISL-2.0.0","status": "Registered stub — gates NOT cleared for production until full train + frozen-test scoring"}
+{
+ "model_id": "SBAI-MDL-ISL-2.0.0",
+ "data": "SYNTHETIC prototypes+noise (45,189) 100-class \u2014 NOT real ISL landmarks",
+ "measured": {
+  "test_accuracy": 1.0,
+  "test_macro_f1": 1.0,
+  "test_n": 500,
+  "source": {
+   "test_report": "models/EXP-2026-002-lstm-smoke100/test_report.json",
+   "val_history": "models/EXP-2026-002-lstm-smoke100/val_history.json"
+  }
+ },
+ "targets": {
+  "accuracy": 0.9,
+  "macro_f1": 0.9,
+  "latency_p95_ms": 200,
+  "fps": 15
+ },
+ "latency_p50_ms": 64.17,
+ "latency_p95_ms": 85.19,
+ "latency_p99_ms": 99.9,
+ "fps": 254.9,
+ "latency_ms_protocol": "REAL CPU per-sample predict loop, 200 synthetic samples",
+ "fps_protocol": "REAL CPU sustained batch throughput (1000/mean_ms_per_sample)",
+ "export_parity_200": {
+  "max_abs_diff": 0.0,
+  "argmax_match": "200/200"
+ },
+ "gate_acc_90": true,
+ "gate_f1_90": true,
+ "gate_p95_200ms": true,
+ "gate_fps_15": true,
+ "challenger_gru_val_f1": 1.0,
+ "status": "Registered SYNTHETIC-trained stub \u2014 production gates NOT cleared until real-data full train + frozen-test rescoring"
+}
