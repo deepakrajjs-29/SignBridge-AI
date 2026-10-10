@@ -96,6 +96,7 @@ export interface ClassItem {
   class_id: string;
   label: string;
   sign_type: string;
+  asset_uri?: string;
 }
 
 export interface SessionItem {
@@ -170,7 +171,7 @@ export const api = {
   textToSign: (text: string) =>
     req<{
       success: boolean;
-      items: { word: string; class_id: string; label: string; supported: boolean }[];
+      items: { word: string; class_id: string; label: string; supported: boolean; asset_uri?: string }[];
       unsupported_words: string[];
       request_id?: string;
     }>("/api/v1/text-to-sign", { method: "POST", body: JSON.stringify({ text }) }),

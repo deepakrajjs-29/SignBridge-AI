@@ -9,6 +9,7 @@ export default function Vocab() {
   const [typeFilter, setTypeFilter] = useState<"all" | "Dynamic" | "Static">("all");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
+  const [failedImgs, setFailedImgs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLoading(true);
@@ -24,6 +25,21 @@ export default function Vocab() {
     if (/^[A-Za-z]$/.test(label)) return "letters";
     return "words";
   }
+
+  function photoSrc(c: ClassItem): string {
+    return c.asset_uri || `/assets/${c.class_id}.jpg`;
+  }
+
+  function markImgFailed(class_id: string) {
+    setFailedImgs((prev) => new Set(prev).add(class_id));
+  }
+
+  const counts = {
+    all: classes.length,
+    words: classes.filter((c) => getCategory(c.label) === "words").length,
+    digits: classes.filter((c) => getCategory(c.label) === "digits").length,
+    letters: classes.filter((c) => getCategory(c.label) === "letters").length,
+  };
 
   const filtered = classes.filter((c) => {
     const matchesSearch =
@@ -65,10 +81,10 @@ export default function Vocab() {
         <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold w-full md:w-auto">
           {(
             [
-              { id: "all", label: "All (50)" },
-              { id: "words", label: "Words (30)" },
-              { id: "digits", label: "Digits (10)" },
-              { id: "letters", label: "Letters (10)" },
+              { id: "all", label: `All (${counts.all})` },
+              { id: "words", label: `Words (${counts.words})` },
+              { id: "digits", label: `Digits (${counts.digits})` },
+              { id: "letters", label: `Letters (${counts.letters})` },
             ] as const
           ).map((t) => (
             <button
@@ -131,16 +147,31 @@ export default function Vocab() {
                 </span>
               </div>
 
-              <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800">
-                <span className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                  {c.label}
-                </span>
+              <div className="text-center py-2 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+                {failedImgs.has(c.class_id) ? (
+                  <span className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight block py-6">
+                    {c.label}
+                  </span>
+                ) : (
+                  <img
+                    src={photoSrc(c)}
+                    alt={`${c.label} ISL sign`}
+                    loading="lazy"
+                    onError={() => markImgFailed(c.class_id)}
+                    className="w-full h-28 object-cover"
+                  />
+                )}
               </div>
 
               <div className="text-center">
-                <span className="text-[10px] text-slate-400">
-                  Sign preview unavailable
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block truncate">
+                  {c.label}
                 </span>
+                {failedImgs.has(c.class_id) && (
+                  <span className="text-[10px] text-slate-400">
+                    Sign preview unavailable
+                  </span>
+                )}
               </div>
             </div>
           ))}

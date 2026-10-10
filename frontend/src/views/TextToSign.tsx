@@ -69,7 +69,7 @@ export const MOODS: MoodProfile[] = [
   },
 ];
 
-// Offline fallback & dictionary mapping for the 50 ISL vocabulary classes
+// Offline fallback & dictionary mapping for the 100 ISL vocabulary classes
 export const ISL_VOCAB_DICTIONARY: Record<string, { class_id: string; label: string }> = {
   hello: { class_id: "ISL_001", label: "Hello" },
   hi: { class_id: "ISL_001", label: "Hello" },
@@ -144,6 +144,121 @@ export const ISL_VOCAB_DICTIONARY: Record<string, { class_id: string; label: str
   book: { class_id: "ISL_049", label: "Book" },
   books: { class_id: "ISL_049", label: "Book" },
   bus: { class_id: "ISL_050", label: "Bus" },
+  sorry: { class_id: "ISL_051", label: "Sorry" },
+  apology: { class_id: "ISL_051", label: "Sorry" },
+  apologies: { class_id: "ISL_051", label: "Sorry" },
+  pardon: { class_id: "ISL_051", label: "Sorry" },
+  welcome: { class_id: "ISL_052", label: "Welcome" },
+  bye: { class_id: "ISL_053", label: "Bye" },
+  goodbye: { class_id: "ISL_053", label: "Bye" },
+  "good bye": { class_id: "ISL_053", label: "Bye" },
+  farewell: { class_id: "ISL_053", label: "Bye" },
+  love: { class_id: "ISL_054", label: "Love" },
+  loves: { class_id: "ISL_054", label: "Love" },
+  loved: { class_id: "ISL_054", label: "Love" },
+  loving: { class_id: "ISL_054", label: "Love" },
+  good: { class_id: "ISL_055", label: "Good" },
+  bad: { class_id: "ISL_056", label: "Bad" },
+  name: { class_id: "ISL_057", label: "Name" },
+  names: { class_id: "ISL_057", label: "Name" },
+  how: { class_id: "ISL_058", label: "How" },
+  when: { class_id: "ISL_059", label: "When" },
+  why: { class_id: "ISL_060", label: "Why" },
+  who: { class_id: "ISL_061", label: "Who" },
+  which: { class_id: "ISL_062", label: "Which" },
+  want: { class_id: "ISL_063", label: "Want" },
+  wants: { class_id: "ISL_063", label: "Want" },
+  wanted: { class_id: "ISL_063", label: "Want" },
+  needing: { class_id: "ISL_064", label: "Need" },
+  need: { class_id: "ISL_064", label: "Need" },
+  needs: { class_id: "ISL_064", label: "Need" },
+  needed: { class_id: "ISL_064", label: "Need" },
+  like: { class_id: "ISL_065", label: "Like" },
+  likes: { class_id: "ISL_065", label: "Like" },
+  liked: { class_id: "ISL_065", label: "Like" },
+  come: { class_id: "ISL_066", label: "Come" },
+  comes: { class_id: "ISL_066", label: "Come" },
+  coming: { class_id: "ISL_066", label: "Come" },
+  stay: { class_id: "ISL_067", label: "Stay" },
+  stays: { class_id: "ISL_067", label: "Stay" },
+  staying: { class_id: "ISL_067", label: "Stay" },
+  wait: { class_id: "ISL_068", label: "Wait" },
+  waits: { class_id: "ISL_068", label: "Wait" },
+  waiting: { class_id: "ISL_068", label: "Wait" },
+  stop: { class_id: "ISL_069", label: "Stop" },
+  stops: { class_id: "ISL_069", label: "Stop" },
+  stopping: { class_id: "ISL_069", label: "Stop" },
+  start: { class_id: "ISL_070", label: "Start" },
+  starts: { class_id: "ISL_070", label: "Start" },
+  starting: { class_id: "ISL_070", label: "Start" },
+  open: { class_id: "ISL_071", label: "Open" },
+  opens: { class_id: "ISL_071", label: "Open" },
+  opening: { class_id: "ISL_071", label: "Open" },
+  close: { class_id: "ISL_072", label: "Close" },
+  closes: { class_id: "ISL_072", label: "Close" },
+  closing: { class_id: "ISL_072", label: "Close" },
+  take: { class_id: "ISL_073", label: "Take" },
+  takes: { class_id: "ISL_073", label: "Take" },
+  taking: { class_id: "ISL_073", label: "Take" },
+  give: { class_id: "ISL_074", label: "Give" },
+  gives: { class_id: "ISL_074", label: "Give" },
+  giving: { class_id: "ISL_074", label: "Give" },
+  buy: { class_id: "ISL_075", label: "Buy" },
+  buys: { class_id: "ISL_075", label: "Buy" },
+  buying: { class_id: "ISL_075", label: "Buy" },
+  pay: { class_id: "ISL_076", label: "Pay" },
+  pays: { class_id: "ISL_076", label: "Pay" },
+  paying: { class_id: "ISL_076", label: "Pay" },
+  walk: { class_id: "ISL_077", label: "Walk" },
+  walks: { class_id: "ISL_077", label: "Walk" },
+  walking: { class_id: "ISL_077", label: "Walk" },
+  speak: { class_id: "ISL_078", label: "Speak" },
+  speaks: { class_id: "ISL_078", label: "Speak" },
+  speaking: { class_id: "ISL_078", label: "Speak" },
+  listen: { class_id: "ISL_079", label: "Listen" },
+  listens: { class_id: "ISL_079", label: "Listen" },
+  listening: { class_id: "ISL_079", label: "Listen" },
+  look: { class_id: "ISL_080", label: "Look" },
+  looks: { class_id: "ISL_080", label: "Look" },
+  looking: { class_id: "ISL_080", label: "Look" },
+  read: { class_id: "ISL_081", label: "Read" },
+  reads: { class_id: "ISL_081", label: "Read" },
+  reading: { class_id: "ISL_081", label: "Read" },
+  write: { class_id: "ISL_082", label: "Write" },
+  writes: { class_id: "ISL_082", label: "Write" },
+  writing: { class_id: "ISL_082", label: "Write" },
+  milk: { class_id: "ISL_083", label: "Milk" },
+  rice: { class_id: "ISL_084", label: "Rice" },
+  bread: { class_id: "ISL_085", label: "Bread" },
+  fruit: { class_id: "ISL_086", label: "Fruit" },
+  fruits: { class_id: "ISL_086", label: "Fruit" },
+  hospital: { class_id: "ISL_087", label: "Hospital" },
+  hospitals: { class_id: "ISL_087", label: "Hospital" },
+  pain: { class_id: "ISL_088", label: "Pain" },
+  pains: { class_id: "ISL_088", label: "Pain" },
+  road: { class_id: "ISL_089", label: "Road" },
+  roads: { class_id: "ISL_089", label: "Road" },
+  train: { class_id: "ISL_090", label: "Train" },
+  trains: { class_id: "ISL_090", label: "Train" },
+  station: { class_id: "ISL_091", label: "Station" },
+  stations: { class_id: "ISL_091", label: "Station" },
+  city: { class_id: "ISL_092", label: "City" },
+  cities: { class_id: "ISL_092", label: "City" },
+  village: { class_id: "ISL_093", label: "Village" },
+  villages: { class_id: "ISL_093", label: "Village" },
+  shop: { class_id: "ISL_094", label: "Shop" },
+  shops: { class_id: "ISL_094", label: "Shop" },
+  bank: { class_id: "ISL_095", label: "Bank" },
+  banks: { class_id: "ISL_095", label: "Bank" },
+  park: { class_id: "ISL_096", label: "Park" },
+  parks: { class_id: "ISL_096", label: "Park" },
+  week: { class_id: "ISL_097", label: "Week" },
+  weeks: { class_id: "ISL_097", label: "Week" },
+  month: { class_id: "ISL_098", label: "Month" },
+  months: { class_id: "ISL_098", label: "Month" },
+  year: { class_id: "ISL_099", label: "Year" },
+  years: { class_id: "ISL_099", label: "Year" },
+  yesterday: { class_id: "ISL_100", label: "Yesterday" },
 };
 
 const SAMPLE_PHRASES = [
@@ -159,7 +274,7 @@ export default function TextToSign() {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<
-    { word: string; class_id: string; label: string; supported: boolean }[] | null
+    { word: string; class_id: string; label: string; supported: boolean; asset_uri?: string }[] | null
   >(null);
   const [unsupported, setUnsupported] = useState<string[]>([]);
   const [errorNote, setErrorNote] = useState("");
@@ -217,7 +332,7 @@ export default function TextToSign() {
       .trim();
 
     try {
-      let resolvedItems: { word: string; class_id: string; label: string; supported: boolean }[] = [];
+      let resolvedItems: { word: string; class_id: string; label: string; supported: boolean; asset_uri?: string }[] = [];
       let unresolvedWords: string[] = [];
 
       try {
@@ -237,12 +352,12 @@ export default function TextToSign() {
       // If backend missed words or client fallback is needed:
       if (resolvedItems.length === 0) {
         const tokens = cleanedText.toLowerCase().split(/\s+/).filter(Boolean);
-        const mappedList: { word: string; class_id: string; label: string; supported: boolean }[] = [];
+        const mappedList: { word: string; class_id: string; label: string; supported: boolean; asset_uri?: string }[] = [];
         const unmappedList: string[] = [];
 
         let i = 0;
         while (i < tokens.length) {
-          // Check two-word signs first (e.g., "thank you", "good morning", "good night")
+          // Check two-word signs first (e.g., "thank you", "good morning", "good night", "good bye")
           if (i + 1 < tokens.length) {
             const bigram = `${tokens[i]} ${tokens[i + 1]}`;
             if (ISL_VOCAB_DICTIONARY[bigram]) {
@@ -252,6 +367,7 @@ export default function TextToSign() {
                 class_id: entry.class_id,
                 label: entry.label,
                 supported: true,
+                asset_uri: `/assets/${entry.class_id}.jpg`,
               });
               i += 2;
               continue;
@@ -266,6 +382,7 @@ export default function TextToSign() {
               class_id: entry.class_id,
               label: entry.label,
               supported: true,
+              asset_uri: `/assets/${entry.class_id}.jpg`,
             });
           } else {
             unmappedList.push(unigram);
@@ -353,7 +470,7 @@ export default function TextToSign() {
           Text & Voice to Indian Sign Language (ISL)
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 50-class vocabulary, with emotional voice synthesis.
+          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 100-class vocabulary, with emotional voice synthesis.
         </p>
       </div>
 
@@ -521,7 +638,18 @@ export default function TextToSign() {
                     <span className="font-mono font-bold text-brand-600 dark:text-brand-400">#{idx + 1}</span>
                     <span className="font-mono">{it.class_id || "UNMAPPED"}</span>
                   </div>
-                  <div className="text-center py-4 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center relative">
+                  <div className="text-center py-4 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+                    {(it.asset_uri || it.class_id) && (
+                      <img
+                        src={it.asset_uri || `/assets/${it.class_id}.jpg`}
+                        alt={`${it.label || it.word} ISL sign`}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                        className="w-full h-24 object-cover mb-2"
+                      />
+                    )}
                     <span className="text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-wide">
                       {it.label || it.word}
                     </span>
@@ -568,7 +696,7 @@ export default function TextToSign() {
                 Vocabulary Notice:
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                The words <strong>{unsupported.join(", ")}</strong> are auxiliary grammar words or outside the 50 Indian Sign Language classes. The core signs have been structured above.
+                The words <strong>{unsupported.join(", ")}</strong> are auxiliary grammar words or outside the 100 Indian Sign Language classes. The core signs have been structured above.
               </p>
             </div>
           )}
