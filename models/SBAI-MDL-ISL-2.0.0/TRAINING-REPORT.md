@@ -21,7 +21,7 @@
   streaming smoothing — recalibrate on real val). See calibration.json.
 - Export: SavedModel SBAI-LSTM-100_savedmodel/ + 200-sample parity probe:
   max_abs_diff=0.0, argmax 200/200 (parity_probe.json).
-- Latency REAL CPU: p50 64.17 / p95 85.19 / p99 99.9 ms → p95 < 200 PASS; FPS 254.9 ≥ 15 PASS.
+- Latency REAL CPU (single measured training-run probe, recorded in eval.json; machine-dependent): p50 156.95 / p95 177.87 / p99 188.53 ms → p95 < 200 PASS; FPS 105.6 ≥ 15 PASS.
 - Logs: models/EXP-2026-002-lstm-smoke100/ + models/EXP-2026-002-gru-smoke100/
   (train.log, val_history.json, test_report.json, confusion.npz, calibration.json,
   parity_probe.json). eval.json `measured` block cross-references these files.

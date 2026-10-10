@@ -5,10 +5,10 @@
   "test_accuracy": 1.0,
   "test_macro_f1": 1.0,
   "test_n": 500,
-  "source": {
-   "test_report": "models\\EXP-2026-002-lstm-smoke100\\test_report.json",
-   "val_history": "models\\EXP-2026-002-lstm-smoke100\\val_history.json"
-  }
+   "source": {
+    "test_report": "models/EXP-2026-002-lstm-smoke100/test_report.json",
+    "val_history": "models/EXP-2026-002-lstm-smoke100/val_history.json"
+   }
  },
  "targets": {
   "accuracy": 0.9,
