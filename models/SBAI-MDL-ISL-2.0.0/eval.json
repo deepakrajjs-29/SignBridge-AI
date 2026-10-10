@@ -6,8 +6,8 @@
   "test_macro_f1": 1.0,
   "test_n": 500,
   "source": {
-   "test_report": "models/EXP-2026-002-lstm-smoke100/test_report.json",
-   "val_history": "models/EXP-2026-002-lstm-smoke100/val_history.json"
+   "test_report": "models\\EXP-2026-002-lstm-smoke100\\test_report.json",
+   "val_history": "models\\EXP-2026-002-lstm-smoke100\\val_history.json"
   }
  },
  "targets": {
@@ -16,10 +16,10 @@
   "latency_p95_ms": 200,
   "fps": 15
  },
- "latency_p50_ms": 64.17,
- "latency_p95_ms": 85.19,
- "latency_p99_ms": 99.9,
- "fps": 254.9,
+ "latency_p50_ms": 156.95,
+ "latency_p95_ms": 177.87,
+ "latency_p99_ms": 188.53,
+ "fps": 105.6,
  "latency_ms_protocol": "REAL CPU per-sample predict loop, 200 synthetic samples",
  "fps_protocol": "REAL CPU sustained batch throughput (1000/mean_ms_per_sample)",
  "export_parity_200": {
@@ -31,5 +31,10 @@
  "gate_p95_200ms": true,
  "gate_fps_15": true,
  "challenger_gru_val_f1": 1.0,
+ "challenger_gru_test": {
+  "accuracy": 1.0,
+  "macro_f1": 1.0,
+  "source": "models/EXP-2026-002-gru-smoke100/test_report.json"
+ },
  "status": "Registered SYNTHETIC-trained stub \u2014 production gates NOT cleared until real-data full train + frozen-test rescoring"
 }

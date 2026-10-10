@@ -1,4 +1,4 @@
-EXP-2026-002 SBAI-GRU-100: synthetic (45,189)x100cls, seed=7, train=2400 val=500, Adam 1e-3, batch 64
+EXP-2026-002 SBAI-GRU-100: synthetic (45,189)x100cls, seed=7, train=2400 val=500, Adam 1e-3, batch 64, smoke 5 epochs + full max 150 early-stop patience 15 on val macro-F1, best-only restore
 epoch 1: loss=4.2046 acc=0.1429 val_acc=0.71 val_macro_f1=0.7019 [SMOKE] *best
 epoch 2: loss=3.122 acc=0.5154 val_acc=0.856 val_macro_f1=0.8646 [SMOKE] *best
 epoch 3: loss=1.8547 acc=0.7738 val_acc=0.994 val_macro_f1=0.9939 [SMOKE] *best
@@ -9,4 +9,14 @@ epoch 6: loss=0.3054 acc=0.9846 val_acc=1.0 val_macro_f1=1.0
 epoch 7: loss=0.2037 acc=0.9921 val_acc=1.0 val_macro_f1=1.0
 epoch 8: loss=0.1451 acc=0.9942 val_acc=1.0 val_macro_f1=1.0
 epoch 9: loss=0.1277 acc=0.9933 val_acc=1.0 val_macro_f1=1.0
-early-stop at epoch 9 (patience 5 on val macro-F1)
+epoch 10: loss=0.1079 acc=0.9937 val_acc=1.0 val_macro_f1=1.0
+epoch 11: loss=0.0896 acc=0.9946 val_acc=1.0 val_macro_f1=1.0
+epoch 12: loss=0.0729 acc=0.9967 val_acc=1.0 val_macro_f1=1.0
+epoch 13: loss=0.068 acc=0.9971 val_acc=1.0 val_macro_f1=1.0
+epoch 14: loss=0.0553 acc=0.9975 val_acc=1.0 val_macro_f1=1.0
+epoch 15: loss=0.0502 acc=0.9979 val_acc=1.0 val_macro_f1=1.0
+epoch 16: loss=0.0464 acc=0.9971 val_acc=1.0 val_macro_f1=1.0
+epoch 17: loss=0.036 acc=0.9983 val_acc=1.0 val_macro_f1=1.0
+epoch 18: loss=0.0336 acc=0.9992 val_acc=1.0 val_macro_f1=1.0
+epoch 19: loss=0.0309 acc=0.9992 val_acc=1.0 val_macro_f1=1.0
+early-stop at epoch 19 (patience 15 on val macro-F1)

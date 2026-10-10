@@ -3,11 +3,15 @@
 ## Real training run (scripts/train_smoke100.py, seed 7)
 - Data: SYNTHETIC (45,189) 100-class — class prototypes + Gaussian noise + temporal
   drift + 20% tail zero-masking. train=2400 / val=500 / test=500. NOT real ISL landmarks.
-- Protocol: 5-epoch smoke, then short full run (max 30 epochs, early-stop patience 5 on
-  val macro-F1, best-only restore). Adam 1e-3, batch 64. (Full ≤150 / patience-15
-  reserved for the real-data train.)
-- LSTM: 9 epochs, best val_macro_F1=1.0 (epoch 4) → early-stop epoch 9. GRU challenger,
-  same protocol: 9 epochs, val_macro_F1=1.0 (tie → LSTM kept as primary per Task 6).
+- Protocol (matches brief): 5-epoch smoke, then full max 150 epochs, early-stop
+  patience 15 on val macro-F1, best-only restore. Adam 1e-3, batch 64.
+  Synthetic run converged fast: best val_macro_F1=1.0 at epoch 4, early-stop fired at
+  epoch 19 (< 150, so the cap was never binding). Same protocol for GRU challenger.
+- LSTM: best val_macro_F1=1.0 (epoch 4) → early-stop epoch 19. GRU challenger,
+  same protocol: best val_macro_F1=1.0 (tie → LSTM kept as primary per Task 6).
+  Winner pick uses BEST val macro-F1 over the run, not the last epoch.
+  Challenger fully scored: EXP-2026-002-gru-smoke100/test_report.json (acc/F1),
+  confusion.npz, SavedModel export + parity_probe.json (diff 0.0, 200/200).
 - Frozen synthetic test: acc=1.0, macro-F1=1.0 (n=500) — measured, from actual
   predictions; per-class P/R + 100×100 confusion in EXP test_report.json / confusion.npz.
 - Scaler: REFIT on synthetic train mean/std (was: copy of scaler_mvp50) → scaler_100.npz.

@@ -76,12 +76,14 @@ def train_protocol(build_fn, tag, Xtr, ytr, Xv, yv, exp_dir):
     import tensorflow as tf
     exp_dir.mkdir(parents=True, exist_ok=True)
     log = exp_dir / "train.log"
+    PATIENCE, MAX_EP = 15, 150  # brief match: full <=150 epochs, patience 15
     lines = [f"EXP-2026-002 {tag}: synthetic (45,189)x100cls, seed={SEED}, "
-             f"train={len(ytr)} val={len(yv)}, Adam 1e-3, batch 64"]
+             f"train={len(ytr)} val={len(yv)}, Adam 1e-3, batch 64, "
+             f"smoke 5 epochs + full max {MAX_EP} early-stop patience {PATIENCE} "
+             f"on val macro-F1, best-only restore"]
     m = build_fn()
     hist = []
     best_f1, best_w, wait = -1.0, None, 0
-    PATIENCE, MAX_EP = 5, 30
     for ep in range(1, MAX_EP + 1):
         h = m.fit(Xtr, ytr, epochs=1, batch_size=64, verbose=0)
         pv = m.predict(Xv, verbose=0, batch_size=256).argmax(1)
@@ -108,7 +110,7 @@ def train_protocol(build_fn, tag, Xtr, ytr, Xv, yv, exp_dir):
     (exp_dir / "val_history.json").write_text(json.dumps(hist, indent=1))
     log.write_text("\n".join(lines) + "\n")
     print(f"[{tag}] epochs={len(hist)} best_val_f1={best_f1:.4f}")
-    return m, hist
+    return m, hist, best_f1
 
 
 def main():
@@ -131,28 +133,52 @@ def main():
     Xte = ((Xte_raw - mean) / std).astype("float32")
     print(f"scaler refit on synthetic train: mean{mean.shape} std{std.shape}")
 
-    lstm, h_lstm = train_protocol(build_lstm, "SBAI-LSTM-100", Xtr, ytr, Xv, yv, EXP_LSTM)
-    gru, h_gru = train_protocol(build_gru, "SBAI-GRU-100", Xtr, ytr, Xv, yv, EXP_GRU)
+    lstm, h_lstm, best_lstm = train_protocol(build_lstm, "SBAI-LSTM-100", Xtr, ytr, Xv, yv, EXP_LSTM)
+    gru, h_gru, best_gru = train_protocol(build_gru, "SBAI-GRU-100", Xtr, ytr, Xv, yv, EXP_GRU)
 
     winner, wtag, wexp = (lstm, "SBAI-LSTM-100", EXP_LSTM) \
-        if h_lstm[-1]["val_macro_f1"] >= h_gru[-1]["val_macro_f1"] else (gru, "SBAI-GRU-100", EXP_GRU)
+        if best_lstm >= best_gru else (gru, "SBAI-GRU-100", EXP_GRU)
     # registered artifact stays LSTM-primary per Task 6; record challenger delta
-    print(f"challenger check: LSTM val_f1={h_lstm[-1]['val_macro_f1']} "
-          f"GRU val_f1={h_gru[-1]['val_macro_f1']} -> registered stays SBAI-LSTM-100")
+    print(f"challenger check (best val macro-F1): LSTM={best_lstm:.4f} "
+          f"GRU={best_gru:.4f} -> registered stays SBAI-LSTM-100")
 
-    # frozen-test scoring on synthetic test split
-    P = winner.predict(Xte, verbose=0, batch_size=256)
-    yp = P.argmax(1)
-    acc = float((yp == yte).mean())
-    f1 = macro_f1(yte, yp)
-    cm = np.zeros((NCLASS, NCLASS), int)
-    np.add.at(cm, (yte, yp), 1)
-    np.savez(wexp / "confusion.npz", confusion=cm)
-    test_rep = {"test_n": len(yte), "accuracy": round(acc, 4), "macro_f1": round(f1, 4),
-                "per_class": per_class_pr(yte, yp),
-                "worst_5_classes": sorted(per_class_pr(yte, yp), key=lambda d: d["f1"])[:5],
-                "data": "SYNTHETIC (not real ISL landmarks)"}
-    (wexp / "test_report.json").write_text(json.dumps(test_rep, indent=1))
+    def score_test(model, exp_dir):
+        """Frozen-test scoring → test_report.json + confusion.npz (actual predictions)."""
+        P = model.predict(Xte, verbose=0, batch_size=256)
+        yp = P.argmax(1)
+        acc = float((yp == yte).mean())
+        f1 = macro_f1(yte, yp)
+        cm = np.zeros((NCLASS, NCLASS), int)
+        np.add.at(cm, (yte, yp), 1)
+        np.savez(exp_dir / "confusion.npz", confusion=cm)
+        rep = {"test_n": len(yte), "accuracy": round(acc, 4), "macro_f1": round(f1, 4),
+               "per_class": per_class_pr(yte, yp),
+               "worst_5_classes": sorted(per_class_pr(yte, yp), key=lambda d: d["f1"])[:5],
+               "data": "SYNTHETIC (not real ISL landmarks)"}
+        (exp_dir / "test_report.json").write_text(json.dumps(rep, indent=1))
+        return rep
+
+    def export_and_parity(model, export_dir, exp_dir, probe):
+        """SavedModel export + 200-sample reload parity probe → parity_probe.json."""
+        model.export(str(export_dir))
+        p1 = model.predict(probe, verbose=0, batch_size=64)
+        loaded = tf.saved_model.load(str(export_dir))
+        infer = loaded.signatures["serving_default"]
+        out_key = list(infer.structured_outputs.keys())[0]
+        p2 = infer(tf.constant(probe))[out_key].numpy()
+        maxdiff = float(np.max(np.abs(p1 - p2)))
+        agree = int((p1.argmax(1) == p2.argmax(1)).sum())
+        (exp_dir / "parity_probe.json").write_text(json.dumps(
+            {"n": 200, "max_abs_diff": maxdiff, "argmax_match": f"{agree}/200",
+             "out_key": out_key, "parity": bool(maxdiff == 0.0 and agree == 200)}, indent=1))
+        print(f"parity [{export_dir.name}]: max_abs_diff={maxdiff} agree={agree}/200")
+        return maxdiff, agree
+
+    # frozen-test scoring for BOTH contenders (winner drives eval.json measured)
+    rep_lstm = score_test(lstm, EXP_LSTM)
+    rep_gru = score_test(gru, EXP_GRU)
+    test_rep = rep_lstm if wexp == EXP_LSTM else rep_gru
+    acc, f1 = test_rep["accuracy"], test_rep["macro_f1"]
 
     # val-only threshold/window calibration
     Pv = winner.predict(Xv, verbose=0, batch_size=256)
@@ -174,24 +200,14 @@ def main():
                  "cannot calibrate streaming smoothing — recalibrate on real val)"}, indent=1))
     print(f"calibration: chosen_threshold={thr}")
 
-    # save trained weights (.keras) + SavedModel export + parity probe
+    # save trained weights (.keras) + SavedModel export + parity probe (both contenders)
     final_keras = MODEL_DIR / "SBAI-LSTM-100.keras"
     lstm.save(str(final_keras))
     gru.save(str(MODEL_DIR / "SBAI-GRU-100.keras"))
-    export_dir = MODEL_DIR / "SBAI-LSTM-100_savedmodel"
-    lstm.export(str(export_dir))
     probe = Xte[:200]
-    p1 = lstm.predict(probe, verbose=0, batch_size=64)
-    loaded = tf.saved_model.load(str(export_dir))
-    infer = loaded.signatures["serving_default"]
-    out_key = list(infer.structured_outputs.keys())[0]
-    p2 = infer(tf.constant(probe))[out_key].numpy()
-    maxdiff = float(np.max(np.abs(p1 - p2)))
-    agree = int((p1.argmax(1) == p2.argmax(1)).sum())
-    (wexp / "parity_probe.json").write_text(json.dumps(
-        {"n": 200, "max_abs_diff": maxdiff, "argmax_match": f"{agree}/200",
-         "out_key": out_key, "parity": bool(maxdiff == 0.0 and agree == 200)}, indent=1))
-    print(f"parity: max_abs_diff={maxdiff} agree={agree}/200")
+    maxdiff, agree = export_and_parity(
+        lstm, MODEL_DIR / "SBAI-LSTM-100_savedmodel", EXP_LSTM, probe)
+    export_and_parity(gru, EXP_GRU / "SBAI-GRU-100_savedmodel", EXP_GRU, probe)
 
     # latency (per-sample loop) + throughput FPS
     ts = []
@@ -227,7 +243,9 @@ def main():
         "export_parity_200": {"max_abs_diff": maxdiff, "argmax_match": f"{agree}/200"},
         "gate_acc_90": bool(acc >= 0.90), "gate_f1_90": bool(f1 >= 0.90),
         "gate_p95_200ms": bool(lat["p95"] < 200), "gate_fps_15": bool(lat["fps"] >= 15),
-        "challenger_gru_val_f1": h_gru[-1]["val_macro_f1"],
+        "challenger_gru_val_f1": round(best_gru, 4),
+        "challenger_gru_test": {"accuracy": rep_gru["accuracy"], "macro_f1": rep_gru["macro_f1"],
+                                "source": "models/EXP-2026-002-gru-smoke100/test_report.json"},
         "status": "Registered SYNTHETIC-trained stub — production gates NOT cleared until "
                   "real-data full train + frozen-test rescoring",
     }

@@ -73,6 +73,22 @@ def test_export_parity_probe():
     assert m.predict(rng.normal(size=(4, 45, 189)).astype("float32"), verbose=0).shape == (4, 100)
 
 
+def test_brief_protocol_params():
+    """EXP train.log must show brief-matched params: smoke 5, max 150, patience 15, early stop."""
+    log = (ROOT / "models" / "EXP-2026-002-lstm-smoke100" / "train.log").read_text()
+    assert "max 150" in log and "patience 15" in log
+    assert "[SMOKE]" in log and "early-stop at epoch" in log
+    hist = json.loads((ROOT / "models" / "EXP-2026-002-lstm-smoke100" / "val_history.json")
+                      .read_text(encoding="utf-8"))
+    assert len(hist) < 150  # stopped early on convergence
+    gru_rep = json.loads((ROOT / "models" / "EXP-2026-002-gru-smoke100" / "test_report.json")
+                         .read_text(encoding="utf-8"))
+    gru_par = json.loads((ROOT / "models" / "EXP-2026-002-gru-smoke100" / "parity_probe.json")
+                         .read_text(encoding="utf-8"))
+    assert len(gru_rep["per_class"]) == 100  # challenger frozen-test scored
+    assert gru_par["max_abs_diff"] == 0.0 and gru_par["argmax_match"] == "200/200"
+
+
 def test_registry_includes_200_keeps_100():
     reg = json.loads((ROOT / "models" / "registry.json").read_text(encoding="utf-8"))
     assert reg["model_id"] == "SBAI-MDL-ISL-1.0.0"  # deployed record untouched
