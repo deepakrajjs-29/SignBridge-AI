@@ -35,13 +35,20 @@ _classes: list[dict] = []
 
 
 def class_list() -> list[dict]:
-    global _classes
     if not _classes:
         with (ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8") as f:
             for r in csv.DictReader(f):
-                _classes.append({"class_id": r["class_id"], "label": r["label"],
-                                 "sign_type": r.get("sign_type", "Dynamic")})
+                _classes.append({
+                    "class_id": r["class_id"],
+                    "label": r["label"],
+                    "gloss": r.get("gloss", r["label"].upper()),
+                    "sign_type": r.get("sign_type", "Dynamic"),
+                    "meaning": r.get("meaning", ""),
+                    "handedness": r.get("handedness", "Both"),
+                    "asset_uri": f"/assets/{r['class_id']}.jpg",
+                })
     return _classes
+
 
 
 def label_of(class_id: str) -> str:
@@ -52,13 +59,22 @@ def label_of(class_id: str) -> str:
 
 
 def _active_keras_path() -> Path:
-    """Artifact path for the registry-active model (Task 7: 2.0.0 Softmax100)."""
+    """Artifact path for the registry-active model.
+
+    3.0.0 = REAL 100-class winner (SBAI-MDL-ISL-3.0.0.keras, registered by
+    scripts/register_v3.py); 2.0.0 = synthetic Softmax100 (kept, not served
+    once 3.0.0 is active); else 1.0.0 GRU.
+    """
+    if model_version() == "SBAI-MDL-ISL-3.0.0":
+        return MODELS / "SBAI-MDL-ISL-3.0.0.keras"
     if model_version() == "SBAI-MDL-ISL-2.0.0":
         return MODELS / "SBAI-MDL-ISL-2.0.0" / "SBAI-LSTM-100.keras"
     return MODELS / "SBAI-MDL-ISL-1.0.0.keras"
 
 
 def _active_scaler_path() -> Path:
+    if model_version() == "SBAI-MDL-ISL-3.0.0":
+        return MODELS / "scaler_100_real.npz"
     if model_version() == "SBAI-MDL-ISL-2.0.0":
         return MODELS / "SBAI-MDL-ISL-2.0.0" / "scaler_100.npz"
     return MODELS / "scaler_mvp50.npz"
@@ -91,6 +107,8 @@ def _registry_path() -> Path:
 
 
 def _policy_path() -> Path:
+    if model_version() == "SBAI-MDL-ISL-3.0.0":
+        return MODELS / "SBAI-MDL-ISL-3.0.0" / "policy.json"
     return MODELS / "EXP-2026-001-gru-full" / "policy.json"
 
 

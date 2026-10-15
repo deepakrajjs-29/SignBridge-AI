@@ -46,18 +46,25 @@ async def list_models(request: Request, _=Depends(require_auth)):
 
 
 def _known_model_ids() -> set[str]:
-    """Model ids promote may point at: on-disk ``models/*.keras`` stems plus registry-history ids."""
+    """Model ids promote may point at: on-disk ``models/*.keras`` stems plus registry-history ids and registry models."""
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from app.deps import MODELS
     known = {p.stem for p in MODELS.glob("*.keras")}
-    hist = read_registry().get("history")
+    known |= {p.name for p in MODELS.iterdir() if p.is_dir() and p.name.startswith("SBAI-")}
+    reg = read_registry()
+    if isinstance(reg.get("models"), dict):
+        known |= set(reg["models"].keys())
+    if reg.get("active_model"):
+        known.add(str(reg["active_model"]))
+    hist = reg.get("history")
     if isinstance(hist, list):
         for h in hist:
             if isinstance(h, dict) and h.get("model_id"):
                 known.add(str(h["model_id"]))
     return known
+
 
 
 @router.post("/promote")

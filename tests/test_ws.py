@@ -134,8 +134,11 @@ def test_ws_blank_frames_yield_no_sign():
         assert ws.receive_json()["state"] == "Ready"
 
 
-def test_ws_recognized_persists_to_history():
+def test_ws_recognized_persists_to_history(monkeypatch):
     """Stream with a real sid -> GET predictions contains the streamed class."""
+    fake_probs = np.zeros(100, dtype=np.float32)
+    fake_probs[0] = 0.95
+    monkeypatch.setattr("app.routers.stream.run_stream_inference", lambda batch: fake_probs)
     AUTHH = {"Authorization": f"Bearer {SECRET}"}
     sid = client.post("/api/v1/session", json={}, headers=AUTHH).json()["session_id"]
     frames = (np.random.default_rng(1).normal(0, 0.5, (45, 189))).tolist()

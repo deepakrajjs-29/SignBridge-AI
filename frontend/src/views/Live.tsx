@@ -141,22 +141,25 @@ export async function recognizeFrames(
   const streamed = await new Promise<boolean>((resolve) => {
     let done = false;
     let handle: ReturnType<typeof connectStream> | null = null;
-    const finish = (ok: boolean) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      try {
-        handle?.stop();
-      } catch {
-        /* socket already closed */
-      }
-      onHandle(null);
-      resolve(ok);
-    };
-    const timer = setTimeout(() => {
-      onNote("Live stream timed out — used REST fallback.");
-      finish(false);
-    }, timeoutMs);
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = async () => {
+      const finish = (ok: boolean) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (openTimer !== undefined) clearTimeout(openTimer);
+        try {
+          handle?.stop();
+        } catch {
+          /* socket already closed */
+        }
+        onHandle(null);
+        resolve(ok);
+      };
+      const timer = setTimeout(() => {
+        onNote("Live stream timed out — used REST fallback.");
+        finish(false);
+      }, timeoutMs);
     try {
       onState("Tracking");
       const cb: StreamCallbacks = {
@@ -180,10 +183,27 @@ export async function recognizeFrames(
       };
       handle = connect(base, sessionId, cb);
       onHandle(handle);
+      // Wait for the WS handshake before sending frames. Sending on a
+      // CONNECTING socket throws and used to doom every stream attempt to a
+      // silent REST fallback. Mocks without `ready` proceed immediately.
+      try {
+        await Promise.race([
+          handle.ready ?? Promise.resolve(),
+          new Promise<never>((_, reject) => {
+            openTimer = setTimeout(() => reject(new Error("open-timeout")), timeoutMs);
+          }),
+        ]);
+      } catch {
+        if (!done) onNote("Live stream timed out — used REST fallback.");
+        finish(false);
+        return;
+      }
       for (const f of frames) handle.sendFrame(f);
     } catch {
       finish(false);
     }
+    };
+    void run();
   });
 
   if (streamed) return { path: "stream", status: streamStatus };
@@ -986,11 +1006,25 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
 
             <div className="py-3 text-center rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
               {result && state === "Recognized" ? (
-                <div>
-                  <span className="text-2xl font-black text-slate-900 dark:text-white uppercase">
+                <div className="space-y-2">
+                  <span className="text-2xl font-black text-slate-900 dark:text-white uppercase block">
                     {result.label}
                   </span>
                   <p className="text-xs text-slate-400 font-mono">Class: {result.class_id}</p>
+                  {result.class_id && (
+                    <div className="pt-1">
+                      <img
+                        src={`/assets/${result.class_id}.jpg`}
+                        alt={`${result.label} ISL sign`}
+                        loading="lazy"
+                        className="w-20 h-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700 mx-auto shadow-sm"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">Reference Sign Demonstration</span>
+                    </div>
+                  )}
                 </div>
               ) : result && state === "Uncertain" ? (
                 <div>
@@ -1005,6 +1039,7 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
                 </div>
               )}
             </div>
+
 
             {result && (
               <div className="space-y-1">

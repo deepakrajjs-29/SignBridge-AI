@@ -15,7 +15,7 @@ export default function App() {
   const [tab, setTab] = useState<NavTab>("dashboard");
   const [lastResult, setLastResult] = useState<Prediction | null>(null);
   const [backendOnline, setBackendOnline] = useState<boolean>(true);
-  const [modelVersion, setModelVersion] = useState<string>("SBAI-MDL-ISL-1.0.0");
+  const [modelVersion, setModelVersion] = useState<string>("SBAI-MDL-ISL-2.0.0");
   const [sessionId, setSessionId] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);

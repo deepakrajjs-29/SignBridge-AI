@@ -1,0 +1,15 @@
+[tool.pyrefly]
+search-paths = [
+    "C:/Users/Deepak Raj JS/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages",
+    "backend",
+    "database/migrations"
+]
+python-version = "3.14"
+
+[tool.pyright]
+extraPaths = [
+    "C:/Users/Deepak Raj JS/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages",
+    "backend",
+    "database/migrations"
+]
+pythonVersion = "3.14"

@@ -1,19 +1,103 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-.venv/
-node_modules/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/dist/
+frontend/node_modules/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE & Editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# OS Artifacts
 .DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# Large Media / Video / Binary Assets
+*.mp4
+*.avi
+*.mov
+*.mkv
 *.h5
 *.npy
-*.mp4
-.env
 
-# runtime sqlite (dev default DATABASE_URL)
-signbridge_m1.db
+# Large processed dataset tensors (>50MB)
+data/dataset/processed/*_real.npz
+data/dataset/processed/tensors_100_real.npz
+models/*_real.npz
 
-# playwright MCP scratch artifacts
+# Scratch / Agent Artifacts
+scratch/
+.superpowers/
 .playwright-mcp/
-
-# isolated worktrees (SDD)
 .worktrees/
+
+# Temporary office / duplicated report copies
+~$*.docx
+~$*.xlsx
+*(1).*
+* (1).*
+
+# Runtime SQLite databases & logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+!deploy/backups/**/*.db

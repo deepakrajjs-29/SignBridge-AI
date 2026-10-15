@@ -20,12 +20,13 @@ const LABELS_50 = [
 ];
 
 const LABELS_NEW_50 = [
-  "Sorry", "Welcome", "Bye", "Love", "Good", "Bad", "Name", "How", "When",
-  "Why", "Who", "Which", "Want", "Need", "Like", "Come", "Stay", "Wait",
-  "Stop", "Start", "Open", "Close", "Take", "Give", "Buy", "Pay", "Walk",
-  "Speak", "Listen", "Look", "Read", "Write", "Milk", "Rice", "Bread",
-  "Fruit", "Hospital", "Pain", "Road", "Train", "Station", "City", "Village",
-  "Shop", "Bank", "Park", "Week", "Month", "Year", "Yesterday",
+  "Good", "Bad", "Why", "Which", "Stay", "Wait", "Open", "Close", "Give",
+  "Walk", "Bread", "Pain", "Road", "City", "Shop", "Bank", "Month", "Year",
+  "Yesterday", "Good Afternoon", "Good Evening", "You", "We", "They", "I",
+  "Wife", "Husband", "Uncle", "Aunt", "Baby", "Pizza", "Mango", "Lunch",
+  "Onion", "Lion", "Dog", "Cat", "Red", "Blue", "Green", "Saturday",
+  "Sunday", "Hour", "Computer", "Movie", "Music", "Big", "Small", "Hot",
+  "Cold",
 ];
 
 const CLASSES_100: ClassItem[] = [...LABELS_50, ...LABELS_NEW_50].map((label, i) => {

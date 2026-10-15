@@ -90,14 +90,19 @@ export interface ModelInfo {
   seq_len: number;
   feat_dim: number;
   architecture: string;
+  classes?: number;
 }
 
 export interface ClassItem {
   class_id: string;
   label: string;
+  gloss?: string;
   sign_type: string;
+  meaning?: string;
+  handedness?: string;
   asset_uri?: string;
 }
+
 
 export interface SessionItem {
   session_id: string;

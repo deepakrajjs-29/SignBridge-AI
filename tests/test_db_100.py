@@ -29,3 +29,21 @@ def db():
 def test_db_has_100_classes_and_assets(db):
     assert db.query(SignClass).count() == 100
     assert db.query(SignAsset).filter(SignAsset.type == "photo").count() == 100
+
+
+def test_reseed_survives_label_renames():
+    """v2 labels (Sorry@051, Good@055) -> v3 labels (Good@051, ...) must not
+    trip UNIQUE(sign_classes.label) when a new label collides with an old row."""
+    from sqlalchemy import create_engine
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(SignClass(class_id="ISL_051", label="Sorry"))
+        s.add(SignClass(class_id="ISL_055", label="Good"))
+        s.commit()
+    n_classes, _ = m3_seed_100.seed_100(engine)
+    assert n_classes == 100
+    with Session(engine) as s:
+        assert s.get(SignClass, "ISL_051").label == "Good"
+        assert s.get(SignClass, "ISL_055").label == "Stay"

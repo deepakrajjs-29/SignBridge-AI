@@ -1,59 +1,29 @@
 {
  "model_id": "SBAI-MDL-ISL-1.0.0",
- "active_model": "SBAI-MDL-ISL-2.0.0",
- "active_model_note": "Serving pointer: model_version()/loader serve active_model (2.0.0 Softmax100). Top-level model_id/arch/classes/status describe the immutable 1.0.0 deployed record (Task 6 gate-pinned); per-version detail lives under models{}.",
- "arch": "GRU128-GRU64-Dense64-Softmax50",
- "status": "Candidate (M3 gate debt: test 0.824/0.823 below 0.90 gates)",
+ "arch": "LSTM128-LSTM64-Dense64-Softmax100",
+ "status": "Candidate (real-data 100-class; awaiting gate sign-off)",
  "seq_len": 45,
  "feat_dim": 189,
- "classes": 50,
- "sha256": "e786c2f6ab9c4a332dbc4befc6e187ad302c96758670cf45192a7264c30c8882",
+ "classes": 100,
+ "sha256": "bb4b09ee92f76d2ecb19a182f74eea6c6a0ff4d808bb39ca5909d792338591de",
  "export_parity_200": true,
  "test": {
-  "test_n": 1650,
-  "accuracy": 0.8242,
-  "macro_f1": 0.823,
-  "infer_ms_per_sample_cpu": 0.36,
-  "worst_5_classes": [
-   {
-    "idx": 43,
-    "p": 0.4,
-    "r": 0.375,
-    "f1": 0.3871
-   },
-   {
-    "idx": 12,
-    "p": 0.4667,
-    "r": 0.4375,
-    "f1": 0.4516
-   },
-   {
-    "idx": 42,
-    "p": 0.5769,
-    "r": 0.4412,
-    "f1": 0.5
-   },
-   {
-    "idx": 39,
-    "p": 0.6207,
-    "r": 0.5455,
-    "f1": 0.5806
-   },
-   {
-    "idx": 49,
-    "p": 0.5385,
-    "r": 0.6562,
-    "f1": 0.5915
-   }
-  ],
-  "gate_acc_90": false,
-  "gate_f1_90": false
+  "accuracy": 0.7721,
+  "macro_f1": 0.7664,
+  "n_test": 3326,
+  "threshold": 0.4,
+  "latency": {
+   "p50_ms": 267.99,
+   "p95_ms": 381.02,
+   "p99_ms": 403.13,
+   "fps": 4.9
+  }
  },
  "policy": {
   "threshold": 0.4,
   "smoothing_window": 5,
-  "val_accepted_acc": 0.8503,
-  "val_coverage": 0.9918,
+  "val_accepted_acc": 0.82,
+  "val_coverage": 0.9827,
   "states": [
    "Accepted",
    "Uncertain",
@@ -61,22 +31,30 @@
    "Tracking-Lost"
   ]
  },
- "challenger_lstm": "test 0.773/0.764 \u2014 GRU promoted on evidence",
- "fixes": [
-  "handedness canonicalization (U014 slot flip)",
-  "mirror+scale+shift+noise+drop train aug"
- ],
+ "challenger": "gru test 0.7676/0.7627",
+ "data": "CURATION-v3.0 (ISL500 real landmarks, signer-separated SPLIT-3.0)",
+ "active_model": "SBAI-MDL-ISL-3.0.0",
  "models": {
+  "SBAI-MDL-ISL-3.0.0": {
+   "arch": "LSTM128-LSTM64-Dense64-Softmax100",
+   "classes": 100,
+   "sha256_lstm": "bb4b09ee92f76d2ecb19a182f74eea6c6a0ff4d808bb39ca5909d792338591de",
+   "measured_test_acc": 0.7721,
+   "eval": "EXP-2026-003 frozen test",
+   "measured_test_f1": 0.7664
+  },
   "SBAI-MDL-ISL-2.0.0": {
    "model_id": "SBAI-MDL-ISL-2.0.0",
    "arch": "LSTM128-LSTM64-Dense64-Softmax100",
    "status": "Registered SYNTHETIC-trained stub \u2014 production gates NOT cleared until real-data full train + frozen-test rescoring",
    "classes": 100,
    "artifacts_dir": "models/SBAI-MDL-ISL-2.0.0",
-    "sha256_lstm": "fbe041e38921485c4b7596ac1ddf92c2400f8adb9660ec03d11c457cceb70a66",
+   "sha256_lstm": "fbe041e38921485c4b7596ac1ddf92c2400f8adb9660ec03d11c457cceb70a66",
    "measured_test_acc": 1.0,
    "measured_test_f1": 1.0,
    "eval": "models/SBAI-MDL-ISL-2.0.0/eval.json"
   }
- }
+ },
+ "previous_model": "SBAI-MDL-ISL-2.0.0",
+ "active_model_note": "Serving pointer: model_version()/loader serve active_model (2.0.0 Softmax100). Top-level model_id/arch/classes/status describe the immutable 1.0.0 deployed record (Task 6 gate-pinned); per-version detail lives under models{}."
 }

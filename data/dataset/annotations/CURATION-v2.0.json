@@ -2380,11 +2380,11 @@
   },
   {
    "class_id": "ISL_051",
-   "label": "Sorry",
-   "gloss": "SORRY",
+   "label": "Good",
+   "gloss": "GOOD",
    "clips": 20,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2420,15 +2420,15 @@
     "ISL_051-S19",
     "ISL_051-S20"
    ],
-   "checksum": "2a96739bf00f44f8fb4fc680e0d06e87e4a1806cf0dfa495618714b46cf05e2c"
+   "checksum": "7b92bf4e414ece678f15684f76d2a7012d51c93bb38fabe2579d4ef0ce5fb4a1"
   },
   {
    "class_id": "ISL_052",
-   "label": "Welcome",
-   "gloss": "WELCOME",
+   "label": "Bad",
+   "gloss": "BAD",
    "clips": 19,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2465,15 +2465,15 @@
     "ISL_052-S18",
     "ISL_052-S19"
    ],
-   "checksum": "3ad2eba980b90f1d4aeba4e4e8e6abaf982de119305537d312355cd6b1ccaaed"
+   "checksum": "765f8fd3a5006f5fe23b0b874272a89e679804a5732c21a908c681b459545d47"
   },
   {
    "class_id": "ISL_053",
-   "label": "Bye",
-   "gloss": "BYE",
+   "label": "Why",
+   "gloss": "WHY",
    "clips": 22,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2511,15 +2511,15 @@
     "ISL_053-S21",
     "ISL_053-S22"
    ],
-   "checksum": "8212f1e5407f62c68371728d483b074ee7194efad72e3b2b6c0f8b1e6661da7f"
+   "checksum": "86f80072d66a1259b4e5f575b260a070436a37ead1ec6e6823374a447e807f9c"
   },
   {
    "class_id": "ISL_054",
-   "label": "Love",
-   "gloss": "LOVE",
+   "label": "Which",
+   "gloss": "WHICH",
    "clips": 23,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2559,15 +2559,15 @@
     "ISL_054-S22",
     "ISL_054-S23"
    ],
-   "checksum": "6a93ac3419e3c814debf2477ee0ded5fc3b9abed0439b07857be70a91ed0549c"
+   "checksum": "650842c125ff79d77b5900647d624377a702a547780619a97e5eb860ac9e8a71"
   },
   {
    "class_id": "ISL_055",
-   "label": "Good",
-   "gloss": "GOOD",
+   "label": "Stay",
+   "gloss": "STAY",
    "clips": 21,
    "signers": 15,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2608,15 +2608,15 @@
     "ISL_055-S20",
     "ISL_055-S21"
    ],
-   "checksum": "65d6db05b66484ce9b1bd02b7ffb305b242c4bfb4f90eef054ccc0a6b83064b2"
+   "checksum": "c257ed8c85852d00a5403bac38b778ef956bda22e2fc64f502f0199565dbdc15"
   },
   {
    "class_id": "ISL_056",
-   "label": "Bad",
-   "gloss": "BAD",
+   "label": "Wait",
+   "gloss": "WAIT",
    "clips": 22,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2656,15 +2656,15 @@
     "ISL_056-S21",
     "ISL_056-S22"
    ],
-   "checksum": "d9dca6afbbea92e48239e8b13aaf4949cea33dd04cf7d39fa4778a153b463f10"
+   "checksum": "dc2cfc00dc164dc7d6fa958f7051eadf37eb4f3aaf0431bba9648d5649618a6b"
   },
   {
    "class_id": "ISL_057",
-   "label": "Name",
-   "gloss": "NAME",
+   "label": "Open",
+   "gloss": "OPEN",
    "clips": 25,
    "signers": 15,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2709,15 +2709,15 @@
     "ISL_057-S24",
     "ISL_057-S25"
    ],
-   "checksum": "9a67c454509e7cc4ec8006e128ace4c11fa375744a8c1590b8da34f54715c6b3"
+   "checksum": "8ef60ef3d9784b8b120510b321a201b5bb0fd76a229b35ec77114183adb5f96c"
   },
   {
    "class_id": "ISL_058",
-   "label": "How",
-   "gloss": "HOW",
+   "label": "Close",
+   "gloss": "CLOSE",
    "clips": 17,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2749,15 +2749,15 @@
     "ISL_058-S16",
     "ISL_058-S17"
    ],
-   "checksum": "1dbef43c9ff19ec88ca5f231a956612ddd21eb8aa2ac938cb76a183ede2cbd3c"
+   "checksum": "a9b5c43cb8c329fb002f34471567419f3ea24def7e168ab91c977ef52d7f1a16"
   },
   {
    "class_id": "ISL_059",
-   "label": "When",
-   "gloss": "WHEN",
+   "label": "Give",
+   "gloss": "GIVE",
    "clips": 23,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2799,15 +2799,15 @@
     "ISL_059-S22",
     "ISL_059-S23"
    ],
-   "checksum": "7b4b47533b0a9d41b622d5fe8bd06bc9f27cd35214c9578e7b7ea888e3efc5f5"
+   "checksum": "b4c8bb3a22ffc86cd43f3045e0ed7d3bfb066e6b0a9f273da42c4319a53a64ef"
   },
   {
    "class_id": "ISL_060",
-   "label": "Why",
-   "gloss": "WHY",
+   "label": "Walk",
+   "gloss": "WALK",
    "clips": 16,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2841,15 +2841,15 @@
     "ISL_060-S15",
     "ISL_060-S16"
    ],
-   "checksum": "142337687417378e55653053171e43e6dc66287c4bb898651206fd4812eb3b2e"
+   "checksum": "a44f63d243f17cc2c2deb5449422cb45d33f46a2877750f836b98a9d18481e42"
   },
   {
    "class_id": "ISL_061",
-   "label": "Who",
-   "gloss": "WHO",
+   "label": "Bread",
+   "gloss": "BREAD",
    "clips": 24,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2888,15 +2888,15 @@
     "ISL_061-S23",
     "ISL_061-S24"
    ],
-   "checksum": "2de7de250beea2304cf9874604fd8e174bb0e03e9997ae1b564381fbf5f32855"
+   "checksum": "83ff79f72f88b6014ce837214b87b78e94faa19f2fae24a71d8b9315964a8736"
   },
   {
    "class_id": "ISL_062",
-   "label": "Which",
-   "gloss": "WHICH",
+   "label": "Pain",
+   "gloss": "PAIN",
    "clips": 18,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2933,15 +2933,15 @@
     "ISL_062-S17",
     "ISL_062-S18"
    ],
-   "checksum": "210284b7812f60f0cff5a5204e5eff0576ff4b33409cd060940fc3882742aa59"
+   "checksum": "7c8a7ba6587f50ffb090c9d722d32a5865c5fbd5a531ba6bb5fd477fd0cfbc36"
   },
   {
    "class_id": "ISL_063",
-   "label": "Want",
-   "gloss": "WANT",
+   "label": "Road",
+   "gloss": "ROAD",
    "clips": 19,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -2978,15 +2978,15 @@
     "ISL_063-S18",
     "ISL_063-S19"
    ],
-   "checksum": "2a8c6f76c70ad6010a88c5e4356864c15babea71e7a7225ff558ef49512ec2b7"
+   "checksum": "4560e5ac0eef791cbcac3efaba8f4414362e0fed0fdf3f0af81dc364b0bcbaa0"
   },
   {
    "class_id": "ISL_064",
-   "label": "Need",
-   "gloss": "NEED",
+   "label": "City",
+   "gloss": "CITY",
    "clips": 17,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3021,15 +3021,15 @@
     "ISL_064-S16",
     "ISL_064-S17"
    ],
-   "checksum": "5630c958d06077a17fef87f30fced270234173324ca11416fce4412ff9583c52"
+   "checksum": "10e9894e3992e9553895a77f51699c0c8efc4c28364de0ac14b88df2e0b089f4"
   },
   {
    "class_id": "ISL_065",
-   "label": "Like",
-   "gloss": "LIKE",
+   "label": "Shop",
+   "gloss": "SHOP",
    "clips": 17,
    "signers": 15,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3066,15 +3066,15 @@
     "ISL_065-S16",
     "ISL_065-S17"
    ],
-   "checksum": "b80b74fbedd8d57d40af861ed2fe6039e5d38c236233fb9135c806a7cfb5c2af"
+   "checksum": "185c63fad0b928de563131fd943f3c8633ff455cc01c8172408573932ec6d9da"
   },
   {
    "class_id": "ISL_066",
-   "label": "Come",
-   "gloss": "COME",
+   "label": "Bank",
+   "gloss": "BANK",
    "clips": 17,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3107,15 +3107,15 @@
     "ISL_066-S16",
     "ISL_066-S17"
    ],
-   "checksum": "4ced6ef20703e792f9dc40e2268a4ce1b7c5f3bb2f9692d6319fe2edda89c33c"
+   "checksum": "0b6e331587d052fbee4327c7780d03fc2d235c8264280eb825f9beb14f9203f9"
   },
   {
    "class_id": "ISL_067",
-   "label": "Stay",
-   "gloss": "STAY",
+   "label": "Month",
+   "gloss": "MONTH",
    "clips": 22,
    "signers": 15,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3157,15 +3157,15 @@
     "ISL_067-S21",
     "ISL_067-S22"
    ],
-   "checksum": "ae77bc703b8a8cef3c85c4fd43cd9d4c2f68e9f9e7dc513f19fa0a11e1194dc4"
+   "checksum": "185a96a526ccbfc7826b85cf3e2d59a6f08a0027565d66309fc012f2684076cb"
   },
   {
    "class_id": "ISL_068",
-   "label": "Wait",
-   "gloss": "WAIT",
+   "label": "Year",
+   "gloss": "YEAR",
    "clips": 25,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3207,15 +3207,15 @@
     "ISL_068-S24",
     "ISL_068-S25"
    ],
-   "checksum": "532ac4296e81e35965098b97be19ddd78a69a46e582bcd33204f7b730d7794c2"
+   "checksum": "fefb3320c1039e83732620a23065f3c956cdba4582df53236ea622e744da9ef4"
   },
   {
    "class_id": "ISL_069",
-   "label": "Stop",
-   "gloss": "STOP",
+   "label": "Yesterday",
+   "gloss": "YESTERDAY",
    "clips": 23,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3257,15 +3257,15 @@
     "ISL_069-S22",
     "ISL_069-S23"
    ],
-   "checksum": "43626af2200c35f374e2741eb9f7130eb72bb0507bbc9b440f0e9ba83c6c75ca"
+   "checksum": "8da9a76c07e79cac84e87bb0ded07fd48d2caad9530959e3b8782a62578f5517"
   },
   {
    "class_id": "ISL_070",
-   "label": "Start",
-   "gloss": "START",
+   "label": "Good Afternoon",
+   "gloss": "GOOD_AFTERNOON",
    "clips": 23,
    "signers": 15,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3308,15 +3308,15 @@
     "ISL_070-S22",
     "ISL_070-S23"
    ],
-   "checksum": "0523e2a8112f8cdde77062a531a892c5b5a845e3f8aba06a4c3fa902d28295f2"
+   "checksum": "4b45c635762270214be4e4ad472f20f945f860194f7b30298c3b473851f6db2d"
   },
   {
    "class_id": "ISL_071",
-   "label": "Open",
-   "gloss": "OPEN",
+   "label": "Good Evening",
+   "gloss": "GOOD_EVENING",
    "clips": 21,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3354,15 +3354,15 @@
     "ISL_071-S20",
     "ISL_071-S21"
    ],
-   "checksum": "673fc8f46aaebb36f9ce5bb269acfaf6bb9002d978dd719834ba9d224d4ac734"
+   "checksum": "0bdb5a4f223e7ee0e05e683a8de0cf56e653e79150aa14c0852d3ac5ce8758a6"
   },
   {
    "class_id": "ISL_072",
-   "label": "Close",
-   "gloss": "CLOSE",
+   "label": "You",
+   "gloss": "YOU",
    "clips": 25,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3404,15 +3404,15 @@
     "ISL_072-S24",
     "ISL_072-S25"
    ],
-   "checksum": "289b7e713f3dd611a21371ffe7a29c5d8f7bc95035f3204d02b5ee9a71ca5627"
+   "checksum": "bb3600d308cc0ec73ee503b2e316718cfeeabcab030d09abd61f473b63d1be1f"
   },
   {
    "class_id": "ISL_073",
-   "label": "Take",
-   "gloss": "TAKE",
+   "label": "We",
+   "gloss": "WE",
    "clips": 18,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3445,15 +3445,15 @@
     "ISL_073-S17",
     "ISL_073-S18"
    ],
-   "checksum": "d3053cd2f66333e7302ca14bb6cdb9ba8e01217990f8261b2f71e0871d8a8635"
+   "checksum": "6d8d401c78ff35c27853692f401f03cbde085280b1fe007cf958b25d8741f253"
   },
   {
    "class_id": "ISL_074",
-   "label": "Give",
-   "gloss": "GIVE",
+   "label": "They",
+   "gloss": "THEY",
    "clips": 15,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3486,15 +3486,15 @@
     "ISL_074-S14",
     "ISL_074-S15"
    ],
-   "checksum": "477cea6fe542212fa303036212914e4500f96a26feff3df6a3c9d4f92946e32e"
+   "checksum": "789d79ff7dd02bef99a14bc6a250e937cf5e61dc8e1f773afe3b61ceb9f46f3b"
   },
   {
    "class_id": "ISL_075",
-   "label": "Buy",
-   "gloss": "BUY",
+   "label": "I",
+   "gloss": "I",
    "clips": 25,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3538,15 +3538,15 @@
     "ISL_075-S24",
     "ISL_075-S25"
    ],
-   "checksum": "676e8e4433d7819feef880b04970d5b835dd1c27361e7db67706813e3bafb515"
+   "checksum": "8e0cd63d0859152afc3414c3604acbe61954f9c25f6da6f9753019a365dd61fc"
   },
   {
    "class_id": "ISL_076",
-   "label": "Pay",
-   "gloss": "PAY",
+   "label": "Wife",
+   "gloss": "WIFE",
    "clips": 20,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3582,15 +3582,15 @@
     "ISL_076-S19",
     "ISL_076-S20"
    ],
-   "checksum": "0931ba50ed5383f1c7d8125008c5e9f73f32d5d871d482f327aa00658c16a95b"
+   "checksum": "bdd92a982303b712e07c3a1d08ddc0289a50f18e62900f7edbefc8c9963abc4d"
   },
   {
    "class_id": "ISL_077",
-   "label": "Walk",
-   "gloss": "WALK",
+   "label": "Husband",
+   "gloss": "HUSBAND",
    "clips": 18,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3625,15 +3625,15 @@
     "ISL_077-S17",
     "ISL_077-S18"
    ],
-   "checksum": "43e7fe623744b3ee4e35586a1447b000d9f2e8157ecdd80e0e6e826b352c37ce"
+   "checksum": "abd860cba49c030541f23b43ae2545175d1aeaa95726c15c8e3f6f16e24892ba"
   },
   {
    "class_id": "ISL_078",
-   "label": "Speak",
-   "gloss": "SPEAK",
+   "label": "Uncle",
+   "gloss": "UNCLE",
    "clips": 21,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3672,15 +3672,15 @@
     "ISL_078-S20",
     "ISL_078-S21"
    ],
-   "checksum": "212a5961703ffe85a959287c3f722133e05f57d49b433d5457bd30be01409407"
+   "checksum": "eb05958bf47a68d6d84183d0550eed73e8c37e0b9188d3a1388b04b05846e25b"
   },
   {
    "class_id": "ISL_079",
-   "label": "Listen",
-   "gloss": "LISTEN",
+   "label": "Aunt",
+   "gloss": "AUNT",
    "clips": 15,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3713,15 +3713,15 @@
     "ISL_079-S14",
     "ISL_079-S15"
    ],
-   "checksum": "44aaa1e4b8cf5e3a935efcc5b3dce068d7f354817b635937f79d7d01d8bc774d"
+   "checksum": "ce4401b077cba4ca2b170ab38bef6e53a2aa58c9f22100111fa4661dc4a836ff"
   },
   {
    "class_id": "ISL_080",
-   "label": "Look",
-   "gloss": "LOOK",
+   "label": "Baby",
+   "gloss": "BABY",
    "clips": 22,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3759,15 +3759,15 @@
     "ISL_080-S21",
     "ISL_080-S22"
    ],
-   "checksum": "72d73e49d9a46a9eae4709dd7f006a6d0d15754820714154d3c73434f7d07aaf"
+   "checksum": "4e60dab281840cd8022987b70549318f30194c6a3775fc6fba5dbc82181fffdd"
   },
   {
    "class_id": "ISL_081",
-   "label": "Read",
-   "gloss": "READ",
+   "label": "Pizza",
+   "gloss": "PIZZA",
    "clips": 22,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3806,15 +3806,15 @@
     "ISL_081-S21",
     "ISL_081-S22"
    ],
-   "checksum": "bd35f3c5886a6e1fa785fc6bb640f1c264afb35c4304fd142f0f124ffbbc9bf2"
+   "checksum": "1fc26b257056f3c8fa38c2a039db3ea3b20ffb6449e2fb8575e15e3aedeed371"
   },
   {
    "class_id": "ISL_082",
-   "label": "Write",
-   "gloss": "WRITE",
+   "label": "Mango",
+   "gloss": "MANGO",
    "clips": 18,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3848,15 +3848,15 @@
     "ISL_082-S17",
     "ISL_082-S18"
    ],
-   "checksum": "e064517b23ffcb69e9f499f1819fce44f75c7971ae0e1dad1cf2b9c198017671"
+   "checksum": "415d21222dec0204da5355970178eea833a8f85d321d1e82dedfd560763c3b84"
   },
   {
    "class_id": "ISL_083",
-   "label": "Milk",
-   "gloss": "MILK",
+   "label": "Lunch",
+   "gloss": "LUNCH",
    "clips": 19,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3890,15 +3890,15 @@
     "ISL_083-S18",
     "ISL_083-S19"
    ],
-   "checksum": "149495dab701073ffa650e7f48fc86f1e94db99beec56eab0ed1584c5d7034eb"
+   "checksum": "76ff9989639f85ae33fd3366cc8e39cd2ef1a0128c4d6ca45bc6e6ea225c0d7e"
   },
   {
    "class_id": "ISL_084",
-   "label": "Rice",
-   "gloss": "RICE",
+   "label": "Onion",
+   "gloss": "ONION",
    "clips": 17,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3932,15 +3932,15 @@
     "ISL_084-S16",
     "ISL_084-S17"
    ],
-   "checksum": "0f43e0022e35e5508213afe2a38751cf606590daea8f8cba6f990f076927cf0d"
+   "checksum": "9fbf05c60cb99c05259176e35edc30bc4be51de62ef380743ad7593f4ec6c8b0"
   },
   {
    "class_id": "ISL_085",
-   "label": "Bread",
-   "gloss": "BREAD",
+   "label": "Lion",
+   "gloss": "LION",
    "clips": 22,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -3979,15 +3979,15 @@
     "ISL_085-S21",
     "ISL_085-S22"
    ],
-   "checksum": "b09fef5b6be7bfe1adb92b1fb5a2b852d111610813fc3576775ba2bfe4151f86"
+   "checksum": "62c9b12ab9e80742a6700460ce92fa0102e6fed3010c2fab891019a4c6bae3bd"
   },
   {
    "class_id": "ISL_086",
-   "label": "Fruit",
-   "gloss": "FRUIT",
+   "label": "Dog",
+   "gloss": "DOG",
    "clips": 15,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4021,15 +4021,15 @@
     "ISL_086-S14",
     "ISL_086-S15"
    ],
-   "checksum": "c77690b4146dce4ab365dd873c0736f2c013a0a57cd3ee7b5c85aed99c39e812"
+   "checksum": "9ae6313bb74565641d637ac9cc2e8fe1473672f94cfd70535bbf6b0831333571"
   },
   {
    "class_id": "ISL_087",
-   "label": "Hospital",
-   "gloss": "HOSPITAL",
+   "label": "Cat",
+   "gloss": "CAT",
    "clips": 20,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4068,15 +4068,15 @@
     "ISL_087-S19",
     "ISL_087-S20"
    ],
-   "checksum": "587734b2fbff7f9ad44c0e4825494ec2003d993bedcaae2167c03e759b2a31d4"
+   "checksum": "c4e485bbea00e759949b357e727376bad6542aab02f5dfe8754bbeef914a927a"
   },
   {
    "class_id": "ISL_088",
-   "label": "Pain",
-   "gloss": "PAIN",
+   "label": "Red",
+   "gloss": "RED",
    "clips": 23,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4115,15 +4115,15 @@
     "ISL_088-S22",
     "ISL_088-S23"
    ],
-   "checksum": "dd22528a72de079fad2ada15faac592cca1e55e7ade543f1ec19820f7aaafeb6"
+   "checksum": "60ad5a3abed526f7f1dcf33b507fee38f443722828f200528f752c8310989992"
   },
   {
    "class_id": "ISL_089",
-   "label": "Road",
-   "gloss": "ROAD",
+   "label": "Blue",
+   "gloss": "BLUE",
    "clips": 23,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4161,15 +4161,15 @@
     "ISL_089-S22",
     "ISL_089-S23"
    ],
-   "checksum": "060e7fa1e47f9e99ea6a7dbf77adb66cb7acf6dbca486942c481728400626654"
+   "checksum": "f8f5a97510f477286498e25caa0a7976f83146045f587cb823b5bb2dc01d3225"
   },
   {
    "class_id": "ISL_090",
-   "label": "Train",
-   "gloss": "TRAIN",
+   "label": "Green",
+   "gloss": "GREEN",
    "clips": 17,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4205,15 +4205,15 @@
     "ISL_090-S16",
     "ISL_090-S17"
    ],
-   "checksum": "865e059ea6e70293c438296026d2bca6bcbc3af987fefee320eb3ef369b90999"
+   "checksum": "d192db4767703b609b002ac9ab3f26ef37183abae4202a94945b7dca3658835f"
   },
   {
    "class_id": "ISL_091",
-   "label": "Station",
-   "gloss": "STATION",
+   "label": "Saturday",
+   "gloss": "SATURDAY",
    "clips": 18,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4249,15 +4249,15 @@
     "ISL_091-S17",
     "ISL_091-S18"
    ],
-   "checksum": "b0b18de9bb23f4d16b36b76ee5202a043149b8ff5288e5f72bd98d1a65c42ce4"
+   "checksum": "9412e6ae572a0c01366e1045ef8817cab78f62a69c6e562a1a8fd94d94633266"
   },
   {
    "class_id": "ISL_092",
-   "label": "City",
-   "gloss": "CITY",
+   "label": "Sunday",
+   "gloss": "SUNDAY",
    "clips": 20,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4292,15 +4292,15 @@
     "ISL_092-S19",
     "ISL_092-S20"
    ],
-   "checksum": "5121585ebf7a532450856602f3d31075a6f6639caa6d6adc348d645bdc10cf2d"
+   "checksum": "85e883ead7b41b36a94cedf972f1071279f5c289f0ba91bacbb53be63809d1e6"
   },
   {
    "class_id": "ISL_093",
-   "label": "Village",
-   "gloss": "VILLAGE",
+   "label": "Hour",
+   "gloss": "HOUR",
    "clips": 16,
    "signers": 10,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4331,15 +4331,15 @@
     "ISL_093-S15",
     "ISL_093-S16"
    ],
-   "checksum": "6f6d353d28db8f2dd25e3d6a864986591b8343205c1558a3be77014630a8ed0d"
+   "checksum": "af2909de3e22a7e6bf14fb07b18212d2e77de702a8498b7e9aa80c86565f1deb"
   },
   {
    "class_id": "ISL_094",
-   "label": "Shop",
-   "gloss": "SHOP",
+   "label": "Computer",
+   "gloss": "COMPUTER",
    "clips": 23,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4378,15 +4378,15 @@
     "ISL_094-S22",
     "ISL_094-S23"
    ],
-   "checksum": "54e85baa6463ff548d13a7d247349500adf6ca3d9d34c3028f54fd0a808b8b1b"
+   "checksum": "40b248414e3eda5fb1711dda6202ec12d27f5a3a7f0ddd604a74607d05ddf8e7"
   },
   {
    "class_id": "ISL_095",
-   "label": "Bank",
-   "gloss": "BANK",
+   "label": "Movie",
+   "gloss": "MOVIE",
    "clips": 22,
    "signers": 13,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4426,15 +4426,15 @@
     "ISL_095-S21",
     "ISL_095-S22"
    ],
-   "checksum": "87a14279db899166a149b5c1c775f425941ae853ab1c0eac5e11b78acaf7cb58"
+   "checksum": "be696129735e160647477e072f8d45b94acf704969017d9f0697006f807bd86e"
   },
   {
    "class_id": "ISL_096",
-   "label": "Park",
-   "gloss": "PARK",
+   "label": "Music",
+   "gloss": "MUSIC",
    "clips": 24,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4477,15 +4477,15 @@
     "ISL_096-S23",
     "ISL_096-S24"
    ],
-   "checksum": "46d117d1cff19a561e231acd033ca840837539f1c5de2d80fa42186646032767"
+   "checksum": "825f2b0db055b40f4897badd9afb8c33a78a0160407f8b5b27381c20fa9990f5"
   },
   {
    "class_id": "ISL_097",
-   "label": "Week",
-   "gloss": "WEEK",
+   "label": "Big",
+   "gloss": "BIG",
    "clips": 22,
    "signers": 11,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4523,15 +4523,15 @@
     "ISL_097-S21",
     "ISL_097-S22"
    ],
-   "checksum": "d100b7a0a37f4043467a501613fb438313f4d9a3851b8b21dffc91e8371b1161"
+   "checksum": "4f70df5e12b4c578cbd66fdc8d9d3c82448859256b22afd582beafdbf1aaf914"
   },
   {
    "class_id": "ISL_098",
-   "label": "Month",
-   "gloss": "MONTH",
+   "label": "Small",
+   "gloss": "SMALL",
    "clips": 20,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4568,15 +4568,15 @@
     "ISL_098-S19",
     "ISL_098-S20"
    ],
-   "checksum": "8a1804a4fbe3296cb787948385d676101a83d3173f8c51d16fd974f12cc8acac"
+   "checksum": "bde7d7bc602aa168c2db7645564f3a9ec2ade342d68795589dcca64a0eaac1e2"
   },
   {
    "class_id": "ISL_099",
-   "label": "Year",
-   "gloss": "YEAR",
+   "label": "Hot",
+   "gloss": "HOT",
    "clips": 18,
    "signers": 14,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4613,15 +4613,15 @@
     "ISL_099-S17",
     "ISL_099-S18"
    ],
-   "checksum": "06cf1653d44eab579aae7f2cfc5fc06c7060a3625514609a742a1818a2e9ca38"
+   "checksum": "778e6dec40e70a524c02b6a3be558cea4fd1573b12719ec4e207717c35c79404"
   },
   {
    "class_id": "ISL_100",
-   "label": "Yesterday",
-   "gloss": "YESTERDAY",
+   "label": "Cold",
+   "gloss": "COLD",
    "clips": 15,
    "signers": 12,
-   "source": "ISL500+INCLUDE",
+   "source": "ISL500",
    "signer_ids": [
     "U001",
     "U002",
@@ -4653,16 +4653,16 @@
     "ISL_100-S14",
     "ISL_100-S15"
    ],
-   "checksum": "1353f090c6e26ae13626cb1fe830c9fe4064950c50c2bdb9f2bb8d38c00a2f40"
+   "checksum": "8c97201a43d7b3ce3251b22bb18e477134db2360db35590d288d82cdd4c3a20e"
   }
  ],
  "cut_list": [],
  "checksums": {
   "algorithm": "sha256",
-  "classes_sha256": "eda3fdc142c484f8d13732982cf254dc62e106dcbaeffe1dcf988e35a698eaa2"
+  "classes_sha256": "e68de40c979febf4ece955a397e13434f896949afb1e58c5b48208f3ac9a06be"
  },
  "source_commits": {
   "class_map_csv": "5f9a71f2bab5873b934ba0f38f6ba0c3656af0d6",
-  "head": "ef0ebfb88adb4aab9386bc3ea1c320544dcb7dd8"
+  "head": "de86d58588cdbc6d6bb763acfa16b28cb37378ad"
  }
 }

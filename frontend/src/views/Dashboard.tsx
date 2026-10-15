@@ -116,15 +116,15 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
             <span>Production Neural Model</span>
             <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/80 px-2 py-0.5 rounded">
-              {model?.model_version || "SBAI-MDL-ISL-1.0.0"}
+              {model?.model_version || "SBAI-MDL-ISL-2.0.0"}
             </span>
           </div>
           <div>
             <p className="text-2xl font-black text-slate-900 dark:text-white">
-              {model?.model_id || "signbridge-gru-v1"}
+              {model?.model_id || "SBAI-MDL-ISL-2.0.0"}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Window: 45 frames × 189 landmarks. GRU128-GRU64-Dense64-Softmax50.
+              Window: {model?.seq_len || 45} frames × {model?.feat_dim || 189} landmarks • {model?.architecture || "LSTM128-LSTM64-Dense64-Softmax100"}
             </p>
           </div>
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
@@ -138,21 +138,87 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
             <span>ISL Vocabulary</span>
             <span className="text-xs font-mono font-bold text-isl-teal bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded">
-              MVP-50
+              ISL-100
             </span>
           </div>
           <div>
             <p className="text-2xl font-black text-slate-900 dark:text-white">
-              {vocabCount} Classes
+              {vocabCount || 100} Dynamic Classes
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              30 Everyday Words + 10 Digits (0-9) + 10 Alphabet Signs (A-J).
+              100 Curated Dynamic Signs with 100 Photographic References & Softmax(100) Neural Output.
             </p>
           </div>
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-            <span>Dictionary Coverage:</span>
-            <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">100% active</span>
+            <span>Photo Coverage:</span>
+            <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">100 / 100 (100%)</span>
           </div>
+        </div>
+      </div>
+
+      {/* Featured 100-Sign Photo Showcase */}
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <BookOpenIcon className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+              <span>ISL-100 Reference Sign Photos</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              High-resolution demonstration keyframes captured for all 100 active dynamic vocabulary classes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate("vocab")}
+            className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>Browse All 100 Signs</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-2">
+          {[
+            { id: "ISL_001", label: "Hello", category: "Greeting" },
+            { id: "ISL_002", label: "Thank You", category: "Gratitude" },
+            { id: "ISL_003", label: "Please", category: "Polite" },
+            { id: "ISL_011", label: "Help", category: "Emergency" },
+            { id: "ISL_012", label: "Water", category: "Daily Need" },
+            { id: "ISL_017", label: "Doctor", category: "Medical" },
+            { id: "ISL_022", label: "Happy", category: "Emotion" },
+            { id: "ISL_028", label: "School", category: "Place" },
+            { id: "ISL_051", label: "Good", category: "Adjective" },
+            { id: "ISL_062", label: "Pain", category: "Medical" },
+            { id: "ISL_063", label: "Road", category: "Transport" },
+            { id: "ISL_069", label: "Yesterday", category: "Time" },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onNavigate("vocab")}
+              className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-2.5 hover:border-brand-500 hover:shadow-md transition text-center space-y-2"
+            >
+              <div className="aspect-4/3 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+                <img
+                  src={`/assets/${item.id}.jpg`}
+                  alt={`${item.label} ISL sign`}
+                  loading="lazy"
+                  className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+              </div>
+              <div>
+                <span className="font-bold text-xs text-slate-900 dark:text-white block group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">
+                  {item.label}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {item.id} • {item.category}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -227,7 +293,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
                 Vocabulary Explorer
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Search all 50 registered sign classes across words, numbers, and alphabet letters.
+                Search all 100 registered dynamic ISL sign classes with reference demonstration photos.
               </p>
             </div>
           </button>
@@ -258,7 +324,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
             <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">Step 3 • AI</span>
             <h4 className="font-bold text-slate-900 dark:text-white text-sm">FastAPI Inference</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Keras GRU neural model classifies the gesture sequence and returns confidence scores within 50 ms.
+              Keras LSTM / GRU neural model classifies the gesture sequence across 100 classes within 50 ms.
             </p>
           </div>
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">

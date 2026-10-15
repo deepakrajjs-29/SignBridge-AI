@@ -26,5 +26,6 @@ def test_classes_count():
     r = client.get("/api/v1/classes")
     assert r.status_code == 200
     body = r.json()
-    assert body["count"] == 50
+    assert body["count"] == 100
     assert body["classes"][0]["class_id"] == "ISL_001"
+

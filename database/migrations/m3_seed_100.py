@@ -46,6 +46,19 @@ def seed_100(engine=None) -> tuple[int, int]:
     class_rows = _read_csv(CLASS_MAP)
     manifest_rows = _read_csv(MANIFEST)
     with Session(engine) as s:
+        # Phase 1 (rename-safe): a new label can collide with a label held by
+        # a DIFFERENT row (e.g. v2 Sorry@051/Good@055 -> v3 Good@051/Bad@055).
+        # Park every changing label under a unique temp value first so the
+        # phase-2 upserts can never trip UNIQUE(sign_classes.label).
+        wanted = {r["class_id"]: r["label"] for r in class_rows}
+        existing = {c.class_id: c.label for c in s.query(SignClass).all()}
+        for cid, label in wanted.items():
+            if existing.get(cid) not in (None, label):
+                s.query(SignClass).filter(SignClass.class_id == cid).update(
+                    {"label": f"__reseed__{cid}"}
+                )
+        s.flush()
+        # Phase 2: normal upserts now that no stale label blocks a rename.
         for r in class_rows:
             s.merge(
                 SignClass(

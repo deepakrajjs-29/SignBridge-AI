@@ -19,6 +19,6 @@ def get_class_map_100():
 def test_class_map_has_100_dynamic():
     rows = read_class_map("data/dataset/annotations/class_map.csv")
     assert len(rows) == 100
-    assert rows[50]["class_id"] == "ISL_051" and rows[50]["label"] == "Sorry"
-    assert rows[99]["class_id"] == "ISL_100" and rows[99]["label"] == "Yesterday"
+    assert rows[50]["class_id"] == "ISL_051" and rows[50]["label"] == "Good"
+    assert rows[99]["class_id"] == "ISL_100" and rows[99]["label"] == "Cold"
     assert all(r["sign_type"] == "Dynamic" for r in rows)

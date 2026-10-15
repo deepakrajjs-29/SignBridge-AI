@@ -45,11 +45,11 @@ def client(tmp_path, monkeypatch):
 
 def test_classes_100_and_text_to_sign_photo(client):
     assert len(client.get("/api/v1/classes").json()["classes"]) == 100
-    r = client.post("/api/v1/text-to-sign", json={"text": "sorry where hospital"}, headers=AUTH)
+    r = client.post("/api/v1/text-to-sign", json={"text": "good where city"}, headers=AUTH)
     assert r.status_code == 200, r.text[:200]
     body = r.json()
     assert body["success"] is True
-    assert [i["word"] for i in body["items"]] == ["sorry", "where", "hospital"]
+    assert [i["word"] for i in body["items"]] == ["good", "where", "city"]
     assert body["unsupported_words"] == []
     assert all(i["asset_uri"] for i in body["items"])
     assert all(i["supported"] for i in body["items"])
@@ -58,7 +58,7 @@ def test_classes_100_and_text_to_sign_photo(client):
 def test_model_is_2_0_0(client):
     b = client.get("/api/v1/model").json()
     assert b["success"] is True
-    assert b["model"]["model_version"] == "SBAI-MDL-ISL-2.0.0"
+    assert b["model"]["model_version"] == "SBAI-MDL-ISL-3.0.0"
     assert b["model"]["classes"] == 100
     assert "Softmax100" in b["model"]["architecture"]
 

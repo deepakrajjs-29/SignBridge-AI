@@ -4,6 +4,7 @@ GET /health|/model|/classes; Bearer on predict/session/tts/admin."""
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import time
 import uuid
 
@@ -151,11 +152,12 @@ def create_app() -> FastAPI:
         entry = reg.get("models", {}).get(mid, {}) if isinstance(reg.get("models"), dict) else {}
         # Task 7r1: per-id known arch so the fallback can never report Softmax50
         # for the 2.0.0 Softmax100 entry (registry entry wins first).
-        known_arch = {"SBAI-MDL-ISL-2.0.0": "LSTM128-LSTM64-Dense64-Softmax100",
+        known_arch = {"SBAI-MDL-ISL-3.0.0": "LSTM128-LSTM64-Dense64-Softmax100 (v3 real-data)",
+                      "SBAI-MDL-ISL-2.0.0": "LSTM128-LSTM64-Dense64-Softmax100",
                       "SBAI-MDL-ISL-1.0.0": "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"}
         arch = entry.get("arch") or known_arch.get(mid) or reg.get("arch") or \
             "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"
-        nclass = entry.get("classes") or (100 if mid == "SBAI-MDL-ISL-2.0.0" else 50)
+        nclass = entry.get("classes") or (100 if mid in ("SBAI-MDL-ISL-2.0.0", "SBAI-MDL-ISL-3.0.0") else 50)
         return {"success": True,
                 "model": {"model_id": mid, "model_version": mid,
                           "seq_len": SEQ_LEN, "feat_dim": FEAT_DIM,
@@ -174,7 +176,14 @@ def create_app() -> FastAPI:
     app.include_router(speech.router, prefix="/api/v1", tags=["speech"])
     app.include_router(stream.router, prefix="/api/v1", tags=["stream"])
     app.include_router(admin.router, prefix="/api/v1", tags=["admin"])
+
+    assets_dir = Path(__file__).resolve().parents[2] / "data" / "assets"
+    if assets_dir.exists():
+        from starlette.staticfiles import StaticFiles
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
     return app
+
 
 
 app = create_app()
