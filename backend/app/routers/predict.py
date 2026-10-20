@@ -15,8 +15,9 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.deps import (FEAT_DIM, NOSIGN_ENERGY, SEQ_LEN, get_model, get_policy, get_scaler,
-                      label_of, model_version, rate_limit, require_auth)
+from app.deps import (FEAT_DIM, decision_status, get_model, get_policy, label_of,
+                      model_version, preprocess_window, rate_limit, require_auth,
+                      top_k_alternatives)
 from app.metrics import INFER_SECONDS
 
 router = APIRouter()
@@ -67,38 +68,37 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
                 "success": False,
                 "error": {"code": "UNKNOWN_SESSION", "message": "unknown session", "details": {}},
                 "request_id": getattr(request.state, "request_id", "")})
-    # fixed 45-frame window: uniform-sample / repeat-pad (same as training)
-    if len(arr) >= SEQ_LEN:
-        idx = np.linspace(0, len(arr) - 1, SEQ_LEN).astype(int)
-        seq = arr[idx]
-    else:
-        seq = np.concatenate([arr, np.tile(arr[-1:], (SEQ_LEN - len(arr), 1))])
-    # No-Sign energy gate (Task 11): all-blank/low-energy windows
-    # (max abs < NOSIGN_ENERGY on the windowed raw sequence) short-circuit
-    # BEFORE any model call. NOTE: the check is deliberately pre-normalization:
-    # with the shipped scaler zeros normalize to max abs ~= 0.67, so a
-    # post-norm gate could never fire for blank input.
+    # fixed 45-frame window: uniform-sample / repeat-pad (same as training),
+    # then the Task 11 No-Sign energy gate (PRE-normalization — see the note
+    # in deps.preprocess_window), then scaling — all three shared with the
+    # WS `window` branch so REST and WS answer identically.
     # Sentinel contract: ISL_000 is intentionally out-of-vocabulary; the
     # carried label ("No sign detected") is what renders; the response is
     # never persisted (prediction_id ""); argmax is deliberately not
     # attached (it would require a model call).
-    if float(np.abs(seq).max()) < NOSIGN_ENERGY:
+    normed = preprocess_window(arr)
+    if normed is None:
         ms = round((time.perf_counter() - t0) * 1000, 2)
         return JSONResponse(content={
             "success": True,
             "prediction": {"class_id": "ISL_000", "label": "No sign detected",
                            "confidence": 0.0, "prediction_id": ""},
+            "alternatives": [],
             "status": "no-sign", "model_version": model_version(),
             "processing_time_ms": ms, "sequence_id": body.sequence_id or f"seq_{uuid.uuid4().hex[:8]}",
             "request_id": getattr(request.state, "request_id", "")})
-    mu, sd = get_scaler()
-    normed = ((seq - mu.reshape(189)) / sd.reshape(189)).astype("float32")
+    tta = int(get_policy().get("tta_windows", 1))
     with INFER_SECONDS.time():
-        probs = await asyncio.to_thread(run_inference, normed[None])
+        from app.deps import calibrate_probs, recognize_probs, uses_ensemble
+
+        if uses_ensemble():
+            probs = await asyncio.to_thread(recognize_probs, normed, tta)
+        else:
+            probs = calibrate_probs(await asyncio.to_thread(run_inference, normed[None]))
     ci = int(probs.argmax())
     conf = float(probs[ci])
     policy = get_policy()
-    status = "recognized" if conf >= float(policy.get("threshold", 0.4)) else "uncertain"
+    status = decision_status(conf, policy)
     ms = round((time.perf_counter() - t0) * 1000, 2)
     pid = ""
     if body.session_id:
@@ -108,6 +108,7 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
         "success": True,
         "prediction": {"class_id": f"ISL_{ci + 1:03d}", "label": label_of(f"ISL_{ci + 1:03d}"),
                        "confidence": round(conf, 4), "prediction_id": pid},
+        "alternatives": top_k_alternatives(probs, k=4),
         "status": status, "model_version": model_version(),
         "processing_time_ms": ms, "sequence_id": body.sequence_id or f"seq_{uuid.uuid4().hex[:8]}",
         "request_id": getattr(request.state, "request_id", "")})

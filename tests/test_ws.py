@@ -9,9 +9,11 @@ import time
 import uuid
 
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from app import deps
 from app.main import app
 from app.routers.session import SESSIONS
 
@@ -139,6 +141,8 @@ def test_ws_recognized_persists_to_history(monkeypatch):
     fake_probs = np.zeros(100, dtype=np.float32)
     fake_probs[0] = 0.95
     monkeypatch.setattr("app.routers.stream.run_stream_inference", lambda batch: fake_probs)
+    # 3.0.0 serves via the ensemble path: patch it too (same fake distribution).
+    monkeypatch.setattr("app.deps.infer_ensemble", lambda batch: np.tile(fake_probs, (len(batch), 1)))
     AUTHH = {"Authorization": f"Bearer {SECRET}"}
     sid = client.post("/api/v1/session", json={}, headers=AUTHH).json()["session_id"]
     frames = (np.random.default_rng(1).normal(0, 0.5, (45, 189))).tolist()
@@ -180,6 +184,134 @@ def test_ws_recognized_persists_to_history(monkeypatch):
     h2 = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTHH).json()
     assert all(p["class_id"] != "ISL_000" for p in h2["predictions"]), h2
     assert len(h2["predictions"]) == 1, h2
+
+
+def test_ws_provisional_not_persisted(monkeypatch):
+    """A Provisional WS prediction renders but never writes a history row."""
+    pol = deps.get_policy()
+    acc = float(pol.get("accept_threshold", pol.get("threshold", 0.4)))
+    prov = min(float(pol.get("provisional_threshold", acc)), acc)
+    if prov >= acc:
+        pytest.skip("no provisional band")
+    fake_probs = None
+    for v in np.linspace(0.5, 0.99, 60):
+        cand = np.zeros(109, dtype=np.float32)
+        cand[0] = float(v)
+        conf = float(np.max(deps.calibrate_probs(cand)))
+        if prov <= conf < acc:
+            fake_probs = cand
+            break
+    if fake_probs is None:
+        pytest.skip("no v in linspace(0.5, 0.99, 60) lands in the provisional band")
+    monkeypatch.setattr("app.routers.stream.run_stream_inference", lambda batch: fake_probs)
+    monkeypatch.setattr(
+        "app.deps.infer_ensemble",
+        lambda batch: np.tile(fake_probs, (len(batch), 1)),
+    )
+    AUTH = {"Authorization": f"Bearer {SECRET}"}
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    frames = (np.random.default_rng(3).normal(0, 0.5, (45, 189))).tolist()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for f in frames:
+            ws.send_json({"type": "frame", "frame": f})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction"
+        expected = deps.decision_status(
+            float(np.max(deps.calibrate_probs(fake_probs))), pol
+        )
+        assert pred["state"] == expected.capitalize(), pred
+        assert pred["state"] == "Provisional", pred
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+    h = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH).json()
+    assert h["predictions"] == [], h
+
+
+def test_rest_ws_parity_45_rows():
+    """REST POST /predict and the WS frame stream must agree on
+    class/status/confidence for identical 45-row input (shared preprocessing)."""
+    AUTH = {"Authorization": f"Bearer {SECRET}"}
+    frames = (np.random.default_rng(7).normal(0, 0.5, (45, 189))).tolist()
+    r = client.post("/api/v1/predict", json={"frames": frames}, headers=AUTH)
+    assert r.status_code == 200, r.text[:200]
+    rest = r.json()
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        for f in frames:
+            ws.send_json({"type": "frame", "frame": f})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction", pred
+    assert rest["status"] == pred["state"].lower(), (rest["status"], pred["state"])
+    assert rest["prediction"]["class_id"] == pred["prediction"]["class_id"]
+    # both sides round to 4 decimals; inputs are bit-identical float32
+    assert rest["prediction"]["confidence"] == pred["prediction"]["confidence"]
+
+
+def test_ws_window_full_t_prediction():
+    """One {"type": "window"} with 105 full-T rows -> exactly one prediction."""
+    sid = _new_sid()
+    rows = np.random.default_rng(11).normal(0, 0.5, (105, 189)).tolist()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        ws.send_json({"type": "window", "frames": rows})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction", pred
+        assert pred["state"] in ("Recognized", "Provisional", "Uncertain", "No-Sign"), pred
+        assert pred["prediction"]["class_id"].startswith("ISL_")
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+
+
+def test_ws_window_invalid_input():
+    """601 rows or wrong row width -> INVALID_INPUT, socket stays usable."""
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        ws.send_json({"type": "window", "frames": [[0.1] * 189] * 601})
+        err = ws.receive_json()
+        assert err["type"] == "error" and err["code"] == "INVALID_INPUT", err
+        ws.send_json({"type": "window", "frames": [[0.1] * 188] * 45})
+        err2 = ws.receive_json()
+        assert err2["type"] == "error" and err2["code"] == "INVALID_INPUT", err2
+        # still usable after both errors
+        ws.send_json({
+            "type": "window",
+            "frames": np.random.default_rng(5).normal(0, 0.5, (60, 189)).tolist(),
+        })
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction", pred
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["state"] == "Ready"
+
+
+def test_rest_ws_full_t_parity_105_rows():
+    """Identical 105-row input: POST /predict and the WS window branch must
+    agree on class_id, status vs state (lowercase), and rounded confidence."""
+    rows = np.random.default_rng(13).normal(0, 0.5, (105, 189)).tolist()
+    r = client.post("/api/v1/predict", json={"frames": rows}, headers=AUTHH)
+    assert r.status_code == 200, r.text[:200]
+    rest = r.json()
+    sid = _new_sid()
+    with client.websocket_connect(f"/api/v1/stream?session_id={sid}&token={SECRET}") as ws:
+        assert ws.receive_json()["type"] == "status"
+        ws.send_json({"type": "start"})
+        assert ws.receive_json()["state"] == "Tracking"
+        ws.send_json({"type": "window", "frames": rows})
+        pred = ws.receive_json()
+        assert pred["type"] == "prediction", pred
+    assert rest["status"] == pred["state"].lower(), (rest["status"], pred["state"])
+    assert rest["prediction"]["class_id"] == pred["prediction"]["class_id"]
+    assert rest["prediction"]["confidence"] == pred["prediction"]["confidence"]
 
 
 def test_ws_flood_is_bounded():

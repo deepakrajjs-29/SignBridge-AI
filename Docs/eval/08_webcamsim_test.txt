@@ -1,0 +1,15 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792422259.792858    2240 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792422267.603288    2240 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+I0000 00:00:1792422278.695615    2240 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\Deepak Raj JS\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\keras\src\layers\layer.py:1072: UserWarning: Layer 'lstm' (of type LSTM) was passed an input with a mask attached to it. However, this layer does not support masking and will therefore destroy the mask information. Downstream layers will not see the mask.
+  warnings.warn(
+C:\Users\Deepak Raj JS\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\keras\src\layers\layer.py:1072: UserWarning: Layer 'gru' (of type GRU) was passed an input with a mask attached to it. However, this layer does not support masking and will therefore destroy the mask information. Downstream layers will not see the mask.
+  warnings.warn(
+E0000 00:00:1792422281.380108    2240 util.cc:131] oneDNN supports DT_BOOL only on platforms with AVX-512. Falling back to the default Eigen-based implementation if present.
+full_sign        n=1500 acc=0.822 accept@0.57=0.813 acc|accept=0.905 visible_correct=0.736
+idle_realistic   n=1500 acc=0.769 accept@0.57=0.759 acc|accept=0.875 visible_correct=0.664
+old_45_center    n=1500 acc=0.475 accept@0.57=0.439 acc|accept=0.690 visible_correct=0.303
+old_rafdup       n=1500 acc=0.279 accept@0.57=0.303 acc|accept=0.455 visible_correct=0.138

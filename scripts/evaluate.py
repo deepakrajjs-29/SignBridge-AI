@@ -37,7 +37,7 @@ for thr in [round(x * 0.05, 2) for x in range(8, 20)]:
     if score > best[0]:
         best = (score, thr, acc, cov)
 _, thr, vacc, vcov = best
-policy = {"threshold": thr, "smoothing_window": 5, "val_accepted_acc": round(vacc, 4),
+policy = {"threshold": thr, "smoothing_window": 5, "val_accepted_accuracy": round(vacc, 4),
           "val_coverage": round(vcov, 4),
           "states": ["Accepted", "Uncertain", "No-Sign", "Tracking-Lost"]}
 (EXP / "policy.json").write_text(json.dumps(policy, indent=1))

@@ -1,0 +1,32 @@
+py : WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+At line:1 char:1
++ py -3 scripts/eval_webcam_sim.py --split val --thr 0.57 2>&1 | Tee-Ob ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: All lo...itten to STDERR:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+I0000 00:00:1792417443.143148    6172 port.cc:153] oneDNN custom operations are on. You may see slightly different 
+numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the 
+environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792417448.633173    6172 port.cc:153] oneDNN custom operations are on. You may see slightly different 
+numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the 
+environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+I0000 00:00:1792417455.664267    6172 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available 
+CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX_VNNI FMA, in other operations, rebuild 
+TensorFlow with the appropriate compiler flags.
+C:\Users\Deepak Raj JS\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\keras\src\layers\layer.py:1072: 
+UserWarning: Layer 'lstm' (of type LSTM) was passed an input with a mask attached to it. However, this layer does not 
+support masking and will therefore destroy the mask information. Downstream layers will not see the mask.
+  warnings.warn(
+C:\Users\Deepak Raj JS\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\keras\src\layers\layer.py:1072: 
+UserWarning: Layer 'gru' (of type GRU) was passed an input with a mask attached to it. However, this layer does not 
+support masking and will therefore destroy the mask information. Downstream layers will not see the mask.
+  warnings.warn(
+E0000 00:00:1792417457.546466    6172 util.cc:131] oneDNN supports DT_BOOL only on platforms with AVX-512. Falling 
+back to the default Eigen-based implementation if present.
+full_sign        n=1500 acc=0.835 accept@0.57=0.821 acc|accept=0.903 visible_correct=0.741
+idle_realistic   n=1500 acc=0.793 accept@0.57=0.783 acc|accept=0.886 visible_correct=0.694
+old_45_center    n=1500 acc=0.480 accept@0.57=0.435 acc|accept=0.698 visible_correct=0.303
+old_rafdup       n=1500 acc=0.295 accept@0.57=0.297 acc|accept=0.416 visible_correct=0.123

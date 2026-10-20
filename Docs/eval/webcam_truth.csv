@@ -1,0 +1,109 @@
+attempt_id,expected_class_id,displayed_label,displayed_state,displayed_conf,flips_in_attempt,notes
+A001,ISL_004,,,,0,
+A002,ISL_025,,,,0,
+A003,ISL_004,,,,0,
+A004,ISL_061,,,,0,
+A005,ISL_041,,,,0,
+A006,ISL_085,,,,0,
+A007,ISL_071,,,,0,
+A008,ISL_025,,,,0,
+A009,ISL_042,,,,0,
+A010,ISL_025,,,,0,
+A011,ISL_075,,,,0,
+A012,ISL_012,,,,0,
+A013,ISL_085,,,,0,
+A014,ISL_032,,,,0,
+A015,ISL_019,,,,0,
+A016,ISL_004,,,,0,
+A017,ISL_056,,,,0,
+A018,ISL_071,,,,0,
+A019,ISL_063,,,,0,
+A020,ISL_032,,,,0,
+A021,ISL_032,,,,0,
+A022,ISL_081,,,,0,
+A023,ISL_063,,,,0,
+A024,ISL_004,,,,0,
+A025,ISL_048,,,,0,
+A026,ISL_075,,,,0,
+A027,ISL_042,,,,0,
+A028,ISL_085,,,,0,
+A029,ISL_012,,,,0,
+A030,ISL_019,,,,0,
+A031,ISL_041,,,,0,
+A032,ISL_092,,,,0,
+A033,ISL_092,,,,0,
+A034,ISL_092,,,,0,
+A035,ISL_081,,,,0,
+A036,ISL_061,,,,0,
+A037,ISL_019,,,,0,
+A038,ISL_046,,,,0,
+A039,ISL_044,,,,0,
+A040,ISL_061,,,,0,
+A041,ISL_043,,,,0,
+A042,ISL_063,,,,0,
+A043,ISL_044,,,,0,
+A044,ISL_092,,,,0,
+A045,ISL_071,,,,0,
+A046,ISL_025,,,,0,
+A047,ISL_056,,,,0,
+A048,ISL_053,,,,0,
+A049,ISL_048,,,,0,
+A050,ISL_041,,,,0,
+A051,ISL_044,,,,0,
+A052,ISL_053,,,,0,
+A053,ISL_043,,,,0,
+A054,ISL_043,,,,0,
+A055,ISL_081,,,,0,
+A056,ISL_019,,,,0,
+A057,ISL_044,,,,0,
+A058,ISL_061,,,,0,
+A059,ISL_048,,,,0,
+A060,ISL_056,,,,0,
+A061,ISL_085,,,,0,
+A062,ISL_042,,,,0,
+A063,ISL_081,,,,0,
+A064,ISL_012,,,,0,
+A065,ISL_046,,,,0,
+A066,ISL_032,,,,0,
+A067,ISL_056,,,,0,
+A068,ISL_041,,,,0,
+A069,ISL_046,,,,0,
+A070,ISL_075,,,,0,
+A071,ISL_042,,,,0,
+A072,ISL_071,,,,0,
+A073,ISL_048,,,,0,
+A074,ISL_075,,,,0,
+A075,ISL_012,,,,0,
+A076,ISL_046,,,,0,
+A077,ISL_063,,,,0,
+A078,ISL_053,,,,0,
+A079,ISL_043,,,,0,
+A080,ISL_053,,,,0,
+H1,ISL_001,,,,0,held-sign
+H2,ISL_001,,,,0,held-sign
+H3,ISL_001,,,,0,held-sign
+H4,ISL_001,,,,0,held-sign
+R1,ISL_002,,,,0,same-sign-repeat
+R2,ISL_002,,,,0,same-sign-repeat
+R3,ISL_002,,,,0,same-sign-repeat
+S1,ISL_001,,,,0,sentence
+S2,ISL_003,,,,0,sentence
+S3,ISL_011,,,,0,sentence
+S4,ISL_005,,,,0,sentence
+S5,ISL_002,,,,0,sentence
+C01,ISL_001,,not_observed,8.2,0,15-sign checklist; primary not_observed; suggestions Go|Child|T|Hello; conf 8.2 attached to Hello suggestion - attachment not disambiguated; flips not reported
+C02,ISL_002,,not_observed,11.4,0,15-sign checklist; primary not_observed; Thank You shown as suggestion at 11.4; flips not reported
+C03,ISL_003,,not_observed,,0,15-sign checklist; unverified - no reliable observation recorded; conf not_observed; flips not reported
+C04,ISL_004,What,not_observed,100,0,15-sign checklist; primary What (incorrect); expected-sign Market conf 34; flips not reported
+C05,ISL_011,YOU,not_observed,12.4,0,15-sign checklist; automatic primary YOU (incorrect); expected-sign Help conf 12.4; flips not reported
+C06,ISL_012,,not_observed,9.6,0,15-sign checklist; primary not_observed; conf 9.6 displayed-box reading; flips not reported
+C07,ISL_028,,not_observed,26.7,0,15-sign checklist; primary not_observed; conf 26.7 displayed-box reading; flips not reported
+C08,ISL_035,Walk,not_observed,4.7,0,15-sign checklist; primary Walk (incorrect); conf 4.7; flips not reported
+C09,ISL_039,,not_observed,,0,15-sign checklist; sign not recognized - no prediction reported; conf not_observed; flips not reported
+C10,ISL_045,,not_observed,,0,15-sign checklist; displayed predictions Baby and Hero (neither = expected); primary not disambiguated; expected Teacher conf not_observed; flips not reported
+C11,ISL_046,Teacher,not_observed,,0,15-sign checklist; primary Teacher (incorrect); Sit conf not_observed; flips not reported
+C12,ISL_049,,not_observed,13.5,0,15-sign checklist; primary not_observed; conf 13.5 displayed-box reading; flips not reported
+C13,ISL_055,,not_observed,,0,15-sign checklist; no output displayed; tester reports Stay not available in sign list; conf not_observed; flips not reported
+C14,ISL_060,,not_observed,14.7,0,15-sign checklist; primary not_observed; conf 14.7 displayed-box reading; flips not reported
+C15,ISL_097,Family,not_observed,23.7,0,15-sign checklist; primary Family (incorrect); conf 23.7; flips not reported
+X01,ISL_107,What,not_observed,0.2,0,additional trial outside 15-sign checklist; primary What (incorrect); expected-sign Police conf 0.2; flips not reported

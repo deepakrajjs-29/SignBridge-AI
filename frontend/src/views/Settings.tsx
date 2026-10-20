@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { api, setToken as saveToken } from "../api/client";
 import { CogIcon, CheckCircleIcon, AlertCircleIcon } from "../components/Icons";
+import { DEFAULT_THRESHOLD_PERCENT } from "./Live";
 import {
   getGeminiModelName,
   setGeminiModelName,
@@ -35,8 +36,13 @@ export default function Settings({ currentTheme, onThemeChange }: SettingsProps)
   } | null>(null);
   const [threshold, setThreshold] = useState<number>(() => {
     const val = localStorage.getItem("sb_threshold");
-    return val ? parseInt(val, 10) : 70;
+    return val ? parseInt(val, 10) : DEFAULT_THRESHOLD_PERCENT;
   });
+  // Manual gate is engaged only when the slider itself writes sb_threshold;
+  // saving other settings must never silently create a frontend floor.
+  const [manualGate, setManualGate] = useState<boolean>(
+    () => localStorage.getItem("sb_threshold") !== null
+  );
   const [autoSpeak, setAutoSpeak] = useState<boolean>(() => {
     return localStorage.getItem("sb_autospeak") !== "false";
   });
@@ -122,7 +128,6 @@ export default function Settings({ currentTheme, onThemeChange }: SettingsProps)
 
   function handleSaveToken() {
     saveToken(tok);
-    localStorage.setItem("sb_threshold", threshold.toString());
     localStorage.setItem("sb_autospeak", autoSpeak.toString());
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -376,13 +381,25 @@ export default function Settings({ currentTheme, onThemeChange }: SettingsProps)
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
                 setThreshold(val);
+                setManualGate(true);
                 localStorage.setItem("sb_threshold", val.toString());
                 window.dispatchEvent(new Event("storage"));
               }}
               className="w-full accent-brand-600 cursor-pointer"
             />
             <p className="text-[11px] text-slate-400">
-              Predictions with confidence below <strong className="text-slate-700 dark:text-slate-200 font-mono">{threshold}%</strong> are flagged as &ldquo;Uncertain&rdquo; and excluded from confirmation.
+              {manualGate ? (
+                <>
+                  Predictions with confidence below <strong className="text-slate-700 dark:text-slate-200 font-mono">{threshold}%</strong> are flagged as &ldquo;Uncertain&rdquo; and excluded from confirmation.
+                </>
+              ) : (
+                <>
+                  Automatic mode: backend-calibrated thresholds decide acceptance. Move the slider to set a manual override.
+                </>
+              )}
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400" data-testid="server-threshold-note">
+              Server accept threshold: 0.57 (model policy). Predictions below this appear as Provisional and are never auto-added; your slider can only add a stricter personal gate on top.
             </p>
           </div>
 

@@ -27,10 +27,11 @@ const DOMAIN_MAP: Record<string, DomainId> = {
   "Family": "people", "Sister": "people", "Student": "people", "Teacher": "people", "Child": "people",
   "Girl": "people", "Boy": "people", "She": "people", "He": "people", "You": "people", "We": "people",
   "They": "people", "I": "people", "Wife": "people", "Husband": "people", "Uncle": "people",
-  "Aunt": "people", "Baby": "people",
+  "Aunt": "people", "Baby": "people", "Police": "people", "Manager": "people",
   // places
   "Market": "places", "House": "places", "School": "places", "Office": "places", "Road": "places",
   "City": "places", "Shop": "places", "Bank": "places", "Car": "places", "Bus": "places",
+  "Library": "places", "Airport": "places",
   // actions
   "Go": "actions", "Sit": "actions", "Eat": "actions", "Drink": "actions",
   "Stay": "actions", "Wait": "actions", "Open": "actions",
@@ -50,7 +51,8 @@ const DOMAIN_MAP: Record<string, DomainId> = {
   "Lunch": "feelings_daily", "Onion": "feelings_daily", "Lion": "feelings_daily", "Dog": "feelings_daily",
   "Cat": "feelings_daily", "Red": "feelings_daily", "Blue": "feelings_daily", "Green": "feelings_daily",
   "Computer": "feelings_daily", "Movie": "feelings_daily", "Music": "feelings_daily", "Big": "feelings_daily",
-  "Small": "feelings_daily", "Hot": "feelings_daily", "Cold": "feelings_daily",
+  "Small": "feelings_daily", "Hot": "feelings_daily", "Cold": "feelings_daily", "Meeting": "feelings_daily",
+  "Holiday": "feelings_daily", "Pen": "feelings_daily", "Paper": "feelings_daily", "Chair": "feelings_daily",
 };
 
 export default function Vocab() {
@@ -82,8 +84,17 @@ export default function Vocab() {
     return c.asset_uri || `/assets/${c.class_id}.jpg`;
   }
 
+  /** Blank/duplicate/unverified references must not render as if they were the sign. */
+  function needsVerifiedRef(c: ClassItem): boolean {
+    return c.asset_status === "needs_verified_reference";
+  }
+
   function markImgFailed(class_id: string) {
     setFailedImgs((prev) => new Set(prev).add(class_id));
+  }
+
+  function showImageFallback(c: ClassItem): boolean {
+    return needsVerifiedRef(c) || failedImgs.has(c.class_id);
   }
 
   function speakLabel(text: string, id: string, e?: React.MouseEvent) {
@@ -132,24 +143,26 @@ export default function Vocab() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 mb-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              SBAI-MDL-ISL-2.0.0 • SOFTMAX(100) ACTIVE
+              SBAI-MDL-ISL-4.0.0 • SOFTMAX(109) ACTIVE
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
               <BookOpenIcon className="w-8 h-8 text-brand-400" />
-              <span>ISL-100 Vocabulary & Photo Explorer</span>
+              <span>ISL-109 Vocabulary & Photo Explorer</span>
             </h2>
             <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Explore all 100 registered Indian Sign Language dynamic signs with real photographic demonstration keyframes, phonetic pronunciation, and neural model class mappings.
+              Explore all 109 registered Indian Sign Language dynamic signs with reference keyframes, pronunciation, and neural model class mappings. Blank or duplicate placeholders are labeled as needing a verified reference.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 text-center min-w-[100px]">
-              <span className="text-2xl font-black text-brand-300 block">{classes.length || 100}</span>
+              <span className="text-2xl font-black text-brand-300 block">{classes.length || 109}</span>
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Signs</span>
             </div>
             <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 text-center min-w-[100px]">
-              <span className="text-2xl font-black text-emerald-400 block">100%</span>
+              <span className="text-2xl font-black text-emerald-400 block">
+                {classes.length ? Math.round((classes.filter((c) => c.asset_status !== "needs_verified_reference").length / classes.length) * 100) : 0}%
+              </span>
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Photo Ref</span>
             </div>
           </div>
@@ -282,11 +295,18 @@ export default function Vocab() {
                 </div>
 
                 {/* Card Center: High-Res Reference Photo */}
-                <div className="relative aspect-4/3 w-full bg-slate-100 dark:bg-slate-800/60 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
-                  {failedImgs.has(c.class_id) ? (
-                    <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block p-4 text-center">
-                      {c.label}
-                    </span>
+                <div className="relative aspect-[4/3] w-full bg-slate-100 dark:bg-slate-800/60 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                  {showImageFallback(c) ? (
+                    <div className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+                      <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block">
+                        {c.label}
+                      </span>
+                      {needsVerifiedRef(c) && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200">
+                          Verified reference needed
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <img
                       src={photoSrc(c)}
@@ -375,12 +395,26 @@ export default function Vocab() {
             </div>
 
             {/* Modal Image */}
-            <div className="w-full aspect-16/10 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+            <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+              {showImageFallback(selectedSign) ? (
+                <div className="flex flex-col items-center justify-center gap-2 p-6 text-center">
+                  <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block">
+                    {selectedSign.label}
+                  </span>
+                  {needsVerifiedRef(selectedSign) && (
+                    <span className="text-[11px] font-semibold px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200">
+                      Verified ISL reference pending — label shown instead of a blank/duplicate image
+                    </span>
+                  )}
+                </div>
+              ) : (
               <img
                 src={photoSrc(selectedSign)}
                 alt={`${selectedSign.label} ISL Demonstration`}
                 className="w-full h-full object-cover"
+                onError={() => markImgFailed(selectedSign.class_id)}
               />
+              )}
             </div>
 
             {/* Metadata Badges & Info */}
@@ -406,7 +440,7 @@ export default function Vocab() {
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Neural Head</span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  Softmax(100) Class {selectedSign.class_id.replace("ISL_", "")}
+                  Softmax(109) Class {selectedSign.class_id.replace("ISL_", "")}
                 </span>
               </div>
             </div>

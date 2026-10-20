@@ -17,7 +17,7 @@
 | Reviewed By | [Enter Reviewer] |
 | Approved By | [Enter Approver] |
 | Effective Date | [Enter Date] |
-| Last Updated | [Enter Date] |
+| Last Updated | 2026-10-19 |
 
 ## Table of Contents
 
@@ -102,6 +102,15 @@ The following baseline register is editable. Replace, add, or retire entries as 
 | LIM-012 | AI-generated code or rapid iterative changes may introduce regressions if insufficiently reviewed. | Engineering | High | Apply AI Coding Rules, code review, automated tests, and traceability. | Open |
 | LIM-013 | TensorFlow cold-start: first inference after boot is slow (~60 s) while the model loads and compiles. | Performance | Medium | Warm up with a synthetic (45, 189) predict at startup; document the expected cold-start in deployment. | Open |
 | LIM-014 | MediaPipe artifacts are fetched from CDN downloads (network-dependent; offline/restricted installs fail). | Deployment | Medium | Vendor pinned wheels/artifacts in the py3.11 container (P8); document version pins. | Open |
+| LIM-015 | Webcam-domain gap: frozen-test accuracy overstates live-webcam performance. Webcam-replay offline proxy (n=1500, thr 0.57, M12): full_sign 0.822 acc / 0.736 visible-correct; idle_realistic 0.769 / 0.664; old_45_center 0.475 / 0.303; old_rafdup 0.279 / 0.138. Live-camera protocol (M13 §13: 80 attempts + held/repeat/sentence) PENDING — not run. | AI/ML / CV | High | Prefer full-sign capture windows (3.5 s) over truncated 45-frame centers; run the M13 §13 live-camera protocol before any user-facing accuracy claim. | Open |
+| LIM-016 | Open release-gate debt: acceptance criteria ≥90% accuracy / ≥0.90 macro-F1 are NOT met — active SBAI-MDL-ISL-4.0.0 frozen-test acc 0.8129 / macro-F1 0.8079 (n=3629). 0.90 was never reached on any real-data model; M11 records status Candidate (serving authorized), not Approved. | AI/ML / Release | High | Hard-mine worst classes (ISL_046/044/066/013/074); collect real sources for the 91 queued words before any 200-class run (M11 backlog R1–R2); disclose honestly in release notes. | Open |
+| LIM-017 | Accepted-coverage trade-off: commit precision ~0.90 is held only by accepting ~81–82% of windows — policy accept_threshold 0.57 yields commit precision 0.903357 @ coverage 0.820192 (VAL) and 0.895290 @ 0.813172 (TEST); the remaining windows are provisional/withheld, not committed. | AI/ML / Policy | Medium | Documented deliberate design (M13); revisit thresholds only with fresh VAL fitting and regression gates. | Open |
+| LIM-018 | REST/WS history asymmetry: REST persists provisional predictions to history; the WebSocket path persists only recognized commits (pinned by tests test_ws_provisional_not_persisted and test_rest_provisional_status_still_persists). Export CSVs therefore contain REST provisional rows but no WS provisional rows. | Integration | Low | Documented and test-pinned by design (M13); align only under a versioned contract change. | Open |
+| LIM-019 | Provisional band precision: of 431 blocked VAL provisional windows, 221 correct / 210 wrong → band precision 0.513. The band deliberately withholds 221 correct answers to keep 210 errors out of commits (M13 §8). Provisional is never auto-committed. | AI/ML / Policy | Medium | Documented deliberate withholding (M13); improve underlying model accuracy (LIM-016) rather than loosening the band. | Open |
+| LIM-020 | Ensemble inference latency: deployed ensemble p50 288.99 ms (VAL) / 374.85 ms (TEST) per sign window on CPU, vs single-model probes p50 61.86 ms (LSTM) / 64.4 ms (GRU); exceeds the <200 ms preferred target. | Performance | Medium | Benchmark supported devices; consider single-model or distilled serving paths without accuracy regression (Docs/25 §43). | Open |
+| LIM-021 | Closed investigation — TTA windows=3: promotion gate FAILED (Δacc −0.0359 vs windows=1; p95 371.65 ms > 300 ms budget) → tta_windows stays 1 (Docs/eval/05_val_w1.json, 05_val_w3.json; M13). | AI/ML / Performance | — | No action; retained for traceability. | Closed |
+| LIM-022 | Closed investigation — retrain 4.1.0 (EXP-2026-005, GRU + time-jitter): FAILED promotion gates (val macro-F1 0.814275 < required 0.828963; val acc 0.816854 < 0.833125) → DISCARDED; backups at models/_backup_4.0.0_pretrain/ and data/dataset/_backup_pretrain/. | AI/ML | — | No action; retained for traceability. | Closed |
+| LIM-023 | Closed investigation — motion-energy static trim: webcam-replay full_sign regressed 0.835 → 0.768 (visible-correct 0.741 → 0.613) → experiment reverted (evidence Docs/eval/10_p1trim_gate_after.txt; M13). Trim tests were removed with the revert. | AI/ML | — | No action; retained for traceability. | Closed |
 
 ## 6. Functional Limitations
 
@@ -118,7 +127,7 @@ The following baseline register is editable. Replace, add, or retire entries as 
 - Accuracy measured on a fixed test set does not guarantee equal real-world performance across all users or environments.
 - The model may confuse visually similar signs, particularly when discriminative motion or hand configuration is poorly captured.
 - Generalization to unseen signers, camera positions, backgrounds, clothing, lighting conditions, and signing speeds must be validated empirically.
-- Confidence scores should be interpreted as model outputs rather than calibrated guarantees of correctness unless calibration has been validated.
+- Confidence scores should be interpreted as model outputs rather than calibrated guarantees of correctness unless calibration has been validated. Calibration status (M13): the 4.0.0 ensemble HAS been validated as calibrated — VAL ECE 0.028272 / Brier 0.250855 and TEST ECE 0.022447 at identity temperature T=1.0; temperature fitting was attempted and rejected (`fit_rejected`) because no fitted T improved ECE. Even so, confidence remains a model output, not a guarantee of correctness for any individual prediction.
 - Model updates can improve some classes while reducing performance on others; every promoted model therefore requires regression evaluation.
 - Changes in preprocessing, landmark extraction, sequence length, class mapping, or model architecture may invalidate compatibility with previous model artifacts.
 ## 8. Dataset Limitations
@@ -146,6 +155,7 @@ The following baseline register is editable. Replace, add, or retire entries as 
 - Thermal throttling, background applications, browser load, and power-saving modes can reduce sustained performance.
 - Network-dependent inference introduces additional latency and variability compared with local inference.
 - Performance benchmarks must report hardware, software versions, input configuration, batch/sequence settings, and measurement method.
+- Measured reality (4.0.0, CPU, per sign window): ensemble p50 288.99 ms / p95 318.42 ms (VAL) and p50 374.85 ms / p95 575.22 ms (TEST) exceed the <200 ms preferred target; single-model probes p50 61.86 ms (LSTM) / 64.4 ms (GRU) meet it — see Docs/25 §42–43 and LIM-020.
 ## 11. API, Database, and Integration Limitations
 
 - API behavior depends on schema compatibility between frontend, backend, model service, and database layers.
@@ -226,9 +236,9 @@ The following baseline register is editable. Replace, add, or retire entries as 
 
 | Limitation ID | Accepted For Version | Accepted By | Rationale | Review Date | Status |
 | --- | --- | --- | --- | --- | --- |
-| LIM-[ID] | [Version] | [Name] | [Reason for acceptance] | [Date] | Open |
-| LIM-[ID] | [Version] | [Name] | [Reason for acceptance] | [Date] | Open |
-| LIM-[ID] | [Version] | [Name] | [Reason for acceptance] | [Date] | Open |
+| LIM-013 | SBAI-MDL-ISL-4.0.0 | Not recorded | Cold-start mitigated by startup warm-up (synthetic (45, 189) predict); documented deployment constraint. | Not set | Open |
+| LIM-014 | SBAI-MDL-ISL-4.0.0 | Not recorded | Accepted for current serving; P8 vendoring of pinned MediaPipe artifacts planned. | Not set | Open |
+| LIM-016 | SBAI-MDL-ISL-4.0.0 (Candidate, not Approved) | Not recorded (per M11 gate) | Pipeline authorized to serve 4.0.0 as strictly better than 3.0.0 on every measured axis; ≥0.90 gates tracked as open release debt, reported honestly. | Not set | Open |
 
 ## 21. Traceability to Project Documents
 
@@ -256,7 +266,7 @@ The following baseline register is editable. Replace, add, or retire entries as 
 | Version | Date | Author | Change Description |
 | --- | --- | --- | --- |
 | 1.0 | [Enter Date] | [Enter Name] | Initial Known Issues & Limitations document. |
-| 1.1 | [Enter Date] | [Enter Name] | [Enter changes] |
+| 1.1 | 2026-10-19 | Docs engineer (M13 data refresh) | Filled measured limitations LIM-015–LIM-023 from M11/M12/M13 gate records and Docs/eval artifacts; corrected the calibration statement (T=1.0 identity, ECE 0.028/0.022 validated); filled §20 acceptance entries for LIM-013/014/016. |
 | 1.2 | [Enter Date] | [Enter Name] | [Enter changes] |
 
 ## 23. Review and Approval

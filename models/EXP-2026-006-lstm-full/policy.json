@@ -1,0 +1,13 @@
+{
+ "threshold": 0.4,
+ "smoothing_window": 5,
+ "val_accepted_accuracy": 0.7783,
+ "val_coverage": 0.9787,
+ "val_argmax_acc": 0.7693,
+ "states": [
+  "Accepted",
+  "Uncertain",
+  "No-Sign",
+  "Tracking-Lost"
+ ]
+}

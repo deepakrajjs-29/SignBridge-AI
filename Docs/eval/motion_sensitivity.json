@@ -1,0 +1,24 @@
+{
+  "model_version": "SBAI-MDL-ISL-4.0.0",
+  "n_test": 3629,
+  "generated": "2026-10-20",
+  "frozen_test_acc_ref": 0.8129,
+  "sanity_full_within_0.005": true,
+  "conditions": {
+    "full": {
+      "argmax_acc": 0.8129,
+      "macro_f1": 0.8079,
+      "seconds": 33.7
+    },
+    "staticify": {
+      "argmax_acc": 0.0091,
+      "macro_f1": 0.0002,
+      "seconds": 18.2
+    },
+    "time_shuffle": {
+      "argmax_acc": 0.4274,
+      "macro_f1": 0.3957,
+      "seconds": 18.5
+    }
+  }
+}

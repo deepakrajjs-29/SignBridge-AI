@@ -29,18 +29,23 @@ const LABELS_NEW_50 = [
   "Cold",
 ];
 
-const CLASSES_100: ClassItem[] = [...LABELS_50, ...LABELS_NEW_50].map((label, i) => {
+const LABELS_NEW_9 = [
+  "Library", "Meeting", "Holiday", "Pen", "Paper", "Chair", "Police",
+  "Airport", "Manager",
+];
+
+const CLASSES_100: ClassItem[] = [...LABELS_50, ...LABELS_NEW_50, ...LABELS_NEW_9].map((label, i) => {
   const class_id = `ISL_${String(i + 1).padStart(3, "0")}`;
   return { class_id, label, sign_type: "Dynamic", asset_uri: `/assets/${class_id}.jpg` };
 });
 
-test("vocab shows 100 photos", async () => {
+test("vocab shows 109 photos", async () => {
   vi.mocked(api.classes).mockResolvedValue({
     success: true,
-    count: 100,
+    count: 109,
     classes: CLASSES_100,
     request_id: "t8",
   });
   render(<Vocab />);
-  expect(await screen.findAllByRole("img")).toHaveLength(100);
+  expect(await screen.findAllByRole("img")).toHaveLength(109);
 });

@@ -18,7 +18,7 @@ def setup_function(_):
 def test_open_endpoints():
     assert client.get("/health").status_code == 200
     assert client.get("/api/v1/model").status_code == 200
-    assert client.get("/api/v1/classes").json()["count"] == 100
+    assert client.get("/api/v1/classes").json()["count"] == 109
 
 
 def test_predict_200_and_alias():
@@ -27,7 +27,7 @@ def test_predict_200_and_alias():
         assert r.status_code == 200, (path, r.text[:200])
         b = r.json()
         assert b["success"] and b["prediction"]["class_id"].startswith("ISL_")
-        assert b["status"] in ("recognized", "uncertain")
+        assert b["status"] in ("recognized", "provisional", "uncertain")
         assert "processing_time_ms" in b
 
 

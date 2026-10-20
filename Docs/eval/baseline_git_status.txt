@@ -1,0 +1,187 @@
+﻿ M Docs/04_Dataset_Specification_SignBridge_AI.md
+ M Docs/05_AI_Model_Specification_SignBridge_AI.md
+ M Docs/06_Preprocessing_Feature_Engineering_SignBridge_AI.md
+ M Docs/08_Database_Schema_SignBridge_AI.md
+ M Docs/09_UI_UX_Specification_SignBridge_AI.md
+ M Docs/10_Technology_Stack_SignBridge_AI.md
+ M Docs/11_Testing_Evaluation_SignBridge_AI.md
+ M Docs/12_Deployment_SignBridge_AI.md
+ M Docs/13_Security_Privacy_Ethics_SignBridge_AI.md
+ M Docs/14_Vibe_Coding_Master_Specification_SignBridge_AI.md
+ M Docs/15_Development_Roadmap_SignBridge_AI.md
+ M Docs/16_Project_BRD_SignBridge_AI.md
+ M Docs/17_Project_Glossary_SignBridge_AI.md
+ M Docs/18_Use_Case_Document_SignBridge_AI.md
+ M Docs/19_User_Stories_Acceptance_Criteria_SignBridge_AI.md
+ M Docs/20_Requirements_Traceability_Matrix_SignBridge_AI.md
+ M Docs/21_Data_Flow_Document_SignBridge_AI.md
+ M Docs/22_Component_Module_Design_SignBridge_AI.md
+ M Docs/23_Model_Training_Specification_SignBridge_AI.md
+ M Docs/24_Model_Versioning_Experiment_Log_SignBridge_AI.md
+ M Docs/25_Performance_Benchmark_SignBridge_AI.md
+ M Docs/26_Coding_Standards_SignBridge_AI.md
+ M Docs/27_AI_Coding_Rules_SignBridge_AI.md
+ M Docs/28_AI_Agent_Instructions_SignBridge_AI.md
+ M Docs/29_Test_Case_Repository_SignBridge_AI.md
+ M Docs/30_Bug_Defect_Log_SignBridge_AI.md
+ M Docs/31_Risk_Register_SignBridge_AI.md
+ M Docs/32_Known_Issues_Limitations_SignBridge_AI.md
+ M Docs/33_Research_Methodology_SignBridge_AI.md
+ M Docs/34_Literature_Survey_SignBridge_AI.md
+ M Docs/35_Research_Gap_Analysis_SignBridge_AI.md
+ M Docs/36_Experimental_Design_SignBridge_AI.md
+ M Docs/37_Results_Analysis_SignBridge_AI.md
+ M Docs/38_User_Manual_SignBridge_AI.md
+ M Docs/39_Developer_Documentation_SignBridge_AI.md
+ M Docs/M10_GATE_100REAL.md
+ M Docs/M6_E2E.json
+ M Docs/M6_GATE.md
+ M Docs/RC_v0.5.json
+ M Docs/SignBridge_AI_2_0_Project_PRD.md
+ M Docs/SignBridge_AI_2_0_Software_Requirements_Specification_SRS.md
+ M Docs/SignBridge_AI_2_0_System_Architecture_Document.md
+ M backend/app/deps.py
+ M backend/app/main.py
+ M backend/app/routers/predict.py
+ M backend/app/routers/session.py
+ M backend/app/routers/stream.py
+ M data/assets/manifest.csv
+ M data/dataset/annotations/CURATION-v1.0_manifest.csv
+ M data/dataset/annotations/CURATION-v1.0_summary.md
+ M data/dataset/annotations/CURATION-v2.0.json
+ M data/dataset/annotations/SPLIT-1.0.json
+ M data/dataset/annotations/class_map.csv
+ M data/dataset/processed/tensors_mvp50.json
+ M data/dataset/raw/isl500/MappingFiles/PersonDependentTest.csv
+ M data/dataset/raw/isl500/MappingFiles/PersonDependentTrain.csv
+ M data/dataset/raw/starter40/README.md
+ M data/dataset/raw/starter40/come/sources.txt
+ M data/dataset/raw/starter40/drink/sources.txt
+ M data/dataset/raw/starter40/eat/sources.txt
+ M data/dataset/raw/starter40/father/sources.txt
+ M data/dataset/raw/starter40/food/sources.txt
+ M data/dataset/raw/starter40/friend/sources.txt
+ M data/dataset/raw/starter40/go/sources.txt
+ M data/dataset/raw/starter40/goodbye/sources.txt
+ M data/dataset/raw/starter40/he/sources.txt
+ M data/dataset/raw/starter40/hello/sources.txt
+ M data/dataset/raw/starter40/help/sources.txt
+ M data/dataset/raw/starter40/hospital/sources.txt
+ M data/dataset/raw/starter40/market/sources.txt
+ M data/dataset/raw/starter40/me/sources.txt
+ M data/dataset/raw/starter40/metadata.csv
+ M data/dataset/raw/starter40/mother/sources.txt
+ M data/dataset/raw/starter40/no/sources.txt
+ M data/dataset/raw/starter40/okay/sources.txt
+ M data/dataset/raw/starter40/please/sources.txt
+ M data/dataset/raw/starter40/read/sources.txt
+ M data/dataset/raw/starter40/school/sources.txt
+ M data/dataset/raw/starter40/she/sources.txt
+ M data/dataset/raw/starter40/sister/sources.txt
+ M data/dataset/raw/starter40/sit/sources.txt
+ M data/dataset/raw/starter40/sorry/sources.txt
+ M data/dataset/raw/starter40/stand/sources.txt
+ M data/dataset/raw/starter40/stop/sources.txt
+ M data/dataset/raw/starter40/student/sources.txt
+ M data/dataset/raw/starter40/tea/sources.txt
+ M data/dataset/raw/starter40/teacher/sources.txt
+ M data/dataset/raw/starter40/thank_you/sources.txt
+ M data/dataset/raw/starter40/today/sources.txt
+ M data/dataset/raw/starter40/water/sources.txt
+ M data/dataset/raw/starter40/what/sources.txt
+ M data/dataset/raw/starter40/when/sources.txt
+ M data/dataset/raw/starter40/where/sources.txt
+ M data/dataset/raw/starter40/write/sources.txt
+ M data/dataset/raw/starter40/yes/sources.txt
+ M data/dataset/raw/starter40/you/sources.txt
+ M deploy/backups/20260930-184500-m8-drill/RC_v0.5.json
+ M deploy/backups/20260930-184500-m8-drill/SPLIT-1.0.json
+ M deploy/backups/20260930-184500-m8-drill/class_map.csv
+ M deploy/backups/20260930-184500-m8-drill/manifest.json
+ M deploy/backups/20260930-184500-m8-drill/registry.json
+ M frontend/src/landmarks.ts
+ M frontend/src/views/Dashboard.tsx
+ M frontend/src/views/Live.test.tsx
+ M frontend/src/views/Live.tsx
+ M frontend/src/views/Settings.tsx
+ M frontend/src/views/TextToSign.tsx
+ M frontend/src/views/Vocab.tsx
+ M frontend/src/views/Vocab100.test.tsx
+ M models/EXP-2026-001-gru-full/history.csv
+ M models/EXP-2026-001-gru-full/per_class.csv
+ M models/EXP-2026-001-gru-full/policy.json
+ M models/EXP-2026-001-gru-full/test_report.json
+ M models/EXP-2026-001-lstm-full/history.csv
+ M models/EXP-2026-001-lstm-full/per_class.csv
+ M models/EXP-2026-001-lstm-full/policy.json
+ M models/EXP-2026-001-lstm-full/test_report.json
+ M models/SBAI-MDL-ISL-3.0.0/policy.json
+ M models/registry.json
+ M models/train_gru.err
+ M models/train_gru.log
+ M models/train_lstm.err
+ M models/train_lstm.log
+ M models/train_lstm2.err
+ M models/train_lstm2.log
+ M models/train_lstm3.err
+ M models/train_lstm3.log
+ M scripts/build_tensors_v3.py
+ M scripts/curate_v2.py
+ M scripts/download_isl500_v3.py
+ M scripts/evaluate_v3.py
+ M scripts/extract_photos_v3.py
+ M scripts/make_split_v3.py
+ M scripts/register_v3.py
+ M scripts/train_v3.py
+ M tests/test_api_100.py
+ M tests/test_api_p4.py
+ M tests/test_api_stub.py
+ M tests/test_assets100.py
+ M tests/test_db_100.py
+ M tests/test_db_m1.py
+ M tests/test_model100.py
+ M tests/test_model_300.py
+ D tests/test_release100.py
+ D tests/test_vocab100.py
+ M tests/test_vocab_coverage.py
+ M tests/test_ws.py
+?? Docs/M11_GATE_109REAL.md
+?? Docs/M12_WEBCAM_ACCURACY.md
+?? Docs/eval/
+?? Docs/plans/
+?? data/assets/ISL_101.jpg
+?? data/assets/ISL_102.jpg
+?? data/assets/ISL_103.jpg
+?? data/assets/ISL_104.jpg
+?? data/assets/ISL_105.jpg
+?? data/assets/ISL_106.jpg
+?? data/assets/ISL_107.jpg
+?? data/assets/ISL_108.jpg
+?? data/assets/ISL_109.jpg
+?? data/dataset/annotations/SPLIT-4.0.json
+?? data/dataset/annotations/vocab_queue_200.csv
+?? data/dataset/processed/split_idx_109.npz
+?? data/dataset/processed/tensors_109_real.json
+?? frontend/public/assets/ISL_101.jpg
+?? frontend/public/assets/ISL_102.jpg
+?? frontend/public/assets/ISL_103.jpg
+?? frontend/public/assets/ISL_104.jpg
+?? frontend/public/assets/ISL_105.jpg
+?? frontend/public/assets/ISL_106.jpg
+?? frontend/public/assets/ISL_107.jpg
+?? frontend/public/assets/ISL_108.jpg
+?? frontend/public/assets/ISL_109.jpg
+?? models/EXP-2026-004-gru-full/
+?? models/EXP-2026-004-lstm-full/
+?? models/SBAI-MDL-ISL-3.0.0_gru.keras
+?? models/SBAI-MDL-ISL-3.0.0_lstm.keras
+?? models/SBAI-MDL-ISL-4.0.0.keras
+?? models/SBAI-MDL-ISL-4.0.0/
+?? models/SBAI-MDL-ISL-4.0.0_gru.keras
+?? models/SBAI-MDL-ISL-4.0.0_lstm.keras
+?? models/SBAI-MDL-ISL-4.0.0_savedmodel/
+?? scripts/eval_webcam_sim.py
+?? tests/test_ensemble400.py
+?? tests/test_release400.py
+?? tests/test_vocab109.py
+?? tests/test_vocab_assets.py

@@ -1,0 +1,12 @@
+{
+  "model_id": "SBAI-MDL-ISL-4.0.0",
+  "temperature": 1.0,
+  "fitted_on": "val",
+  "val_nll": 0.591515,
+  "val_ece_before": 0.028272,
+  "val_ece_after": 0.028272,
+  "val_brier_before": 0.250855,
+  "val_brier_after": 0.250855,
+  "fit_rejected": true,
+  "created": "2026-10-19T12:20:56+00:00"
+}

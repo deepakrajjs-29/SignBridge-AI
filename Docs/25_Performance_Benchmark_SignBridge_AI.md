@@ -260,7 +260,7 @@ Benchmark reports must identify the exact environment used. Results from differe
 | Memory | Runtime memory footprint | [Enter limit] |
 | CPU/GPU utilization | Hardware usage during inference | [Enter limit] |
 
-The stated accuracy, F1, latency, and FPS values are engineering targets, not measured results.
+The stated accuracy, F1, latency, and FPS values are engineering targets, not measured results. Measured results for the active model are recorded in §42 Benchmark Result Log and §43 Performance Comparison Log, sourced from Docs/eval/*.json and Docs/M13_ACCURACY_CALIBRATION.md §7.
 
 ## 12. Landmark Extraction Benchmark
 
@@ -604,19 +604,19 @@ A regression threshold should be defined by the team and applied consistently to
 
 ## 40. Benchmark Acceptance Criteria
 
-| Criterion | Initial Acceptance Target |
-| --- | --- |
-| Recognition accuracy | ≥90% target |
-| Macro F1 | ≥0.90 target |
-| Preferred recognition latency | <200 ms |
-| Real-time throughput | ≥15 FPS target |
-| Critical API errors | Within approved threshold |
-| Memory stability | No uncontrolled growth in soak test |
-| Regression | Within approved tolerance vs baseline |
-| Robustness | No unacceptable degradation under defined scenarios |
-| Traceability | Benchmark linked to model/code/config versions |
+| Criterion | Initial Acceptance Target | Measured Status (SBAI-MDL-ISL-4.0.0) |
+| --- | --- | --- |
+| Recognition accuracy | ≥90% acceptance target | NOT MET — 0.8129 frozen test (n=3629); open release debt per Docs/M11_GATE_109REAL.md |
+| Macro F1 | ≥0.90 acceptance target | NOT MET — 0.8079 frozen test (n=3629); open release debt per Docs/M11_GATE_109REAL.md |
+| Preferred recognition latency | <200 ms | Exceeds for ensemble: per-sign-window p50 288.99 ms (VAL) / 374.85 ms (TEST); single-model probes 61.86 ms (LSTM) / 64.4 ms (GRU) meet |
+| Real-time throughput | ≥15 FPS target | Not measured as FPS; window-latency proxies recorded in §42 |
+| Critical API errors | Within approved threshold | Not measured — no API load benchmark run |
+| Memory stability | No uncontrolled growth in soak test | Not measured — no soak test run |
+| Regression | Within approved tolerance vs baseline | 4.0.0 ≥ 3.0.0 on every measured axis (+0.002 acc / +0.002 F1 with 9 more classes, M11) |
+| Robustness | No unacceptable degradation under defined scenarios | Webcam-replay offline proxy recorded (M12 / §42); live-camera protocol PENDING (M13 §13) |
+| Traceability | Benchmark linked to model/code/config versions | Met — gate docs M10/M11/M12/M13 + Docs/eval/*.json artifacts |
 
-These values are initial project targets and remain editable until formally baselined.
+These values are initial project targets and remain editable until formally baselined. The ≥0.90 accuracy/macro-F1 criteria are formally recorded as open release debt in Docs/M11_GATE_109REAL.md (status Candidate, not Approved).
 
 ## 41. Benchmark Report Template
 
@@ -627,8 +627,8 @@ These values are initial project targets and remain editable until formally base
 | Environment | [Enter] |
 | Hardware | [Enter] |
 | Software Version | [Enter] |
-| Model Version | [Enter] |
-| Dataset/Benchmark Version | [Enter] |
+| Model Version | SBAI-MDL-ISL-4.0.0 |
+| Dataset/Benchmark Version | tensors_109_real.npz / SPLIT-109 (8,800/2,397/3,629) |
 | Workload | [Enter] |
 | Warm-up Iterations | [Enter] |
 | Measurement Iterations | [Enter] |
@@ -648,19 +648,19 @@ These values are initial project targets and remain editable until formally base
 
 | Benchmark ID | Version | Workload | p95 ms | FPS | Memory | Error % | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BENCH-2026-001 | [Model] | Baseline | [ ] | [ ] | [ ] | [ ] | [ ] |
-| BENCH-2026-002 | [Model] | Feature variant | [ ] | [ ] | [ ] | [ ] | [ ] |
-| BENCH-2026-003 | [Model] | Load test | [ ] | [ ] | [ ] | [ ] | [ ] |
-| BENCH-2026-004 | [Model] | Soak test | [ ] | [ ] | [ ] | [ ] | [ ] |
+| BENCH-2026-001 | SBAI-MDL-ISL-3.0.0 | Frozen-test accuracy baseline, 100-class real (n=3326, gate M10) | Not measured | Not measured | Not measured | Not measured | Recorded — acc 0.8109 / macro-F1 0.8062; superseded by 4.0.0 |
+| BENCH-2026-002 | SBAI-MDL-ISL-4.0.0 | Frozen-test accuracy + ensemble latency, 109-class (n=3629, single touch, M13 §7) | 575.22 (TEST p95; p50 374.85) | Not measured | Not measured | Not measured | Recorded — acc 0.812896 / macro-F1 0.807865 |
+| BENCH-2026-003 | SBAI-MDL-ISL-4.0.0 | VAL ensemble latency + decision policy (n=2397, M13 §7) | 318.42 (VAL p95; p50 288.99) | Not measured | Not measured | FAR accepted 0.096643 | Recorded — commit precision 0.903357 @ coverage 0.820192; accept_threshold 0.57 |
+| BENCH-2026-004 | SBAI-MDL-ISL-4.0.0 | Webcam-replay offline proxy, full_sign window (n=1500, thr 0.57, M12) | Not measured | Not measured | Not measured | Not measured | Recorded — acc 0.822 / visible-correct 0.736; live protocol PENDING (M13 §13) |
 
 ## 43. Performance Comparison Log
 
 | Version | Accuracy | Macro F1 | p50 | p95 | p99 | FPS | RAM | Decision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Baseline | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Candidate A | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Candidate B | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Selected | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Baseline — SBAI-MDL-ISL-3.0.0 | 0.8109 (test n=3326) | 0.8062 | Not measured | Not measured | Not measured | Not measured | Not measured | Superseded (gate M10) |
+| Candidate A — SBAI-MDL-ISL-4.0.0 | 0.8129 (test n=3629) | 0.8079 | 374.85 ms (TEST) | 575.22 ms (TEST) | Not measured | Not measured | Not measured | Selected — ACTIVE (gate M11; 0.90 release gates open) |
+| Candidate B — SBAI-MDL-ISL-4.1.0 (EXP-2026-005, GRU + time-jitter) | Not scored to frozen test (val acc 0.816854 < required 0.833125) | Not scored (val macro-F1 0.814275 < required 0.828963) | Not measured | Not measured | Not measured | Not measured | Not measured | FAILED promotion gates — DISCARDED (backups: models/_backup_4.0.0_pretrain/) |
+| Selected — 4.0.0 + M13 policy (accept_threshold 0.57) | 0.812896 argmax; commit precision 0.895290 @ coverage 0.813172 (TEST) | 0.807865 | 288.99 ms (VAL ensemble) | 318.42 ms (VAL ensemble) | Not measured | Not measured | Not measured | Deployed policy (Docs/M13_ACCURACY_CALIBRATION.md §7) |
 
 ## 44. Traceability
 
@@ -684,8 +684,8 @@ These values are initial project targets and remain editable until formally base
 
 | Field | Value |
 | --- | --- |
-| Accuracy Target | [>=90% initial target] |
-| Macro F1 Target | [>=0.90 initial target] |
+| Accuracy Target | ≥90% acceptance target — NOT MET by 4.0.0 (0.8129; open release debt per M11) |
+| Macro F1 Target | ≥0.90 acceptance target — NOT MET by 4.0.0 (0.8079; open release debt per M11) |
 | Preferred End-to-End Latency | [<200 ms] |
 | Real-Time FPS Target | [>=15 FPS] |
 | API p95 Target | [Enter] |
@@ -700,9 +700,9 @@ These values are initial project targets and remain editable until formally base
 | Benchmark Iterations | [Enter] |
 | Warm-up Iterations | [Enter] |
 | Regression Threshold | [Enter %] |
-| Benchmark Dataset Version | [Enter] |
+| Benchmark Dataset Version | tensors_109_real.npz (SPLIT-109: 8,800/2,397/3,629 signer-disjoint) |
 | Benchmark Environment | [Enter] |
-| Primary Model Version | [Enter] |
+| Primary Model Version | SBAI-MDL-ISL-4.0.0 |
 | Load-Test Tool | [Enter] |
 
 ## 46. Assumptions and Constraints

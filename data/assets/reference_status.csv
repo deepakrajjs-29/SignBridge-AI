@@ -1,0 +1,110 @@
+class_id,label,status,uri,note
+ISL_001,Hello,placeholder,/assets/ISL_001.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_002,Thank You,placeholder,/assets/ISL_002.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_003,Please,placeholder,/assets/ISL_003.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_004,Market,placeholder,/assets/ISL_004.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_005,Yes,placeholder,/assets/ISL_005.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_006,No,placeholder,/assets/ISL_006.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_007,Morning,placeholder,/assets/ISL_007.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_008,Good Morning,placeholder,/assets/ISL_008.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_009,Good Night,placeholder,/assets/ISL_009.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_010,Evening,placeholder,/assets/ISL_010.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_011,Help,placeholder,/assets/ISL_011.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_012,Water,placeholder,/assets/ISL_012.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_013,Food,placeholder,/assets/ISL_013.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_014,Man,placeholder,/assets/ISL_014.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_015,Friend,placeholder,/assets/ISL_015.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_016,Family,placeholder,/assets/ISL_016.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_017,Doctor,placeholder,/assets/ISL_017.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_018,Medicine,placeholder,/assets/ISL_018.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_019,House,placeholder,/assets/ISL_019.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_020,Woman,placeholder,/assets/ISL_020.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_021,Mother,placeholder,/assets/ISL_021.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_022,Happy,placeholder,/assets/ISL_022.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_023,Sad,placeholder,/assets/ISL_023.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_024,Day,placeholder,/assets/ISL_024.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_025,Time,placeholder,/assets/ISL_025.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_026,Today,placeholder,/assets/ISL_026.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_027,Tomorrow,placeholder,/assets/ISL_027.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_028,School,placeholder,/assets/ISL_028.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_029,Work,placeholder,/assets/ISL_029.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_030,Office,placeholder,/assets/ISL_030.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_031,Night,placeholder,/assets/ISL_031.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_032,What,placeholder,/assets/ISL_032.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_033,Where,placeholder,/assets/ISL_033.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_034,She,placeholder,/assets/ISL_034.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_035,Go,placeholder,/assets/ISL_035.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_036,He,placeholder,/assets/ISL_036.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_037,Sister,placeholder,/assets/ISL_037.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_038,Tea,placeholder,/assets/ISL_038.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_039,Student,placeholder,/assets/ISL_039.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_040,Drink,placeholder,/assets/ISL_040.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_041,Father,placeholder,/assets/ISL_041.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_042,Child,placeholder,/assets/ISL_042.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_043,Car,placeholder,/assets/ISL_043.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_044,Eat,placeholder,/assets/ISL_044.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_045,Teacher,placeholder,/assets/ISL_045.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_046,Sit,placeholder,/assets/ISL_046.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_047,Girl,placeholder,/assets/ISL_047.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_048,Boy,placeholder,/assets/ISL_048.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_049,Book,placeholder,/assets/ISL_049.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_050,Bus,placeholder,/assets/ISL_050.jpg,synthetic label placeholder from extract_sign_photos.py
+ISL_051,Good,dataset_render,/assets/ISL_051.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_052,Bad,dataset_render,/assets/ISL_052.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_053,Why,needs_verified_reference,/assets/ISL_053.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_054,Which,dataset_render,/assets/ISL_054.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_055,Stay,dataset_render,/assets/ISL_055.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_056,Wait,dataset_render,/assets/ISL_056.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_057,Open,dataset_render,/assets/ISL_057.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_058,Close,dataset_render,/assets/ISL_058.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_059,Give,dataset_render,/assets/ISL_059.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_060,Walk,dataset_render,/assets/ISL_060.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_061,Bread,dataset_render,/assets/ISL_061.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_062,Pain,dataset_render,/assets/ISL_062.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_063,Road,needs_verified_reference,/assets/ISL_063.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_064,City,dataset_render,/assets/ISL_064.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_065,Shop,needs_verified_reference,/assets/ISL_065.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_066,Bank,dataset_render,/assets/ISL_066.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_067,Month,dataset_render,/assets/ISL_067.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_068,Year,dataset_render,/assets/ISL_068.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_069,Yesterday,needs_verified_reference,/assets/ISL_069.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_070,Good Afternoon,dataset_render,/assets/ISL_070.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_071,Good Evening,needs_verified_reference,/assets/ISL_071.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_072,You,dataset_render,/assets/ISL_072.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_073,We,dataset_render,/assets/ISL_073.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_074,They,dataset_render,/assets/ISL_074.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_075,I,dataset_render,/assets/ISL_075.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_076,Wife,dataset_render,/assets/ISL_076.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_077,Husband,dataset_render,/assets/ISL_077.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_078,Uncle,dataset_render,/assets/ISL_078.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_079,Aunt,dataset_render,/assets/ISL_079.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_080,Baby,needs_verified_reference,/assets/ISL_080.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_081,Pizza,needs_verified_reference,/assets/ISL_081.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_082,Mango,dataset_render,/assets/ISL_082.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_083,Lunch,dataset_render,/assets/ISL_083.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_084,Onion,dataset_render,/assets/ISL_084.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_085,Lion,dataset_render,/assets/ISL_085.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_086,Dog,dataset_render,/assets/ISL_086.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_087,Cat,dataset_render,/assets/ISL_087.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_088,Red,dataset_render,/assets/ISL_088.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_089,Blue,dataset_render,/assets/ISL_089.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_090,Green,dataset_render,/assets/ISL_090.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_091,Saturday,dataset_render,/assets/ISL_091.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_092,Sunday,dataset_render,/assets/ISL_092.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_093,Hour,dataset_render,/assets/ISL_093.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_094,Computer,dataset_render,/assets/ISL_094.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_095,Movie,dataset_render,/assets/ISL_095.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_096,Music,dataset_render,/assets/ISL_096.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_097,Big,dataset_render,/assets/ISL_097.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_098,Small,dataset_render,/assets/ISL_098.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_099,Hot,dataset_render,/assets/ISL_099.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_100,Cold,dataset_render,/assets/ISL_100.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_101,Library,dataset_render,/assets/ISL_101.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_102,Meeting,dataset_render,/assets/ISL_102.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_103,Holiday,dataset_render,/assets/ISL_103.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_104,Pen,dataset_render,/assets/ISL_104.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_105,Paper,dataset_render,/assets/ISL_105.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_106,Chair,dataset_render,/assets/ISL_106.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_107,Police,dataset_render,/assets/ISL_107.jpg,landmark-skeleton render from extract_photos_v3.py
+ISL_108,Airport,needs_verified_reference,/assets/ISL_108.jpg,byte-identical near-blank render shared across multiple class_ids
+ISL_109,Manager,dataset_render,/assets/ISL_109.jpg,landmark-skeleton render from extract_photos_v3.py

@@ -1,0 +1,30 @@
+{
+ "split": "test",
+ "n": 3629,
+ "temperature": 1.0,
+ "tta_windows": 1,
+ "thresholds": {
+  "accept": 0.57,
+  "provisional": 0.0
+ },
+ "argmax_accuracy": 0.812896,
+ "overall_accuracy": 0.728024,
+ "accepted_accuracy": 0.89529,
+ "coverage": 0.813172,
+ "false_accept_rate_overall": 0.085147,
+ "false_accept_rate_accepted": 0.10471,
+ "low_conf_correct_rate": 0.104407,
+ "macro_f1": 0.807865,
+ "ece": 0.022447,
+ "brier": 0.272741,
+ "latency_ms": {
+  "p50": 374.85,
+  "p95": 575.22
+ },
+ "counts": {
+  "recognized": 2951,
+  "provisional": 678,
+  "uncertain": 0,
+  "no_sign": 0
+ }
+}

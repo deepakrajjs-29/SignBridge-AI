@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Prediction, type RecState } from "../api/client";
+import { api, type AlternativeCandidate, type Prediction, type RecState } from "../api/client";
 import { connectStream, type StreamCallbacks } from "../api/stream";
 import { MediaPipeProvider, dispose as disposeLandmarker, isFiniteFrame } from "../landmarks";
 import { interpretSignSequence, type SentenceMood } from "../api/gemini";
@@ -76,6 +76,7 @@ const STATES: RecState[] = [
   "Ready",
   "Tracking",
   "Recognized",
+  "Provisional",
   "Uncertain",
   "No-Sign",
   "Tracking-Lost",
@@ -84,13 +85,130 @@ const STATES: RecState[] = [
 
 export function toState(apiStatus: string, ok: boolean): RecState {
   if (!ok) return "Error";
-  // REST sends lowercase "recognized"/"no-sign"; WS stream sends "Recognized"/"No-Sign".
-  if (apiStatus.toLowerCase() === "recognized") return "Recognized";
-  if (apiStatus.toLowerCase() === "no-sign") return "No-Sign";
+  // REST sends lowercase "recognized"/"provisional"/"no-sign"; WS stream sends
+  // the capitalized "Recognized"/"Provisional"/"No-Sign" variants.
+  const s = apiStatus.toLowerCase();
+  if (s === "recognized") return "Recognized";
+  if (s === "provisional") return "Provisional";
+  if (s === "no-sign") return "No-Sign";
   return "Uncertain";
 }
 
+/** Note shown under a non-recognized prediction (null when nothing to say:
+ * recognized predictions speak for themselves). Provisional is deliberately
+ * distinct from Uncertain — both are display-only (never committed), but
+ * provisional is a plausible reading worth holding the sign for. */
+export function confidenceNote(status: string, confidence: number): string | null {
+  const s = status.toLowerCase();
+  if (s === "recognized") return null;
+  if (s === "provisional") {
+    return `Provisional (${(confidence * 100).toFixed(1)}%) — plausible, needs more evidence. Not added to your sequence.`;
+  }
+  return `Low confidence (${(confidence * 100).toFixed(1)}%) — shown as Uncertain, not definitive.`;
+}
+
 export const STREAM_TIMEOUT_MS = 15000;
+
+/** Evidence-based default confidence gate: on the SPLIT-4.0 test set a 0.60
+ * gate accepts 78% of windows at 91% precision (0.70 accepted only 69%). */
+export const DEFAULT_THRESHOLD_PERCENT = 60;
+
+/** Non-accepted windows needed before the commit gate re-arms (a true
+ * release); one soft/provisional window mid-hold does not re-arm. */
+export const RELEASE_WINDOWS = 2;
+
+/** Single-sign readiness countdown: 3 ticks x 400 ms = 1200 ms before capture. */
+export const COUNTDOWN_TICKS = 3;
+export const COUNTDOWN_MS = 400;
+
+function countdownSleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Counts COUNTDOWN_TICKS..1 (one onTick per step), then onTick(0) to clear.
+ * Resolves early with onTick(0) when `cancelled()` becomes true. */
+export async function runCountdown(
+  onTick: (remaining: number) => void,
+  cancelled?: () => boolean,
+  sleep: (ms: number) => Promise<void> = countdownSleep
+): Promise<void> {
+  for (let n = COUNTDOWN_TICKS; n >= 1; n--) {
+    if (cancelled?.()) {
+      onTick(0);
+      return;
+    }
+    onTick(n);
+    await sleep(COUNTDOWN_MS);
+  }
+  onTick(0);
+}
+
+/** Runs the readiness countdown, then the attempt — capture never starts
+ * before the countdown has completed. */
+export async function runSingleAttempt(
+  countdown: () => Promise<void>,
+  attempt: () => Promise<void>
+): Promise<void> {
+  await countdown();
+  await attempt();
+}
+
+export interface CommitInput {
+  accepted: boolean;
+  label: string;
+  lastLabel: string;
+  armed: boolean;
+  freshAttempt: boolean;
+  /** consecutive non-accepted windows since the last accepted prediction */
+  streak?: number;
+  /** hard release evidence (e.g. No-Sign) re-arms in a single window */
+  hardRelease?: boolean;
+}
+
+export interface CommitDecision {
+  commit: boolean;
+  armed: boolean;
+  lastLabel: string;
+}
+
+/**
+ * Release-based commit gate: one gesture performance -> exactly one commit.
+ * Re-observing the same label while it is still held is suppressed until a
+ * release window (two consecutive soft windows, a hard release such as
+ * no-sign, a different sign, or a deliberate single-sign attempt) re-arms it.
+ */
+export function resolveCommit(input: CommitInput): CommitDecision {
+  const label = input.label.trim().toUpperCase();
+  if (!input.accepted) {
+    const streak = input.streak ?? 0;
+    const hardRelease = input.hardRelease ?? false;
+    return {
+      commit: false,
+      armed: input.armed || hardRelease || streak >= RELEASE_WINDOWS,
+      lastLabel: input.lastLabel,
+    };
+  }
+  if (label === input.lastLabel && !input.armed && !input.freshAttempt) {
+    return { commit: false, armed: false, lastLabel: input.lastLabel };
+  }
+  return { commit: true, armed: false, lastLabel: label };
+}
+
+/**
+ * Explicit manual confidence gate (percent). null when the user has never
+ * touched the Settings slider — acceptance is then decided purely by the
+ * backend-calibrated thresholds (no implicit frontend floor).
+ */
+export function readThresholdGate(): number | null {
+  try {
+    const stored = localStorage.getItem("sb_threshold");
+    if (stored === null) return null;
+    const v = parseInt(stored, 10);
+    return Number.isNaN(v) ? null : v;
+  } catch {
+    return null;
+  }
+}
 
 export function apiBase(): string {
   if (typeof window !== "undefined") {
@@ -106,19 +224,30 @@ export interface RecognizeDeps {
   predict?: (
     frames: number[][],
     sessionId: string
-  ) => Promise<{ prediction: Prediction; status: string; processing_time_ms?: number }>;
+  ) => Promise<{
+    prediction: Prediction;
+    alternatives?: AlternativeCandidate[];
+    status: string;
+    processing_time_ms?: number;
+  }>;
   onState?: (s: RecState) => void;
   onNote?: (m: string) => void;
-  onPrediction?: (p: Prediction, status: string, latencyMs?: number) => void;
+  onPrediction?: (
+    p: Prediction,
+    status: string,
+    latencyMs?: number,
+    alternatives?: AlternativeCandidate[]
+  ) => void;
   onHandle?: (h: { stop: () => void } | null) => void;
   timeoutMs?: number;
 }
 
 /**
  * Stream-first recognition with one-shot REST fallback (Task 9).
- * Tries `connectStream` + `sendFrame` per row; a WS prediction resolves
- * `{ path: "stream" }`. Any stream error / exception / timeout runs the
- * unchanged REST `predict` block and resolves `{ path: "rest" }`.
+ * Tries `connectStream` + ONE `sendWindow(frames)` with the full-T rows; a WS
+ * prediction resolves `{ path: "stream" }`. Any stream error / exception /
+ * timeout runs the unchanged REST `predict` block and resolves
+ * `{ path: "rest" }`.
  * REST failures propagate to the caller (mapped to Error/Tracking-Lost there).
  */
 export async function recognizeFrames(
@@ -170,9 +299,9 @@ export async function recognizeFrames(
             onNote("Landmark stream lost — reframe hands and retry.");
           }
         },
-        onPrediction: (p, st) => {
+        onPrediction: (p, st, alts) => {
           streamStatus = st;
-          onPrediction(p, st);
+          onPrediction(p, st, undefined, alts);
           finish(true);
         },
         onError: (msg) => {
@@ -198,7 +327,7 @@ export async function recognizeFrames(
         finish(false);
         return;
       }
-      for (const f of frames) handle.sendFrame(f);
+      handle.sendWindow(frames);
     } catch {
       finish(false);
     }
@@ -208,9 +337,31 @@ export async function recognizeFrames(
 
   if (streamed) return { path: "stream", status: streamStatus };
   const r = await predict(frames, sessionId);
-  onPrediction(r.prediction, r.status, r.processing_time_ms);
+  onPrediction(r.prediction, r.status, r.processing_time_ms, r.alternatives);
   return { path: "rest", status: r.status };
 }
+
+/** Backend rejects stale session ids after restart/reset (in-memory SESSIONS). */
+export function isUnknownSessionError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const code = (e as { code?: string }).code;
+  if (code === "UNKNOWN_SESSION" || code === "HTTP_404") return true;
+  return /unknown session/i.test(e.message);
+}
+
+/**
+ * Append a user-confirmed word unless it is a no-sign or an immediate
+ * duplicate of the last sentence token (repeated frames / double-click).
+ */
+export function appendConfirmedWord(seq: string[], label: string): string[] {
+  const upper = (label || "").trim().toUpperCase();
+  if (!upper || upper === "NO SIGN DETECTED") return seq;
+  if (seq.length > 0 && seq[seq.length - 1] === upper) return seq;
+  return [...seq, upper];
+}
+
+/** Cap session re-opens so recovery never becomes an infinite loop. */
+export const MAX_SESSION_RECOVERIES = 2;
 
 export const CAMERA_TIMEOUT_MS = 10000;
 export const CAMERA_ERROR_NOTE =
@@ -242,6 +393,7 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
   const [note, setNote] = useState("");
   const [camOn, setCamOn] = useState(false);
   const [busy, setBusy] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<"up" | "down" | null>(null);
 
   // Continuous Sequence & Gemini State
@@ -252,6 +404,12 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
   const [generationError, setGenerationError] = useState("");
   const [isContinuousRunning, setIsContinuousRunning] = useState(false);
   const [selectedMood, setSelectedMood] = useState<SentenceMood>("normal");
+  /** Real model top-k from the last prediction (empty when unavailable). */
+  const [candidates, setCandidates] = useState<AlternativeCandidate[]>([]);
+  /** True while the uncertainty panel is open (user can confirm/dismiss). */
+  const [showConfirmPanel, setShowConfirmPanel] = useState(false);
+  /** Last word appended via explicit user confirm (not auto model commit). */
+  const [lastUserConfirmed, setLastUserConfirmed] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -260,7 +418,10 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
 
   // Stabilization & race-condition guards
   const lastSignLabelRef = useRef<string>("");
-  const lastSignTimeRef = useRef<number>(0);
+  const armedRef = useRef<boolean>(true); // release-based re-arm gate for same-sign repeats
+  const freshAttemptRef = useRef<boolean>(false); // single-sign click = deliberate attempt
+const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
+  const lastSpokenRef = useRef<string>("");
   const continuousRunningRef = useRef<boolean>(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const sequenceIdRef = useRef<number>(0);
@@ -302,12 +463,15 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
     []
   );
 
-  function speakSentence(text: string, mood: SentenceMood = selectedMood) {
+  function speakSentence(text: string, mood: SentenceMood = selectedMood, interrupt = true) {
     if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) {
       return;
     }
     try {
-      window.speechSynthesis.cancel();
+      // Sign words queue (no interrupt) so a generated sentence can never chop
+      // a word mid-flight; sentences/replay interrupt to supersede the queue.
+      if (interrupt) window.speechSynthesis.cancel();
+      lastSpokenRef.current = text.trim();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-IN";
 
@@ -325,80 +489,139 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
     }
   }
 
-  function applyPrediction(p: Prediction, status: string, latencyMs?: number) {
+  /** True when the generated sentence just re-says the last spoken word
+   * (single-sign echo like "HELLO" -> "Hello." must not speak twice). */
+  function isEchoOfLastSpoken(text: string): boolean {
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const last = lastSpokenRef.current;
+    return Boolean(last) && norm(text) === norm(last);
+  }
+
+  function applyPrediction(p: Prediction, status: string, latencyMs?: number, alts?: AlternativeCandidate[]) {
     setResult(p);
     setConf(p.confidence);
     if (latencyMs) setLatency(latencyMs);
     onResult(p);
     setFeedbackSent(null);
+    const nextAlts = alts && alts.length > 0 ? alts : [];
+    setCandidates(nextAlts);
+    setLastUserConfirmed(false);
 
-    // Read user-configured threshold gate from localStorage (e.g. 95% -> 0.95)
-    let thresholdPercent = 70;
-    try {
-      const stored = localStorage.getItem("sb_threshold");
-      if (stored) thresholdPercent = parseInt(stored, 10);
-    } catch {
-      /* ignore */
-    }
-    const thresholdGate = thresholdPercent / 100;
+    // Explicit user gate only: the backend-calibrated thresholds decide
+    // acceptance unless the user has explicitly set a manual gate via the
+    // Settings slider (sb_threshold). Never fall back to an implicit floor.
+    const gate = readThresholdGate();
+    const meetsThreshold = gate === null || p.confidence >= gate / 100;
 
-    // A prediction is only accepted if backend recognized it AND confidence meets user's threshold gate:
-    const meetsThreshold = p.confidence >= thresholdGate;
+    // A prediction is only accepted if backend recognized it AND confidence meets the (optional) user gate:
     const isAccepted = status.toLowerCase() === "recognized" && meetsThreshold;
     const labelUpper = (p.label || "").trim().toUpperCase();
+    const displayUncertain =
+      !isAccepted &&
+      (status.toLowerCase() === "uncertain" ||
+        status.toLowerCase() === "provisional" ||
+        (gate !== null && status.toLowerCase() === "recognized" && !meetsThreshold));
 
-    if (!meetsThreshold && status.toLowerCase() === "recognized") {
+    // Uncertainty panel: only for non-accepted readings that still carry
+    // real model candidates. Never invents labels. ISL_000 has none.
+    setShowConfirmPanel(
+      displayUncertain &&
+        nextAlts.length > 0 &&
+        p.class_id !== "ISL_000" &&
+        labelUpper !== "NO SIGN DETECTED"
+    );
+
+    if (gate !== null && !meetsThreshold && status.toLowerCase() === "recognized") {
       setState("Uncertain");
       setNote(
-        `Confidence (${(p.confidence * 100).toFixed(1)}%) is below your ${thresholdPercent}% gate — flagged as Uncertain.`
+        `Confidence (${(p.confidence * 100).toFixed(1)}%) is below your ${gate}% gate — flagged as Uncertain.`
       );
     } else {
       setState(toState(status, true));
-      if (status.toLowerCase() !== "recognized") {
-        setNote(
-          `Low confidence (${(p.confidence * 100).toFixed(1)}%) — shown as Uncertain, not definitive.`
-        );
-      }
+      const noteText = confidenceNote(status, p.confidence);
+      if (noteText) setNote(noteText);
     }
 
-    if (
+    const accepted =
       isAccepted &&
-      labelUpper &&
+      Boolean(labelUpper) &&
       labelUpper !== "NO SIGN DETECTED" &&
-      p.class_id !== "ISL_000"
-    ) {
-      const now = Date.now();
-      const lastLabel = lastSignLabelRef.current;
-      const lastTime = lastSignTimeRef.current;
-      const cooldownMs = 2500;
+      p.class_id !== "ISL_000";
 
-      // Duplicate debounce check
-      if (labelUpper === lastLabel && now - lastTime < cooldownMs) {
-        // Suppress duplicate window of the same gesture
-      } else {
-        lastSignLabelRef.current = labelUpper;
-        lastSignTimeRef.current = now;
+    releaseStreakRef.current = accepted ? 0 : releaseStreakRef.current + 1;
 
-        // Auto Speak Confirmed Prediction:
-        // Automatically speak confirmed signs out loud through speaker!
-        const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
-        if (autoSpeakEnabled) {
-          speakSentence(labelUpper, selectedMood);
-        }
+    const decision = resolveCommit({
+      accepted,
+      label: labelUpper,
+      lastLabel: lastSignLabelRef.current,
+      armed: armedRef.current,
+      freshAttempt: freshAttemptRef.current,
+      streak: releaseStreakRef.current,
+      hardRelease: status.toLowerCase() === "no-sign",
+    });
+    freshAttemptRef.current = false;
+    armedRef.current = decision.armed;
 
-        setRecognizedSequence((prev) => {
-          const nextSeq = [...prev, labelUpper];
-          // Auto-summarize & speak: 1.8s silence window triggers hands-free translation!
-          if (autoGenerateTimerRef.current) {
-            clearTimeout(autoGenerateTimerRef.current);
-          }
-          autoGenerateTimerRef.current = setTimeout(() => {
-            handleGenerateSentence(nextSeq, selectedMood);
-          }, 1800);
-          return nextSeq;
-        });
-        setGenerationError("");
+    if (decision.commit) {
+      lastSignLabelRef.current = decision.lastLabel;
+
+      // Auto Speak Confirmed Prediction:
+      // Automatically speak confirmed signs out loud through speaker!
+      const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
+      if (autoSpeakEnabled) {
+        // Queue (no interrupt): never cancel an in-flight generated sentence.
+        speakSentence(labelUpper, selectedMood, false);
       }
+
+      setRecognizedSequence((prev) => {
+        const nextSeq = [...prev, labelUpper];
+        // Auto-summarize & speak: 1.8s silence window triggers hands-free translation!
+        if (autoGenerateTimerRef.current) {
+          clearTimeout(autoGenerateTimerRef.current);
+        }
+        autoGenerateTimerRef.current = setTimeout(() => {
+          handleGenerateSentence(nextSeq, selectedMood);
+        }, 1800);
+        return nextSeq;
+      });
+      setGenerationError("");
+    }
+  }
+
+  /**
+   * User picked a genuine model candidate (or the primary) from the
+   * uncertainty panel. Recorded as USER-CONFIRMED — not an automatic
+   * model success. Duplicate last-label inserts are suppressed.
+   */
+  function confirmUserSelection(cand: AlternativeCandidate) {
+    const labelUpper = cand.label.trim().toUpperCase();
+    if (!labelUpper || labelUpper === "NO SIGN DETECTED" || cand.class_id === "ISL_000") return;
+    setShowConfirmPanel(false);
+    const nextSeq = appendConfirmedWord(recognizedSequence, labelUpper);
+    if (nextSeq.length === recognizedSequence.length) {
+      setNote(`Already in sentence: ${labelUpper} — duplicate skipped.`);
+      return;
+    }
+    lastSignLabelRef.current = labelUpper;
+    armedRef.current = false;
+    setLastUserConfirmed(true);
+    setNote(`User confirmed: ${labelUpper} (not an automatic model commit).`);
+    setRecognizedSequence(nextSeq);
+    if (autoGenerateTimerRef.current) clearTimeout(autoGenerateTimerRef.current);
+    autoGenerateTimerRef.current = setTimeout(() => {
+      handleGenerateSentence(nextSeq, selectedMood);
+    }, 1800);
+    setGenerationError("");
+  }
+
+  function dismissCandidates(reason: "retry" | "dismiss") {
+    setShowConfirmPanel(false);
+    setCandidates([]);
+    if (reason === "retry") {
+      setNote("Cleared uncertain result — perform the sign again.");
+      armedRef.current = true;
+    } else {
+      setNote("Uncertain result dismissed — not added to your sentence.");
     }
   }
 
@@ -435,8 +658,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
   // Core capture and inference of one 45-frame window
   async function captureAndRecognizeOnce(sid: string): Promise<boolean> {
     if (!videoRef.current) return false;
-    setBusy("Capturing 45 frames — hold the sign steady…");
-    const frames = await provider().capture(videoRef.current, 45);
+    setBusy("Capturing sign (~3.5 s) — perform it now…");
+    const frames = await provider().capture(videoRef.current);
     setBusy("");
 
     if (!isFiniteFrame(frames)) {
@@ -459,6 +682,17 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
     return true;
   }
 
+  // Re-open a backend session when the previous id is unknown (restart/reset).
+  async function openFreshSession(): Promise<string> {
+    const s = await api.openSession();
+    setSession(s.session_id);
+    return s.session_id;
+  }
+
+  async function resolveSessionSid(current: string): Promise<string> {
+    return current || openFreshSession();
+  }
+
   // Single Sign Recognition
   async function startSingle() {
     setNote("");
@@ -469,17 +703,34 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
     }
     setBusy("Initializing on-device hand-tracking model…");
     try {
-      let sid = session;
-      if (!sid) {
-        const s = await api.openSession();
-        sid = s.session_id;
-        setSession(sid);
-      }
+      let sid = await resolveSessionSid(session);
+      let recovered = 0;
       setState("Tracking");
-      await captureAndRecognizeOnce(sid);
+      freshAttemptRef.current = true;
+      releaseStreakRef.current = 0;
+      const readiness = () =>
+        runCountdown((r) => setCountdown(r || null), () => !videoRef.current);
+      await runSingleAttempt(readiness, async () => {
+        try {
+          await captureAndRecognizeOnce(sid);
+        } catch (e) {
+          if (isUnknownSessionError(e) && recovered < MAX_SESSION_RECOVERIES) {
+            recovered += 1;
+            sid = await openFreshSession();
+            setNote("Session expired — recovered. Signing again…");
+            await readiness();
+            await captureAndRecognizeOnce(sid);
+          } else {
+            throw e;
+          }
+        }
+      });
     } catch (e) {
       setBusy("");
       wsRef.current = null;
+      // Failed attempt = release evidence; drop any unconsumed fresh flag.
+      armedRef.current = true;
+      freshAttemptRef.current = false;
       const msg = e instanceof Error ? e.message : "Recognition failed.";
       const code = e instanceof Error ? (e as { code?: string }).code : undefined;
       if (/No hands detected/.test(msg)) {
@@ -490,7 +741,9 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
       setNote(
         code === "TIMEOUT"
           ? `${msg} Retry — the request timed out. All video processing stays on this device.`
-          : msg + " All video processing stays on this device."
+          : isUnknownSessionError(e)
+            ? `${msg} Open a new session and retry.`
+            : msg + " All video processing stays on this device."
       );
     }
   }
@@ -504,36 +757,75 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
       return;
     }
 
-    let sid = session;
-    if (!sid) {
-      try {
-        const s = await api.openSession();
-        sid = s.session_id;
-        setSession(sid);
-      } catch {
-        setState("Error");
-        setNote("Could not initialize session with backend.");
-        return;
-      }
+    let sid: string;
+    try {
+      sid = await resolveSessionSid(session);
+    } catch {
+      setState("Error");
+      setNote("Could not initialize session with backend.");
+      return;
     }
 
     continuousRunningRef.current = true;
     setIsContinuousRunning(true);
     setState("Tracking");
+    freshAttemptRef.current = false;
+    releaseStreakRef.current = 0;
 
+    let consecutiveFailures = 0;
+    let sessionRecoveries = 0;
     try {
       while (continuousRunningRef.current) {
-        const ok = await captureAndRecognizeOnce(sid);
+        let ok = false;
+        try {
+          ok = await captureAndRecognizeOnce(sid);
+        } catch (e) {
+          // Stale session (backend restart/reset): re-open once and retry
+          // without counting toward the 3-failure stop limit.
+          if (isUnknownSessionError(e) && sessionRecoveries < MAX_SESSION_RECOVERIES) {
+            sessionRecoveries += 1;
+            setBusy("");
+            wsRef.current = null;
+            try {
+              sid = await openFreshSession();
+              setNote("Session expired — recovered. Continue signing…");
+              setState("Tracking");
+              continue;
+            } catch {
+              // fall through to generic failure handling below
+            }
+          }
+          // One bad window (hands lost, backend hiccup) must not end the
+          // session: surface it, treat it as a release, retry up to 3x.
+          consecutiveFailures++;
+          setBusy("");
+          wsRef.current = null;
+          armedRef.current = true;
+          const msg = e instanceof Error ? e.message : "Recognition failed.";
+          setNote(msg + " All video processing stays on this device.");
+          setState(/No hands detected/.test(msg) ? "Tracking-Lost" : "Error");
+          if (consecutiveFailures >= 3) {
+            setNote(`${msg} Continuous recognition stopped after repeated failures.`);
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          continue;
+        }
         if (!ok || !continuousRunningRef.current) break;
+        consecutiveFailures = 0;
 
         // Brief inter-sign buffer window to allow physical hand transition
-        setBusy("Sign logged. Ready for next sign…");
+        setBusy("Sign logged — release your hands, then perform the next sign…");
         await new Promise((resolve) => setTimeout(resolve, 600));
         if (!continuousRunningRef.current) break;
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Continuous recognition interrupted.";
-      setNote(msg);
+      setNote(
+        isUnknownSessionError(e)
+          ? `${msg} Continuous recognition stopped — open a new session and retry.`
+          : msg
+      );
     } finally {
       continuousRunningRef.current = false;
       setIsContinuousRunning(false);
@@ -590,7 +882,7 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
 
       // Defaultly speak automatically without user needing to press speak button!
       const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
-      if (autoSpeakEnabled) {
+      if (autoSpeakEnabled && !isEchoOfLastSpoken(sentence)) {
         speakSentence(sentence, moodToUse);
       }
     } catch (err: unknown) {
@@ -629,7 +921,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
     setGeneratedSentence("");
     setGenerationError("");
     lastSignLabelRef.current = "";
-    lastSignTimeRef.current = 0;
+    armedRef.current = true;
+    freshAttemptRef.current = false;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -666,8 +959,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Camera Viewport (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        {/* Camera Viewport (8 cols, ~14% wider than before) */}
+        <div className="lg:col-span-8 space-y-4">
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-center">
             <video
               ref={videoRef}
@@ -712,14 +1005,31 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
                         POSITION HANDS IN FRAME
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="w-4 h-4 border-b-2 border-l-2 border-brand-400"></span>
-                      <span className="w-4 h-4 border-b-2 border-r-2 border-brand-400"></span>
-                    </div>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="w-4 h-4 border-b-2 border-l-2 border-brand-400"></span>
+                  <span className="w-4 h-4 border-b-2 border-r-2 border-brand-400"></span>
                 </div>
-              </>
+              </div>
+            </div>
+
+            {/* Single-sign readiness countdown */}
+            {countdown !== null && countdown > 0 && (
+              <div
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55 backdrop-blur-sm pointer-events-none"
+                role="status"
+                aria-live="polite"
+                aria-label={`Get ready — capturing in ${countdown}`}
+              >
+                <span className="text-7xl font-black text-white drop-shadow-lg tabular-nums">
+                  {countdown}
+                </span>
+                <span className="mt-2 text-sm font-semibold tracking-wider text-brand-200 uppercase">
+                  Get ready — hold your sign
+                </span>
+              </div>
             )}
+          </>
+        )}
 
             {/* State pill */}
             <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-bold text-white border border-white/10 z-10">
@@ -774,9 +1084,9 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
               onClick={startSingle}
               disabled={!camOn || Boolean(busy) || isContinuousRunning}
               className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-800 dark:text-slate-200 font-medium text-sm transition"
-              title="Capture exactly 1 sign sequence (45 frames)"
+              title="Perform one sign during a 3.5 s capture window"
             >
-              Single Sign (45f)
+              Single Sign
             </button>
 
             <button
@@ -816,8 +1126,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
           )}
         </div>
 
-        {/* Prediction Results & Translation Cards (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        {/* Prediction Results & Translation Cards (4 cols) */}
+        <div className="lg:col-span-4 space-y-4">
           {/* Section: Continuous Recognized Signs Buffer */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
@@ -1026,6 +1336,13 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
                     </div>
                   )}
                 </div>
+              ) : result && state === "Provisional" ? (
+                <div>
+                  <span className="text-xl font-extrabold text-sky-600 dark:text-sky-400 uppercase">
+                    {result.label} …
+                  </span>
+                  <p className="text-xs text-sky-500">Provisional Prediction — not added</p>
+                </div>
               ) : result && state === "Uncertain" ? (
                 <div>
                   <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 uppercase">
@@ -1060,6 +1377,75 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
                   ></div>
                 </div>
               </div>
+            )}
+
+            {/* Uncertainty panel — real model top-k only, never invented. */}
+            {showConfirmPanel && candidates.length > 0 && (
+              <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  Recognition uncertain
+                </p>
+                <p className="text-[11px] text-amber-800/90 dark:text-amber-200/90">
+                  Primary: <strong>{candidates[0].label}</strong> ({(candidates[0].confidence * 100).toFixed(1)}%)
+                </p>
+                {candidates.length > 1 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Other possible candidates:
+                    </p>
+                    <ul className="space-y-1">
+                      {candidates.slice(1, 4).map((c) => (
+                        <li key={c.class_id}>
+                          <button
+                            type="button"
+                            onClick={() => confirmUserSelection(c)}
+                            className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-brand-500 hover:shadow-sm transition"
+                          >
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                              {c.label}
+                            </span>
+                            <span className="font-mono text-slate-400">
+                              {(c.confidence * 100).toFixed(1)}%
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => confirmUserSelection(candidates[0])}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold bg-brand-500 text-white hover:bg-brand-600 transition"
+                  >
+                    Confirm {candidates[0].label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismissCandidates("retry")}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition"
+                  >
+                    Try again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismissCandidates("dismiss")}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  A confirmed word is a user selection, not proof the model auto-recognized it.
+                </p>
+              </div>
+            )}
+
+            {lastUserConfirmed && recognizedSequence.length > 0 && (
+              <p className="text-[11px] text-sky-600 dark:text-sky-400">
+                Last word added by user confirmation.
+              </p>
             )}
 
             {result && result.prediction_id && (

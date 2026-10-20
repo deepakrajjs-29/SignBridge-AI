@@ -3,13 +3,14 @@
  *
  * MediaPipeProvider is the production path: on-device HandLandmarker
  * (tasks-vision) over the browser webcam -> raw (T,2,21,3) landmark frames
- * -> hands.ts FV-1.0 pipeline -> 45x189 rows for POST /predict (unchanged).
+ * -> hands.ts FV-1.0 pipeline -> full-T rows (T,189) sent to POST /predict
+ * or the WS `window` message; the single 45-row resample happens server-side.
  * Frames never leave the browser; only the .task model + wasm download once.
  *
  * DemoProvider remains for unit tests only (never used by Live view).
  */
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
-import { buildSequence, type Frames } from "./hands";
+import { buildFeatureRows, type Frames } from "./hands";
 
 const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
 const MODEL_URL =
@@ -118,6 +119,17 @@ function blank(): number[][][] {
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 export const CAPTURE_DEADLINE_MS = 60000;
+/**
+ * Time-boxed capture window. The old 45-rAF loop (~0.75 s at 60 Hz) clipped
+ * dynamic signs mid-performance: offline replay measured 0.475 accuracy for
+ * contiguous 45-frame windows vs 0.822 for full-sign windows. 3.5 s covers
+ * ~1 s reaction delay + a whole performance + idle tail: the realistic
+ * (1 s delay + tail) window measured 0.769 on n=1500 test clips.
+ */
+export const CAPTURE_WINDOW_MS = 3500;
+/** Minimum unique camera frames before a sequence can be trusted (toSequence
+ * pads beyond 45 rows for slow cameras; below this the window caught no sign). */
+export const MIN_CAPTURE_FRAMES = 30;
 
 export class MediaPipeProvider implements LandmarkProvider {
   readonly name = "mediapipe-handlandmarker (on-device)";
@@ -134,7 +146,7 @@ export class MediaPipeProvider implements LandmarkProvider {
 
   async capture(
     video: HTMLVideoElement,
-    frames = 45,
+    _frames = 45,
     deadlineMs = CAPTURE_DEADLINE_MS
   ): Promise<number[][]> {
     this.error = "";
@@ -170,20 +182,30 @@ export class MediaPipeProvider implements LandmarkProvider {
     abortIfPastDeadline();
     this.status = "capturing";
     const raw: Frames = [];
+    let lastVideoTime = Number.NaN;
+    const windowStart = Date.now();
     try {
-      for (let t = 0; t < frames; t++) {
+      while (Date.now() - windowStart < CAPTURE_WINDOW_MS) {
         abortIfPastDeadline();
-        let pts = blank();
-        try {
-          const res = lm.detectForVideo(video, performance.now());
-          const hands = res.landmarks ?? [];
-          for (let h = 0; h < Math.min(2, hands.length); h++)
-            pts[h] = hands[h].slice(0, 21).map((p) => [p.x, p.y, p.z]);
-        } catch {
-          // single-frame detection failure -> blank frame (never aborts capture)
+        // Dedupe: rAF can outrun the camera (60 Hz vs 30 fps); reprocessing the
+        // same video frame injects zero-speed rows into the FV-1.0 speed features.
+        if (video.currentTime !== lastVideoTime) {
+          lastVideoTime = video.currentTime;
+          let pts = blank();
+          try {
+            const res = lm.detectForVideo(video, performance.now());
+            const hands = res.landmarks ?? [];
+            for (let h = 0; h < Math.min(2, hands.length); h++)
+              pts[h] = hands[h].slice(0, 21).map((p) => [p.x, p.y, p.z]);
+          } catch {
+            // single-frame detection failure -> blank frame (never aborts capture)
+          }
+          raw.push(pts);
+          const elapsedS = Math.min((Date.now() - windowStart) / 1000, CAPTURE_WINDOW_MS / 1000);
+          this.progress = `Capturing ${elapsedS.toFixed(1)} / ${
+            CAPTURE_WINDOW_MS / 1000
+          } s — perform the sign now`;
         }
-        raw.push(pts);
-        this.progress = `Capturing ${t + 1}/${frames} — hold the sign steady`;
         const remaining = deadlineMs - (Date.now() - start);
         if (remaining <= 0) fail(deadlineMessage());
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -203,13 +225,15 @@ export class MediaPipeProvider implements LandmarkProvider {
     } finally {
       this.progress = "";
     }
-    if (raw.every((f) => f.flat(2).every((v) => v === 0))) {
+    if (raw.length < MIN_CAPTURE_FRAMES || raw.every((f) => f.flat(2).every((v) => v === 0))) {
       this.status = "error";
-      this.error = "No hands detected in 45 frames — move closer, improve light, reframe.";
+      this.error = "No hands detected during capture — move closer, improve light, reframe.";
       throw new Error(this.error);
     }
     this.status = "ready";
-    return buildSequence(raw);
+    // Full-T rows (no 45-frame subsample): the whole 3.5 s capture reaches
+    // the backend, which owns the single 45-row resample (preprocess_window).
+    return buildFeatureRows(raw);
   }
 }
 

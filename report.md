@@ -3,8 +3,8 @@
 > **Project:** SignBridge AI 2.0  
 > **Domain:** Artificial Intelligence / Computer Vision / Indian Sign Language (ISL)  
 > **Architecture:** Decoupled Client-Edge Vision + Microservice AI Server + Bidirectional Communication Engine  
-> **Vocabulary:** 100 Dynamic Indian Sign Language Words & Phrases  
-> **Status:** Production-Ready Candidate (RC-v1.0 / Milestone M9)  
+> **Vocabulary:** 109 Dynamic Indian Sign Language Words & Phrases (`ISL_001`–`ISL_109`)  
+> **Status:** Release Candidate — `SBAI-MDL-ISL-4.0.0` active; Milestones M11–M13 complete (M13 canonical for accuracy & calibration); live-webcam protocol (M13 §13) pending  
 
 ---
 
@@ -40,7 +40,7 @@
 Unlike conventional sign recognition systems that rely on expensive hardware (gloves, depth sensors) or transmit bandwidth-heavy video streams to cloud servers, SignBridge AI uses an **edge-assisted hybrid architecture**:
 1. **Edge Landmark Extraction:** Runs Google MediaPipe Vision Hand Landmarker directly within the user's browser via WebAssembly (Wasm) and WebGL at 30+ FPS, strictly transmitting lightweight numerical landmark coordinates rather than raw video pixels.
 2. **Deterministic Preprocessing:** Normalizes 3D hand joints against wrist landmarks, dynamically eliminates left-vs-right hand signer bias, and extracts velocity and bounding geometry features into a strict **189-dimensional vector** per frame.
-3. **Deep Temporal Sequence Recognition:** Processes continuous 45-frame sequence buffers through a 2-layer stacked Long Short-Term Memory (LSTM) network or Gated Recurrent Unit (GRU) network trained over a **100-word ISL vocabulary**.
+3. **Deep Temporal Sequence Recognition:** Processes continuous 45-frame sequence buffers through the deployed **3-way inference ensemble** of `SBAI-MDL-ISL-4.0.0` — mean of a 2-layer stacked LSTM (128 ➔ 64), a 2-layer stacked GRU (128 ➔ 64), and a mirrored-input (mirror-TTA) pass — over a **109-class ISL vocabulary** (`ISL_001`–`ISL_109`).
 4. **True Two-Way Communication:**
    - **Sign $\to$ Speech / Text:** Continuous live camera detection with visual skeleton overlays, confidence scoring, text sentence accumulation, and instant Text-to-Speech (TTS) vocalization.
    - **Speech / Text $\to$ Sign:** Reverse sign lookup that converts spoken/typed phrases into curated, frame-accurate ISL demonstration cards and photographic guides.
@@ -58,7 +58,7 @@ Unlike conventional sign recognition systems that rely on expensive hardware (gl
 1. **Linguistic Complexity of ISL:** Unlike American Sign Language (ASL) which relies heavily on single-hand fingerspelling, ISL features predominantly **two-handed, dynamic signs** with rich spatio-temporal interactions, handshape transitions, motion trajectories, and spatial orientations.
 2. **Signer Invariance & Hand Dominance:** Signers may be naturally right-handed or left-handed, or exhibit varying hand sizes and camera distances. Models trained without canonical normalization fail when evaluated across different signers.
 3. **Bandwidth & Privacy Bottlenecks:** Streaming 1080p raw webcam frames to a cloud server consumes enormous bandwidth (~3–5 Mbps per user) and raises severe user privacy and data retention concerns.
-4. **Latency Constraints:** Conversational dialogue requires an end-to-end inference latency under 200 ms with at least 15 FPS continuous throughput.
+4. **Latency Constraints:** Conversational dialogue requires an end-to-end inference latency under 200 ms with at least 15 FPS continuous throughput. *(Honest status: the current CPU 3-way ensemble probe measures p50 288.99 ms (VAL) / 374.85 ms (TEST) per sign window — §9; latency reduction is open roadmap work.)*
 
 SignBridge AI solves these challenges through its browser-edge keypoint extraction, geometric normalization, 189-D feature projection, and zero-raw-video transmission policy.
 
@@ -72,7 +72,7 @@ The system adheres to a strictly decoupled, microservices-driven client-server a
 flowchart TD
     subgraph Client["Frontend Client (Browser - React + Vite + TypeScript)"]
         Webcam["Webcam Video Feed (30 FPS)"] --> MP["MediaPipe Hand Landmarker (Wasm/WebGL)"]
-        MP --> Norm["Client-Side Normalization & 45-Frame Ring Buffer"]
+        MP --> Norm["Client-Side Normalization & Full-Sign Capture (3.5 s)"]
         Norm --> WS_Client["WebSocket Client / REST API Client"]
         TTS_UI["Audio Synthesizer (Web Speech API)"]
         Display["Live Visualizer (Skeleton, Gloss, Confidence)"]
@@ -86,7 +86,7 @@ flowchart TD
             Canon["Signer Canonicalization (Least-Active-Hand First)"]
             Feat["Feature Builder (189-D Vector Calculation)"]
             Temporal["Sequence Sampler (45 x 189 Tensor)"]
-            ModelServ["Model Serving Engine (TensorFlow/Keras LSTM / GRU)"]
+            ModelServ["Model Serving Engine (TensorFlow/Keras LSTM + GRU ensemble)"]
         end
         
         Registry["Model Registry (registry.json) & Rollback Controller"]
@@ -109,7 +109,7 @@ flowchart TD
 ### Architectural Highlights
 - **Client (Edge Processing):** Extracts 21 3D landmarks for both hands using `@mediapipe/tasks-vision`. Only coordinate data ($x, y, z$) is sent across the wire, ensuring strict zero-video egress.
 - **Transport Layer:** Real-time bidirectional WebSockets (`/api/v1/stream`) for low-latency live translation, complemented by standard REST APIs (`/api/v1/predict`, `/api/v1/sequence`, `/api/v1/image`, `/api/v1/video`).
-- **Inference Server:** Python 3.11 / FastAPI backend hosting versioned TensorFlow models (`models/SBAI-MDL-ISL-2.0.0`) with instant hot-swapping and zero-downtime rollback.
+- **Inference Server:** Python 3.11 / FastAPI backend hosting versioned TensorFlow models — the served version is decided by `models/registry.json` (`active_model` = `SBAI-MDL-ISL-4.0.0`; the `MODEL_VERSION` environment variable is only a fallback when the registry has no `active_model` key) — with instant hot-swapping and zero-downtime rollback.
 
 ---
 
@@ -125,8 +125,9 @@ Raw Frame (640x480)
         ├──  42 Landmark Velocity Magnitudes (Inter-frame Euclidean Deltas)
         └──  21 Spatial & Hand-Shape Statistics (BBox, Center, Extent, Count)
   ──▶ Temporal Buffer & Uniform Sampling [45 frames × 189 features]
-  ──▶ 2-Layer Masked LSTM [128 ➔ 64 units] + Dropout
-  ──▶ Dense ReLU [64 units] ➔ Softmax [100 Classes]
+  ──▶ 2-Layer Masked LSTM [128 ➔ 64 units] + Dropout   (the GRU member has the identical stack)
+  ──▶ Dense ReLU [64 units] ➔ Softmax [109 Classes]
+  ──▶ Deployed inference: 3-way ensemble mean(LSTM, GRU, mirror-TTA) — 109-class output
 ```
 
 ### 4.1 Vision Landmark Extraction (MediaPipe)
@@ -184,6 +185,8 @@ $$\mathbf{X} \in \mathbb{R}^{B \times 45 \times 189}$$
 
 ### 4.5 Deep Learning Model Architecture (LSTM & GRU)
 
+Each ensemble member is a 2-layer stack (LSTM shown below; the GRU member is identical through the Softmax layer). The deployed `SBAI-MDL-ISL-4.0.0` averages the softmax outputs of the LSTM member, the GRU member, and a mirrored-input (mirror-TTA) pass:
+
 ```
 Input: Tensor (Shape: 45 x 189)
   │
@@ -203,16 +206,16 @@ Input: Tensor (Shape: 45 x 189)
 [ Dropout Layer ] (Rate = 0.2)
   │
   ▼
-[ Output Softmax Layer ] (100 Units, Activation = Softmax) ──▶ Class Probabilities
+[ Output Softmax Layer ] (109 Units, Activation = Softmax) ──▶ Class Probabilities
 ```
 
 #### Hyperparameters & Optimization
-- **Primary Architecture:** `SBAI-LSTM-100` (Stacked 2-Layer LSTM)
-- **Challenger Architecture:** `SBAI-GRU-100` (Stacked 2-Layer Gated Recurrent Unit)
+- **Deployed Architecture (`SBAI-MDL-ISL-4.0.0`):** `ENSEMBLE(LSTM128-LSTM64,GRU128-GRU64)+mirror-TTA,Softmax109` — a 3-way mean of the stacked-LSTM member, the stacked-GRU member, and the mirrored-input TTA pass. (The `SBAI-LSTM-100` / `SBAI-GRU-100` names belong to the earlier 100-class single-model experiments and are historical only.)
+- **Member Stacks:** 2-layer stacked LSTM (128 ➔ 64) and 2-layer stacked GRU (128 ➔ 64), each Masking ➔ recurrent layers ➔ Dense 64 ReLU ➔ Dropout ➔ Softmax 109.
 - **Loss Function:** Sparse Categorical Cross-Entropy
 - **Optimizer:** Adam ($\alpha = 0.001$, $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-7}$)
 - **Regularization:** Dual recurrent dropout (0.3) + Dense layer dropout (0.2)
-- **Output:** 100-class probability distribution $\hat{y} \in [0, 1]^{100}$
+- **Output:** 109-class probability distribution $\hat{y} \in [0, 1]^{109}$
 
 ---
 
@@ -232,31 +235,31 @@ sequenceDiagram
 
     Note over Signer, Hearing: Mode 1: Sign-to-Speech (ISL -> English/Hindi)
     Signer->>LiveUI: Performs ISL Gesture in front of Webcam
-    LiveUI->>LiveUI: Extracts 45 frames of 3D landmarks
-    LiveUI->>WS: Sends frame array JSON
-    WS->>Engine: Normalizes & infers via LSTM
-    Engine-->>WS: Returns {class: "HOSPITAL", conf: 0.96, p95_latency: 16ms}
+    LiveUI->>LiveUI: Extracts full-sign 3D landmark history (3.5 s capture)
+    LiveUI->>WS: Sends one window JSON (full-T rows)
+    WS->>Engine: Normalizes & infers via 3-way ensemble
+    Engine-->>WS: Returns {class: "DOCTOR", conf: 0.96, p95_latency: 318ms}
     WS-->>LiveUI: Displays Skeleton + Recognized Word Card
     LiveUI->>TTS: Sends text to Speech Engine
-    TTS-->>Hearing: Audible voice: "Hospital"
+    TTS-->>Hearing: Audible voice: "Doctor"
 
     Note over Hearing, Signer: Mode 2: Text/Speech-to-Sign (English -> ISL)
-    Hearing->>LiveUI: Speaks or types: "Doctor, where is the hospital?"
+    Hearing->>LiveUI: Speaks or types: "Doctor, I have pain?"
     LiveUI->>LiveUI: Queries Text-to-Sign Engine (/api/v1/text-to-sign)
-    LiveUI->>LiveUI: Matches keywords: "DOCTOR", "HOSPITAL"
+    LiveUI->>LiveUI: Matches keywords: "DOCTOR", "PAIN"
     LiveUI-->>Signer: Displays High-Res ISL Gesture Demonstration & Video/Photo Cards
 ```
 
 ### 5.1 Sign-to-Speech (Live Stream Pipeline)
 1. **Camera Acquisition:** Captures standard RGB stream at 30 FPS.
 2. **Skeleton Tracking:** Renders real-time interactive green/blue skeleton overlays over hand joints on HTML5 canvas.
-3. **Temporal Accumulator:** Buffers 45 frames into a sliding window.
-4. **Trigger Thresholding:** When confidence exceeds the tuned threshold ($C > 0.85$) and stabilization confirms no motion flicker, the recognized token is pushed to the **Sentence Accumulator**.
+3. **Temporal Accumulator:** Captures the whole sign performance (time-boxed 3.5 s over unique video frames, up to 600 landmark rows) and emits it as a single window; the backend resamples it to the model's $T = 45$ tensor.
+4. **Decision Policy (M13):** Raw softmax confidence is passed through the fitted calibration (temperature **T = 1.0** — fit rejected, identity kept) and the three-state decision policy: **accept 0.57**, **provisional 0.00**, temporal **smoothing 5**. A window $\ge 0.57$ is **Recognized** and pushed to the **Sentence Accumulator**; anything below renders as **Provisional** (display-only — never auto-committed), with **Uncertain** and **No-Sign** as the remaining display states. This policy replaced the legacy 0.40 backend threshold and the old 0.70 frontend gate in milestone M13.
 5. **Vocalization:** The browser's native Web Speech API or the backend `/api/v1/tts` service converts accumulated words into natural spoken audio.
 
 ### 5.2 Text-to-Sign (Reverse Translation Pipeline)
 1. Hearing users enter speech or text in the **TextToSign** module.
-2. The system tokenizes, cleans, and maps input sentences to the 100-word ISL gloss taxonomy.
+2. The system tokenizes, cleans, and maps input sentences to the 109-word ISL gloss taxonomy (`ISL_001`–`ISL_109`).
 3. Relevant signs are rendered sequentially via interactive demonstration cards complete with anatomical instructions, photo assets, and motion diagrams.
 
 ---
@@ -267,13 +270,13 @@ The frontend is built with **React 18 + TypeScript + Vite + Tailwind CSS**, deli
 
 | View Name | Source File | Core Capabilities |
 |---|---|---|
-| **Live Studio** | [Live.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Live.tsx) | Live webcam streaming, real-time skeleton overlay, 45-frame ring buffer, confidence gauges, live sentence accumulator, audible speech triggers, FPS counter. |
+| **Live Studio** | [Live.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Live.tsx) | Live webcam streaming, real-time skeleton overlay, full-sign capture (3.5 s, one window per sign), confidence gauges & Provisional/Recognized states, live sentence accumulator, audible speech triggers, FPS counter. |
 | **Text-to-Sign** | [TextToSign.tsx](file:///d:/Projects/SignBridge/frontend/src/views/TextToSign.tsx) | Reverse sign lookup, keyword-to-sign mapper, carousel card viewer, gesture animation/photo viewer, category quick-filters. |
-| **Vocabulary Explorer** | [Vocab.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Vocab.tsx) | Grid exploration of all 100 ISL vocabulary words, photo asset previews, category badges (Greetings, Emergency, Actions, Objects, etc.). |
+| **Vocabulary Explorer** | [Vocab.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Vocab.tsx) | Grid exploration of all 109 ISL vocabulary words (`ISL_001`–`ISL_109`), photo asset previews, category badges (Greetings, Emergency, Actions, Objects, etc.). |
 | **Dashboard** | [Dashboard.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Dashboard.tsx) | System telemetry, active model version, test accuracy, inference throughput, recent recognition history, quick action shortcuts. |
 | **History & Analytics** | [History.tsx](file:///d:/Projects/SignBridge/frontend/src/views/History.tsx) | Complete session logs, per-prediction confidence scores, latency distributions, exportable CSV/JSON records. |
 | **Admin Portal** | [Admin.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Admin.tsx) | Real-time model registry management, instant promotion between candidates, single-click zero-downtime rollback drill. |
-| **Settings** | [Settings.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Settings.tsx) | Threshold tuning ($0.50$–$0.95$), WebSocket vs. REST protocol toggling, audio voice selection, webcam device selection. |
+| **Settings** | [Settings.tsx](file:///d:/Projects/SignBridge/frontend/src/views/Settings.tsx) | Backend-calibrated three-state decision policy by default (accept 0.57) with a manual threshold override slider, WebSocket vs. REST protocol toggling, audio voice selection, webcam device selection. |
 
 ---
 
@@ -285,11 +288,11 @@ The backend is built with **FastAPI (Python 3.11)** with asynchronous request ha
 
 #### 1. Core Recognition
 - `POST /api/v1/predict`  
-  Accepts a JSON payload containing 45 landmark frames (`(45, 2, 21, 3)`). Returns predicted `class_id`, `gloss`, confidence score, and inference latency.
+  Accepts a JSON payload containing landmark frames (baseline `(45, 2, 21, 3)`; full-sign windows are accepted and resampled to $T = 45$). Returns predicted `class_id`, `gloss`, confidence score, decision `status`, and inference latency.
 - `POST /api/v1/sequence`  
   Accepts variable-length landmark arrays; automatically performs uniform sampling or repeat-padding before executing inference.
 - `WS /api/v1/stream`  
-  Full-duplex WebSocket connection. Receives real-time streaming landmark frames; returns instantaneous token predictions and confidence scores without reconnect overhead.
+  Full-duplex WebSocket connection. Receives real-time streaming landmark frames and one full-sign `window` message per performance; returns instantaneous token predictions with decision status and confidence scores without reconnect overhead (REST/WS parity pinned by tests).
 
 #### 2. Communication Services
 - `POST /api/v1/tts`  
@@ -297,7 +300,7 @@ The backend is built with **FastAPI (Python 3.11)** with asynchronous request ha
 - `POST /api/v1/text-to-sign`  
   Reverse lookup endpoint. Matches input text queries to corresponding ISL class IDs, anatomical movement instructions, and media asset paths.
 - `GET /api/v1/classes`  
-  Returns metadata for the entire 100-word ISL vocabulary (class ID, gloss name, category, demonstration asset URI).
+  Returns metadata for the entire 109-word ISL vocabulary (`ISL_001`–`ISL_109`; class ID, gloss name, category, demonstration asset URI).
 
 #### 3. Model Management & Telemetry
 - `GET /api/v1/model`  
@@ -315,68 +318,119 @@ The backend is built with **FastAPI (Python 3.11)** with asynchronous request ha
 
 ## 8. Vocabulary & Dataset Curation
 
-The platform supports an expanded **100-word vocabulary** (`ISL_001` through `ISL_100`) covering daily conversations, public services, and emergency scenarios:
+The platform supports an expanded **109-word vocabulary** (`ISL_001` through `ISL_109`) covering daily conversations, public services, and emergency scenarios:
 
-### Vocabulary Taxonomy (Sample Breakdown)
-1. **Greetings & Social Interaction (ISL_001 – ISL_010, ISL_051 – ISL_055):**  
-   *Hello, Thank You, Please, Welcome, Sorry, Bye, Good, Bad, Love, Yes, No.*
-2. **Questions & Pronouns (ISL_011 – ISL_020, ISL_056 – ISL_065):**  
-   *Who, What, Where, When, Why, How, Which, You, Me, We, Name, Want, Need, Like.*
-3. **Daily Actions & Verbs (ISL_021 – ISL_035, ISL_066 – ISL_082):**  
-   *Help, Eat, Drink, Sleep, Go, Come, Stay, Wait, Stop, Start, Open, Close, Take, Give, Buy, Pay, Walk, Speak, Listen, Look, Read, Write.*
-4. **Food & Essentials (ISL_083 – ISL_086):**  
-   *Milk, Rice, Bread, Fruit, Water, Food.*
-5. **Medical & Public Locations (ISL_036 – ISL_050, ISL_087 – ISL_096):**  
-   *Hospital, Doctor, Pain, Police, School, Bank, Station, Airport, Bus, Train, Road, City, Village, Shop, Park.*
-6. **Time & Numbers (ISL_097 – ISL_100):**  
-   *Week, Month, Year, Yesterday, Today, Tomorrow.*
+### Vocabulary Taxonomy (breakdown per `data/dataset/annotations/class_map.csv`)
+1. **Greetings & Social Interaction (ISL_001 – ISL_003, ISL_005 – ISL_006, ISL_008 – ISL_009, ISL_022 – ISL_023, ISL_070 – ISL_071):**  
+   *Hello, Thank You, Please, Yes, No, Good Morning, Good Night, Happy, Sad, Good Afternoon, Good Evening.*
+2. **Questions & Pronouns (ISL_032 – ISL_034, ISL_036, ISL_053 – ISL_054, ISL_072 – ISL_075):**  
+   *What, Where, She, He, Why, Which, You, We, They, I.*
+3. **Actions & Daily Verbs (ISL_011, ISL_029, ISL_035, ISL_044, ISL_046, ISL_055 – ISL_060, ISL_102):**  
+   *Help, Work, Go, Eat, Sit, Stay, Wait, Open, Close, Give, Walk, Meeting.*
+4. **People, Family & Roles (ISL_014 – ISL_016, ISL_020 – ISL_021, ISL_037, ISL_039, ISL_041 – ISL_042, ISL_045, ISL_047 – ISL_048, ISL_076 – ISL_080, ISL_107, ISL_109):**  
+   *Man, Friend, Family, Woman, Mother, Sister, Student, Father, Child, Teacher, Girl, Boy, Wife, Husband, Uncle, Aunt, Baby, Police, Manager.*
+5. **Health & Medical (ISL_017 – ISL_018, ISL_062):**  
+   *Doctor, Medicine, Pain.*
+6. **Food, Drink & Essentials (ISL_012 – ISL_013, ISL_038, ISL_040, ISL_061, ISL_081 – ISL_084):**  
+   *Water, Food, Tea, Drink, Bread, Pizza, Mango, Lunch, Onion.*
+7. **Places, Transport & Objects (ISL_004, ISL_019, ISL_028, ISL_030, ISL_043, ISL_049 – ISL_050, ISL_063 – ISL_066, ISL_094, ISL_101, ISL_104 – ISL_106, ISL_108):**  
+   *Market, House, School, Office, Car, Book, Bus, Road, City, Shop, Bank, Computer, Library, Pen, Paper, Chair, Airport.*
+8. **Time & Days (ISL_007, ISL_010, ISL_024 – ISL_027, ISL_031, ISL_067 – ISL_069, ISL_091 – ISL_093, ISL_103):**  
+   *Morning, Evening, Day, Time, Today, Tomorrow, Night, Month, Year, Yesterday, Saturday, Sunday, Hour, Holiday.*
+9. **Adjectives, Animals, Colors & Entertainment (ISL_051 – ISL_052, ISL_085 – ISL_090, ISL_095 – ISL_100):**  
+   *Good, Bad, Lion, Dog, Cat, Red, Blue, Green, Movie, Music, Big, Small, Hot, Cold.*
 
 ### Dataset Provenance & Partitioning
-- **Sources:** Filtered Indian Sign Language dataset (ISL500) and INCLUDE dataset.
-- **Partitioning Strategy:** **70% Train / 15% Validation / 15% Test** using strict **signer-independent splitting** (`SPLIT-2.0.json` / `SPLIT-3.0.json`). No signer appearing in the training set is permitted in the validation or test sets, preventing facial or physical memorization.
+- **Sources:** Filtered Indian Sign Language dataset (ISL500) and INCLUDE dataset (per `class_map.csv` source coverage).
+- **Curation:** CURATION-v4.0 → **14,826** real landmark sequences in `data/dataset/processed/tensors_109_real.npz` (189-D FV-1.0, $T = 45$, 21 landmarks per hand).
+- **Partitioning Strategy:** signer-disjoint **SPLIT-109** (`SPLIT-4.0.json`): **8,800 train / 2,397 validation / 3,629 test** (70% / 15% / 15%). No signer appearing in the training set is permitted in the validation or test sets, preventing facial or physical memorization.
 
 ---
 
 ## 9. Performance Benchmarks & Experimental Results
 
-The production candidate model (`SBAI-MDL-ISL-2.0.0`) was benchmarked against the strict quality gates established in Milestone M9:
+The active model (`SBAI-MDL-ISL-4.0.0`, 109-class 3-way ensemble) is measured against the release gates recorded in `Docs/M11_GATE_109REAL.md`, the webcam study in `Docs/M12_WEBCAM_ACCURACY.md`, and the accuracy/calibration record in `Docs/M13_ACCURACY_CALIBRATION.md` (**M13 is canonical for accuracy**; M9/M10 remain historical 100-class records):
 
 | Evaluation Metric | Target Gate Requirement | Measured Result | Status |
 |---|---|---|---|
-| **Vocabulary Size** | 100 Dynamic Classes | **100 Classes** | Passed |
-| **Model Accuracy (Test)** | $\ge 90.0\%$ | **100.0%** (synthetic protocol) / $92.4\%$ (real ISL) | Passed |
-| **Macro F1-Score** | $\ge 0.90$ | **1.00** (synthetic protocol) / $0.91$ (real ISL) | Passed |
-| **Inference Latency (p95)**| $< 200 \text{ ms}$ | **177.87 ms** (CPU loop, real-time batch p50: 156.9 ms) | Passed |
-| **Inference Throughput** | $> 15 \text{ FPS}$ | **105.6 FPS** (sustained CPU batch) | Passed |
-| **Export Parity (TF/ONNX)**| $100\%$ prediction match | **200 / 200 samples** ($\Delta_{\text{max}} = 0.0$) | Passed |
-| **Model Rollback Speed** | $< 300 \text{ seconds}$ | **0.20 seconds** | Passed |
-| **Memory Footprint** | $< 1.0 \text{ GB}$ | **~185 MB** (Active Keras Session) | Passed |
+| **Vocabulary Size** | 109 Dynamic Classes | **109 Classes** (`ISL_001`–`ISL_109`) | Passed (M11) |
+| **Model Accuracy (frozen TEST, argmax)** | $\ge 90.0\%$ release gate / 80% user target | **0.812896** ($81.29\%$), macro-F1 **0.807865** ($80.79\%$), n = 3629 | 80% target MET; **$\ge 90\%$ gate OPEN — known debt (M11)** |
+| **Macro F1-Score (frozen TEST)** | $\ge 0.90$ release gate | **0.8079** (n = 3629) | Open gate debt |
+| **Model Accuracy (VAL, argmax)** | reference | **0.833125** ($83.31\%$), macro-F1 **0.828963** ($82.90\%$), n = 2397 | Measured |
+| **Commit precision @ coverage (policy, VAL)** | $\ge 0.90$ precision | **90.34% @ 82.02%** coverage (accept 0.57) | Passed |
+| **Commit precision @ coverage (policy, TEST)** | $\ge 0.90$ precision | **89.53% @ 81.32%** coverage | Measured (M13 single frozen-test touch) |
+| **Inference Latency (3-way ensemble, windows-aware probe)** | sub-second per sign window | VAL p50 **288.99 ms** / p95 318.42 ms; TEST p50 **374.85 ms** / p95 575.22 ms | Measured (CPU) |
+| **Inference Latency (single ensemble member)** | — | p50 **61.9 ms** (LSTM) / **64.4 ms** (GRU) | Measured |
+| **Webcam replay `full_sign`** (offline proxy, n = 1500, thr 0.57) | — | acc **0.822** / visible-correct **0.736** | Offline proxy (M12/M13) |
+| **Webcam replay `idle_realistic`** | — | acc **0.769** / visible-correct **0.664** | Offline proxy (M12/M13) |
+| **Webcam replay `old_45_center`** (pre-M12 capture window) | — | acc **0.475** / visible-correct **0.303** | Regression case (root cause RC-A) |
+| **Webcam replay `old_rafdup`** (pre-M12 rAF duplication) | — | acc **0.279** / visible-correct **0.138** | Regression case (root cause RC-B) |
+| **Export Parity (TF/ONNX)** | $100\%$ prediction match | **200 / 200 samples** ($\Delta_{\text{max}} = 0.0$) | Passed (M11) |
+| **Test Suites** | all green | Backend **123 passed** (pytest) / Frontend **48 passed** (Vitest) / `tsc --noEmit` **clean** | Passed |
+| **Live camera protocol (M13 §13, 80 attempts)** | $\ge 80\%$ real-time accuracy | **PENDING** — protocol ready, camera session not yet run | Open |
+
+**Known gate debt (stated honestly):** `Docs/M11_GATE_109REAL.md` records ensemble **0.8129 / 0.8079**, which clears the 0.80 user target but is **below the 0.90/0.90 release-gate acceptance target**; status remains *Candidate, not Approved*, and the gap is tracked as open debt. Stale 2.0.0-era benchmark rows from the synthetic/training era (legacy latency, throughput, and accuracy claims that were never re-measured on the current system) were removed in favor of the measured values above.
+
+### 9.1 Accuracy & Calibration (M13 — canonical)
+
+All numbers from `Docs/M13_ACCURACY_CALIBRATION.md` (model 4.0.0; VAL-only fitting; the single frozen-test touch is `Docs/eval/08_final_test.json`):
+
+- **Calibration:** temperature **T = 1.0** with **fit rejected** (identity kept — the raw ensemble was already well calibrated): **ECE 0.028 VAL / 0.022 TEST**.
+- **Three-state decision policy:** **accept 0.57**, **provisional 0.00**, temporal **smoothing 5**; display states **Recognized / Provisional / Uncertain / No-Sign**. **Provisional is display-only and is never auto-committed** (431 VAL / 678 TEST rows shown but withheld). The legacy **0.40** backend threshold and the old **0.70** frontend double gate were both replaced in M13.
+- **Commit quality:** VAL **90.34% precision @ 82.02% coverage**; TEST **89.53% @ 81.32%** (false-accept rate cut 43% on VAL vs the 0.4 baseline).
+- **Rejected experiments (all reverted/discarded — no model or threshold change):**
+  - **TTA 3-window** — gate FAIL (VAL overall Δ −0.0359 vs required ≥ +0.010, and p95 371.65 ms > 300 ms); `tta_windows` stays **1**.
+  - **Conditional retrain `SBAI-MDL-ISL-4.1.0`** (GRU + time-jitter, EXP-2026-005) — gate FAIL on both VAL metrics (macro-F1 0.8143 < 0.8290; argmax 0.8169 < 0.8331); candidate **discarded**, `SBAI-MDL-ISL-4.0.0` remains active; pre-train backups retained at `models/_backup_4.0.0_pretrain/` and `data/dataset/_backup_pretrain/`.
+  - **Motion-trim preprocessing** — gate FAIL (VAL replay `full_sign` acc 0.835 → 0.768, idle also worse); code + tests fully reverted.
+- **M12 webcam root causes (measured, fixed):** **RC-A** capture window clipped dynamic signs (old ~0.75 s window), **RC-B** 60 Hz rAF duplicated 30 fps frames, **RC-C** double gate (frontend 0.70 stacked over backend 0.40), **RC-E** fixed 2.5 s cooldown re-committed held poses, **RC-F** per-sign speech interruption. Shipped fixes: 3.5 s time-boxed capture over unique frames, release-based commit gate, and TTS queueing — the model itself was never the bottleneck.
+- **Live-camera caveat:** offline proxies and npz rows are **not** camera measurements. User-reported live accuracy moved from 22–32% (pre-M12) to 42–50% (post-M12 fixes); the objective ≥80% verdict awaits the **M13 §13 live-webcam protocol (PENDING)**.
+
+### 9.2 Test Evidence
+
+- Backend: `py -3 -m pytest tests/ -q` → **123 passed**.
+- Frontend: `npm test` → **48 passed** (Vitest runner); `npx tsc --noEmit` → **clean**.
+- Release tripwires: `tests/test_release400.py` and `tests/test_ensemble400.py` (4.0.0 / 109-class pins).
 
 ---
 
 ## 10. Model Versioning & Zero-Downtime Rollback
 
-Model deployments are governed by an immutable registry pattern in `models/registry.json`:
+Model deployments are governed by an immutable registry pattern in `models/registry.json`; the top-level `active_model` key alone decides which version the server loads (the `MODEL_VERSION` environment variable is only a fallback for registries that lack `active_model`):
 
 ```json
 {
-  "active_model": "SBAI-MDL-ISL-2.0.0",
+  "active_model": "SBAI-MDL-ISL-4.0.0",
+  "previous_model": "SBAI-MDL-ISL-3.0.0",
   "models": {
-    "SBAI-MDL-ISL-1.0.0": {
-      "path": "models/SBAI-MDL-ISL-1.0.0.keras",
-      "classes": 50,
-      "accuracy": 1.0,
-      "created_at": "2026-10-09"
-    },
-    "SBAI-MDL-ISL-2.0.0": {
-      "path": "models/SBAI-MDL-ISL-2.0.0/model.keras",
+    "SBAI-MDL-ISL-3.0.0": {
+      "arch": "LSTM128-LSTM64-Dense64-Softmax100",
       "classes": 100,
-      "accuracy": 1.0,
-      "created_at": "2026-10-10"
+      "measured_test_acc": 0.8109,
+      "measured_test_f1": 0.8062,
+      "eval": "EXP-2026-003 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3326)"
+    },
+    "SBAI-MDL-ISL-4.0.0": {
+      "arch": "ENSEMBLE(LSTM128-LSTM64,GRU128-GRU64)+mirror-TTA,Softmax109",
+      "classes": 109,
+      "measured_test_acc": 0.8129,
+      "measured_test_f1": 0.8079,
+      "eval": "EXP-2026-004 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3629)"
     }
   }
 }
 ```
+
+### Version Lineage & Gate Records
+
+| Version | Classes / training data | Measured acc / macro-F1 | Gate record | Status |
+|---|---|---|---|---|
+| `SBAI-MDL-ISL-1.0.0` | MVP-era baseline | — | — | Superseded |
+| `SBAI-MDL-ISL-2.0.0` | 100-class **SYNTHETIC** stub | 1.0 / 1.0 (synthetic protocol) | Registry: *"gates NOT cleared until real-data full train + frozen-test rescoring"* | Superseded — production gates never cleared |
+| `SBAI-MDL-ISL-3.0.0` | 100-class REAL | **0.8109 / 0.8062** (n = 3326) | `Docs/M10_GATE_100REAL.md` (M10) | Superseded (`previous_model`) |
+| `SBAI-MDL-ISL-4.0.0` | 109-class REAL (SPLIT-109, n = 3629) | **0.8129 / 0.8079** | `Docs/M11_GATE_109REAL.md` (M11) | **ACTIVE** — Candidate; ≥0.90 gate debt open |
+| `SBAI-MDL-ISL-4.1.0` | 109-class candidate (GRU + time-jitter) | VAL 0.8169 / 0.8143 — below 4.0.0's 0.8331 / 0.8290 | `Docs/M13_ACCURACY_CALIBRATION.md` §4.1 | **Gate FAIL — discarded** (no registry change) |
+
+Pre-train backups for rollback live at `models/_backup_4.0.0_pretrain/` and `data/dataset/_backup_pretrain/`.
 
 ### Automated Hot-Swapping & Rollback
 When an administrator promotes a new model via `POST /api/v1/admin/promote`:
@@ -418,13 +472,13 @@ The repository contains ready-to-use launch scripts in the root directory:
    ```cmd
    .\run-backend.bat
    ```
-   *Alternative manual command:*
+   *Alternative manual command (run from the repository root):*
    ```powershell
-   cd d:\Projects\SignBridge\backend
    $env:CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
-   $env:MODEL_VERSION="SBAI-MDL-ISL-2.0.0"
-   py -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   py -3 -m uvicorn app.main:app --app-dir backend --port 8000
    ```
+   - The served model is decided by `models/registry.json` (`active_model`, currently **`SBAI-MDL-ISL-4.0.0`**); the `MODEL_VERSION` environment variable is only a fallback when the registry has no `active_model` key — do not hard-code a model version to start the server.
+   - Auth: Bearer token (JWT); the default development secret is set in `.env` (template: `.env.example`).
    - API Docs will be available at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 2. **Launch the Frontend Application:**
@@ -436,16 +490,28 @@ The repository contains ready-to-use launch scripts in the root directory:
    cd d:\Projects\SignBridge\frontend
    npm run dev -- --port 3000 --host 127.0.0.1
    ```
-   - Open your browser at: [http://127.0.0.1:3000](http://127.0.0.1:3000)
+   - Vite serves on ports **3000 / 5173**; open your browser at: [http://127.0.0.1:3000](http://127.0.0.1:3000)
+
+3. **(Optional) Launch with Docker Compose** — always use the compose file under `docker/`:
+   ```powershell
+   # from the repository root:
+   docker compose -f docker/docker-compose.yml up --build
+   # (or run `docker compose up --build` from inside docker/)
+   ```
+   Set `POSTGRES_PASSWORD` and `JWT_SECRET` in the environment before starting.
 
 ### Running Automated Test Suites
 ```powershell
-# Run backend API and WebSocket test suite
-pytest tests/test_api_100.py tests/test_ws.py tests/test_release100.py -v
+# Full backend suite (current: 123 passed)
+py -3 -m pytest tests/ -q
 
-# Run frontend Vitest suite
+# Or the release/API/WebSocket tripwires individually (all files exist in tests/)
+py -3 -m pytest tests/test_api_100.py tests/test_ws.py tests/test_release400.py -v
+
+# Frontend suite — Vitest runner (current: 48 passed) + typecheck
 cd d:\Projects\SignBridge\frontend
 npm run test
+npx tsc --noEmit
 ```
 
 ---
@@ -487,7 +553,7 @@ d:\Projects\SignBridge\
 │   │   ├── views/                   # User interface pages
 │   │   │   ├── Live.tsx             # Real-time Sign-to-Speech studio
 │   │   │   ├── TextToSign.tsx       # Text-to-Sign visual translation
-│   │   │   ├── Vocab.tsx            # 100-word ISL interactive glossary
+│   │   │   ├── Vocab.tsx            # 109-word ISL interactive glossary
 │   │   │   ├── Dashboard.tsx        # System overview & telemetry
 │   │   │   ├── History.tsx          # Prediction logs & session analytics
 │   │   │   ├── Admin.tsx            # Model promotion & rollback portal
@@ -495,21 +561,32 @@ d:\Projects\SignBridge\
 │   └── package.json                 # Frontend dependencies and build scripts
 │
 ├── models/                          # Versioned Model Artifacts & Registry
-│   ├── registry.json                # Single source of truth for active models
-│   ├── SBAI-MDL-ISL-1.0.0.keras     # 50-class baseline model
-│   └── SBAI-MDL-ISL-2.0.0/          # 100-class active candidate bundle
-│       ├── model.keras              # Serialized Keras weights
-│       ├── eval.json                # Verified accuracy, F1, and latency records
-│       └── TRAINING-REPORT.md       # Full training history & convergence log
+│   ├── registry.json                # Single source of truth (active_model = SBAI-MDL-ISL-4.0.0)
+│   ├── SBAI-MDL-ISL-4.0.0.keras     # Active 109-class 3-way ensemble (LSTM + GRU + mirror-TTA)
+│   ├── SBAI-MDL-ISL-4.0.0_lstm.keras # Ensemble member: stacked LSTM 128➔64
+│   ├── SBAI-MDL-ISL-4.0.0_gru.keras  # Ensemble member: stacked GRU 128➔64
+│   ├── SBAI-MDL-ISL-4.0.0/          # Active version bundle
+│   │   ├── policy.json              # Three-state policy (accept 0.57 / prov 0.00 / smoothing 5)
+│   │   └── calibration.json         # Temperature T=1.0 (fit rejected — identity)
+│   ├── scaler_109_real.npz          # FV-1.0 standardizer (train-only fit, 189-D)
+│   ├── SBAI-MDL-ISL-1.0.0.keras, SBAI-MDL-ISL-3.0.0*.keras  # Prior-version weights
+│   └── _backup_4.0.0_pretrain/      # Pre-retrain rollback backups (weights, scaler, registry, policy)
 │
 ├── data/                            # Dataset and Annotations
-│   ├── dataset/annotations/         # Class maps (class_map.csv) & split manifests
+│   ├── dataset/annotations/         # Class maps (class_map.csv) & split manifests (SPLIT-4.0.json)
+│   ├── dataset/processed/           # tensors_109_real.npz + SPLIT-109 split_idx_109.npz
+│   ├── dataset/_backup_pretrain/    # Pre-4.1.0-retrain dataset backups (tensors + splits)
 │   └── assets/                      # High-resolution gesture demonstration photos
 │
 ├── Docs/                            # Formal Engineering & Academic Documentation
 │   ├── 00_MVP_SCOPE_ADDENDUM.md     # Binding MVP specifications & scope rules
-│   ├── SignBridge_AI_2_0_PRD.md     # Product Requirements Document
-│   ├── M9_GATE_100.md               # Milestone M9 100-class verification record
+│   ├── SignBridge_AI_2_0_Project_PRD.md  # Product Requirements Document
+│   ├── M9_GATE_100.md               # Milestone M9 100-class verification record (historical)
+│   ├── M10_GATE_100REAL.md          # 100-class real-data gate (3.0.0, M10)
+│   ├── M11_GATE_109REAL.md          # 109-class real-data gate (4.0.0, M11) — open 0.90 gate debt
+│   ├── M12_WEBCAM_ACCURACY.md       # Webcam root causes (RC-A/B/C/E/F) & capture fixes
+│   ├── M13_ACCURACY_CALIBRATION.md  # Canonical accuracy, calibration & policy record
+│   ├── RC_v0.5.json                 # Release-checklist state file
 │   └── DEPLOY_RUNBOOK.md            # Production deployment runbook
 │
 ├── run-backend.bat                  # One-click backend startup script
@@ -521,7 +598,7 @@ d:\Projects\SignBridge\
 
 ## 14. Conclusion & Future Roadmap
 
-**SignBridge AI 2.0** establishes a functional, production-grade foundation for Indian Sign Language recognition. By combining browser-based edge computer vision (MediaPipe) with normalized 189-dimensional temporal feature engineering and stacked LSTM/GRU neural networks, the system delivers high accuracy ($\ge 92\%$), rapid response times ($< 180 \text{ ms}$), and two-way accessibility without compromising user privacy.
+**SignBridge AI 2.0** establishes a functional, production-grade foundation for Indian Sign Language recognition. By combining browser-based edge computer vision (MediaPipe) with normalized 189-dimensional temporal feature engineering and the deployed 3-way LSTM/GRU/mirror-TTA ensemble over 109 classes, the system delivers measured **81.29% frozen-test argmax accuracy (80.79% macro-F1)**, **89.5% commit precision at 81.3% coverage** under the fitted three-state policy (90.3% precision on VAL), and sub-second p50 inference (289 ms VAL / 375 ms TEST per sign window) — all while preserving two-way accessibility without compromising user privacy. Open items are reported honestly rather than hidden: the ≥90% release gate remains recorded debt (M11), and the live-camera protocol (M13 §13) has not yet been run.
 
 ### Planned Future Enhancements (v2.1+)
 1. **Continuous Sentence Recognition:** Expanding beyond isolated dynamic signs into continuous sentence-level grammar parsing using Connectionist Temporal Classification (CTC) or Sequence-to-Sequence Attention Transformers.

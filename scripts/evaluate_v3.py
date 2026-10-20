@@ -1,8 +1,8 @@
-"""V3 — val threshold sweep + single frozen-test scoring + latency probe (100-class).
+"""V3+ val threshold sweep + single frozen-test scoring + latency probe.
 
-Reads tensors_100_real / split_idx_100 / scaler_100_real and the winner
- weights from EXP-2026-003-{arch}-full. Writes policy.json, test_report.json,
-per_class.csv, confusion.npz into the winner EXP dir. Single scored run only.
+Reads tensors_{tag} / split_idx_{tag} / scaler_{tag} and the winner weights
+from {exp}-{arch}-full. Class count derives from class_map. Defaults
+preserve the 100-class v3 outputs.
 """
 import argparse
 import csv
@@ -15,6 +15,11 @@ import numpy as np
 
 P = argparse.ArgumentParser()
 P.add_argument("--arch", choices=["lstm", "gru"], default="lstm")
+P.add_argument("--tag", default="100_real")
+P.add_argument("--exp", default="EXP-2026-003")
+P.add_argument("--model-id", default="SBAI-MDL-ISL-3.0.0")
+P.add_argument("--scaler-file", default="",
+               help="scaler npz basename under models/ (default: scaler_{split}_real.npz)")
 A = P.parse_args()
 
 ROOT = Path("D:/Projects/SignBridge")
@@ -22,15 +27,19 @@ sys.path.insert(0, str(ROOT / "ai"))
 import tensorflow as tf
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 
-D = np.load(ROOT / "data/dataset/processed/tensors_100_real.npz")
-S = np.load(ROOT / "data/dataset/processed/split_idx_100.npz")
-SC = np.load(ROOT / "models/scaler_100_real.npz")
+NCLASS = len(list(csv.DictReader(
+    (ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8"))))
+SPLIT_TAG = A.tag.split("_")[0]
+D = np.load(ROOT / "data/dataset/processed" / f"tensors_{A.tag}.npz")
+S = np.load(ROOT / "data/dataset/processed" / f"split_idx_{SPLIT_TAG}.npz")
+SC = np.load(ROOT / "models" / (A.scaler_file or f"scaler_{SPLIT_TAG}_real.npz"))
 Xs = ((D["X"].astype("float32") - SC["mean"]) / SC["std"]).astype("float32")
+assert Xs.shape[-1] == SC["mean"].shape[-1], "scaler/tensor feat mismatch"
 y = D["y"]
 va, te = S["val"], S["test"]
-EXP = ROOT / "models" / f"EXP-2026-003-{A.arch}-full"
+EXP = ROOT / "models" / f"{A.exp}-{A.arch}-full"
 
-model = tf.keras.models.load_model(EXP / f"SBAI-MDL-ISL-3.0.0_{A.arch}.keras")
+model = tf.keras.models.load_model(EXP / f"{A.model_id}_{A.arch}.keras")
 pv = model.predict(Xs[va], verbose=0)
 yv = y[va]
 
@@ -46,8 +55,9 @@ for thr in [round(x * 0.05, 2) for x in range(8, 20)]:
     if score > best[0]:
         best = (score, thr, acc, cov)
 _, thr, vacc, vcov = best
-policy = {"threshold": thr, "smoothing_window": 5, "val_accepted_acc": round(vacc, 4),
-          "val_coverage": round(vcov, 4),
+val_argmax = round(float((pv.argmax(1) == yv).mean()), 4)
+policy = {"threshold": thr, "smoothing_window": 5, "val_accepted_accuracy": round(vacc, 4),
+          "val_coverage": round(vcov, 4), "val_argmax_acc": val_argmax,
           "states": ["Accepted", "Uncertain", "No-Sign", "Tracking-Lost"]}
 (EXP / "policy.json").write_text(json.dumps(policy, indent=1))
 print("policy:", json.dumps(policy), flush=True)
@@ -60,15 +70,15 @@ yt = y[te]
 yp = pt.argmax(1)
 acc = float(accuracy_score(yt, yp))
 f1 = float(f1_score(yt, yp, average="macro", zero_division=0))
-prec, rec, f1c, sup = precision_recall_fscore_support(yt, yp, labels=list(range(100)), zero_division=0)
-cm = confusion_matrix(yt, yp, labels=list(range(100)))
+prec, rec, f1c, sup = precision_recall_fscore_support(yt, yp, labels=list(range(NCLASS)), zero_division=0)
+cm = confusion_matrix(yt, yp, labels=list(range(NCLASS)))
 np.save(EXP / "confusion.npy", cm)
-meta = json.loads((ROOT / "data/dataset/processed/tensors_100_real.json").read_text())
+meta = json.loads((ROOT / "data/dataset/processed" / f"tensors_{A.tag}.json").read_text())
 idx2cid = {v: k for k, v in meta["class_index"].items()}
 with (EXP / "per_class.csv").open("w", newline="") as f:
     w = csv.writer(f)
     w.writerow(["index", "class_id", "precision", "recall", "f1", "support"])
-    for i in range(100):
+    for i in range(NCLASS):
         w.writerow([i, idx2cid[i], round(float(prec[i]), 4), round(float(rec[i]), 4),
                     round(float(f1c[i]), 4), int(sup[i])])
 

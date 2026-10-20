@@ -1,12 +1,12 @@
 /** T6.1 — WebSocket stream client (REST fallback kept in Live view). */
 import { token } from "./client";
-import type { Prediction } from "./client";
+import type { AlternativeCandidate, Prediction } from "./client";
 
 export type StreamState = string;
 
 export interface StreamCallbacks {
   onStatus: (state: string, session_id: string) => void;
-  onPrediction: (p: Prediction, state: string) => void;
+  onPrediction: (p: Prediction, state: string, alternatives?: AlternativeCandidate[]) => void;
   onError: (msg: string) => void;
 }
 
@@ -16,6 +16,7 @@ export function connectStream(
   cb: StreamCallbacks
 ): {
   sendFrame: (frame: number[]) => void;
+  sendWindow: (frames: number[][]) => void;
   heartbeat: () => void;
   stop: () => void;
   socket: WebSocket;
@@ -59,6 +60,7 @@ export function connectStream(
       state?: string;
       session_id?: string;
       prediction?: Prediction;
+      alternatives?: AlternativeCandidate[];
       message?: string;
     };
     try {
@@ -68,7 +70,7 @@ export function connectStream(
       return;
     }
     if (m.type === "prediction" && m.prediction)
-      cb.onPrediction(m.prediction, m.state ?? "Uncertain");
+      cb.onPrediction(m.prediction, m.state ?? "Uncertain", m.alternatives);
     else if (m.type === "status") cb.onStatus(m.state ?? "", m.session_id ?? "");
     else if (m.type === "error") cb.onError(m.message ?? "stream error");
   };
@@ -83,6 +85,9 @@ export function connectStream(
   };
   return {
     sendFrame: (frame) => sendRaw(JSON.stringify({ type: "frame", frame })),
+    // Full-T window: ONE message with all captured rows (Task 5 protocol).
+    // Queues while CONNECTING via sendRaw, exactly like sendFrame.
+    sendWindow: (frames) => sendRaw(JSON.stringify({ type: "window", frames })),
     heartbeat: () => sendRaw(JSON.stringify({ type: "heartbeat" })),
     stop: () => {
       try {

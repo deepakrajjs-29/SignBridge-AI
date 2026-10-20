@@ -35,13 +35,22 @@ async def list_models(request: Request, _=Depends(require_auth)):
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from app.models import ModelVersion
+    reg = read_registry()
+    active = str(reg.get("active_model") or reg.get("model_id") or model_version())
     with get_db_session() as db:
         rows = db.query(ModelVersion).all()
         if not rows:
             rows = [ModelVersion(model_id=model_version(), version=model_version(),
                                  model_type="gru", seq_len=45, feat_dim=189, status="active")]
-        return {"success": True,
-                "models": [{"model_id": r.model_id, "version": r.version, "status": r.status} for r in rows],
+        models = []
+        for r in rows:
+            status = r.status or "development"
+            if r.model_id == active:
+                status = "active"
+            elif status == "active":
+                status = "standby"
+            models.append({"model_id": r.model_id, "version": r.version, "status": status})
+        return {"success": True, "models": models,
                 "request_id": getattr(request.state, "request_id", "")}
 
 

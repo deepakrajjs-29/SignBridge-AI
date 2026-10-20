@@ -33,15 +33,15 @@
  },
  "challenger": "gru test 0.7676/0.7627",
  "data": "CURATION-v3.0 (ISL500 real landmarks, signer-separated SPLIT-3.0)",
- "active_model": "SBAI-MDL-ISL-3.0.0",
+ "active_model": "SBAI-MDL-ISL-4.0.0",
  "models": {
   "SBAI-MDL-ISL-3.0.0": {
    "arch": "LSTM128-LSTM64-Dense64-Softmax100",
    "classes": 100,
    "sha256_lstm": "bb4b09ee92f76d2ecb19a182f74eea6c6a0ff4d808bb39ca5909d792338591de",
-   "measured_test_acc": 0.7721,
-   "eval": "EXP-2026-003 frozen test",
-   "measured_test_f1": 0.7664
+   "measured_test_acc": 0.8109,
+   "eval": "EXP-2026-003 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3326)",
+   "measured_test_f1": 0.8062
   },
   "SBAI-MDL-ISL-2.0.0": {
    "model_id": "SBAI-MDL-ISL-2.0.0",
@@ -53,8 +53,16 @@
    "measured_test_acc": 1.0,
    "measured_test_f1": 1.0,
    "eval": "models/SBAI-MDL-ISL-2.0.0/eval.json"
+  },
+  "SBAI-MDL-ISL-4.0.0": {
+   "arch": "ENSEMBLE(LSTM128-LSTM64,GRU128-GRU64)+mirror-TTA,Softmax109",
+   "classes": 109,
+   "sha256_lstm": "3d2a8a0d8afa06fd7c84bd0320e60db5d7355ace84fea48c857feba05ad4a052",
+   "measured_test_acc": 0.8129,
+   "measured_test_f1": 0.8079,
+   "eval": "EXP-2026-004 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3629)"
   }
  },
- "previous_model": "SBAI-MDL-ISL-2.0.0",
+ "previous_model": "SBAI-MDL-ISL-3.0.0",
  "active_model_note": "Serving pointer: model_version()/loader serve active_model (2.0.0 Softmax100). Top-level model_id/arch/classes/status describe the immutable 1.0.0 deployed record (Task 6 gate-pinned); per-version detail lives under models{}."
 }

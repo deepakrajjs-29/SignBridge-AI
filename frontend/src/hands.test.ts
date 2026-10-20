@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildSequence, toSequence, frameFeatures, normalize, canonicalize } from "./hands";
+import {
+  buildFeatureRows,
+  buildSequence,
+  toSequence,
+  frameFeatures,
+  normalize,
+  canonicalize,
+} from "./hands";
 import fixture from "./hands.parity.json";
 
 const TOL = 1e-5;
@@ -23,5 +30,14 @@ describe("hands.ts parity with Python FV-1.0 pipeline", () => {
   it("sample path (T=50, left-handed): matches Python incl. canonicalize", () => {
     const seq = buildSequence(fixture.sample.input as number[][][][]);
     expect(close(seq, fixture.sample.expected as number[][])).toBeLessThan(TOL);
+  });
+  it("T=45: full-T buildFeatureRows IS the model window (no subsample loss)", () => {
+    const f = (fixture.sample.input as number[][][][]).slice(0, 45);
+    expect(f).toHaveLength(45);
+    const rows = buildFeatureRows(f);
+    // Full-T rows and the 45-row sequence agree exactly at T=45 (identity resample).
+    expect(rows).toEqual(toSequence(rows).seq);
+    expect(buildSequence(f)).toEqual(rows);
+    expect(rows[0]).toHaveLength(189);
   });
 });

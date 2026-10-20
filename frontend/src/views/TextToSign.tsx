@@ -223,6 +223,23 @@ export const ISL_VOCAB_DICTIONARY: Record<string, { class_id: string; label: str
   small: { class_id: "ISL_098", label: "Small" },
   hot: { class_id: "ISL_099", label: "Hot" },
   cold: { class_id: "ISL_100", label: "Cold" },
+  library: { class_id: "ISL_101", label: "Library" },
+  libraries: { class_id: "ISL_101", label: "Library" },
+  meeting: { class_id: "ISL_102", label: "Meeting" },
+  meetings: { class_id: "ISL_102", label: "Meeting" },
+  holiday: { class_id: "ISL_103", label: "Holiday" },
+  holidays: { class_id: "ISL_103", label: "Holiday" },
+  pen: { class_id: "ISL_104", label: "Pen" },
+  pens: { class_id: "ISL_104", label: "Pen" },
+  paper: { class_id: "ISL_105", label: "Paper" },
+  papers: { class_id: "ISL_105", label: "Paper" },
+  chair: { class_id: "ISL_106", label: "Chair" },
+  chairs: { class_id: "ISL_106", label: "Chair" },
+  police: { class_id: "ISL_107", label: "Police" },
+  airport: { class_id: "ISL_108", label: "Airport" },
+  airports: { class_id: "ISL_108", label: "Airport" },
+  manager: { class_id: "ISL_109", label: "Manager" },
+  managers: { class_id: "ISL_109", label: "Manager" },
 };
 
 const SAMPLE_PHRASES = [
@@ -434,7 +451,7 @@ export default function TextToSign() {
           Text & Voice to Indian Sign Language (ISL)
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 100-class vocabulary, with emotional voice synthesis.
+          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 109-class vocabulary, with emotional voice synthesis.
         </p>
       </div>
 

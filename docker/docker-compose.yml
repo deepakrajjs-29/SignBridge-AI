@@ -21,7 +21,8 @@ services:
       APP_ENV: production
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
       DATABASE_URL: "postgresql+psycopg://signbridge:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/signbridge"
-      MODEL_VERSION: SBAI-MDL-ISL-1.0.0
+      # Fallback only; models/registry.json active_model (4.0.0) normally decides.
+      MODEL_VERSION: SBAI-MDL-ISL-4.0.0
       SEQ_LEN: "45"
       FEAT_DIM: "189"
       CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000"

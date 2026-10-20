@@ -1,12 +1,13 @@
 {
  "threshold": 0.4,
  "smoothing_window": 5,
- "val_accepted_acc": 0.82,
- "val_coverage": 0.9827,
+ "val_accepted_acc": 0.86,
+ "val_coverage": 0.9708,
  "states": [
   "Accepted",
   "Uncertain",
   "No-Sign",
   "Tracking-Lost"
- ]
+ ],
+ "inference": "mean(LSTM,GRU,mirror-TTA); threshold swept on VAL-only ensemble sweep"
 }

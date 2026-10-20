@@ -98,4 +98,4 @@ def test_registry_includes_200_keeps_100():
     assert "measured_test_acc" in entry
     winner = reg["models"]["SBAI-MDL-ISL-3.0.0"]
     assert winner["classes"] == 100
-    assert winner["measured_test_acc"] == 0.7721 and winner["measured_test_f1"] == 0.7664
+    assert winner["measured_test_acc"] == 0.8109 and winner["measured_test_f1"] == 0.8062

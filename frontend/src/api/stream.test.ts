@@ -76,6 +76,24 @@ describe("connectStream open-handshake", () => {
     ]);
   });
 
+  test("sendWindow before open queues and flushes on open instead of throwing", () => {
+    installFake();
+    const handle = connectStream("http://x", "sess_1", noop);
+    const win = [
+      [0.1, 0.2],
+      [0.3, 0.4],
+    ];
+    expect(() => handle.sendWindow(win)).not.toThrow();
+    expect(instances).toHaveLength(1);
+    expect(instances[0].sent).toHaveLength(0);
+    instances[0].open();
+    const sent = instances[0].sent.map((s) => JSON.parse(s));
+    expect(sent).toEqual([
+      { type: "start" },
+      { type: "window", frames: win },
+    ]);
+  });
+
   test("ready resolves once the socket opens", async () => {
     installFake();
     const handle = connectStream("http://x", "sess_1", noop);

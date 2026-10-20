@@ -200,7 +200,10 @@ def build_manifest(clips_by_class: dict) -> dict:
 def curate_v2(manifest_path: str) -> dict:
     """Curate v2 manifest; returns {per_class_counts, cut_list}."""
     rows = read_class_map(CLASS_MAP)
-    assert len(rows) == 100, f"expected 100 class_map rows, got {len(rows)}"
+    # v2 scope is the base-100 vocab (ISL_001-100); later extensions (101+)
+    # are curated by the v3+ real pipeline, not the v2 simulated one.
+    rows = [r for r in rows if int(r["class_id"].split("_")[1]) <= 100]
+    assert len(rows) == 100, f"expected 100 base-vocab rows, got {len(rows)}"
     clips_by_class = simulated_filtered_download(rows)
     manifest, per_class_counts, cut_list = build_manifest(clips_by_class)
     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)

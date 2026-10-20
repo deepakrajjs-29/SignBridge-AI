@@ -9,9 +9,9 @@ from tensorflow.keras import layers
 SEQ_LEN, FEAT_DIM, NCLASS = 45, 189, 100
 
 
-def build_lstm(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
+def build_lstm(nclass: int = NCLASS, seed: int = 7, feat_dim: int = FEAT_DIM) -> keras.Model:
     keras.utils.set_random_seed(seed)
-    inp = keras.Input(shape=(SEQ_LEN, FEAT_DIM), name="landmarks")
+    inp = keras.Input(shape=(SEQ_LEN, feat_dim), name="landmarks")
     x = layers.Masking(mask_value=0.0)(inp)
     x = layers.LSTM(128, return_sequences=True, dropout=0.3)(x)
     x = layers.LSTM(64)(x)
@@ -25,9 +25,9 @@ def build_lstm(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
     return model
 
 
-def build_gru(nclass: int = NCLASS, seed: int = 7) -> keras.Model:
+def build_gru(nclass: int = NCLASS, seed: int = 7, feat_dim: int = FEAT_DIM) -> keras.Model:
     keras.utils.set_random_seed(seed)
-    inp = keras.Input(shape=(SEQ_LEN, FEAT_DIM), name="landmarks")
+    inp = keras.Input(shape=(SEQ_LEN, feat_dim), name="landmarks")
     x = layers.Masking(mask_value=0.0)(inp)
     x = layers.GRU(128, return_sequences=True, dropout=0.3)(x)
     x = layers.GRU(64)(x)

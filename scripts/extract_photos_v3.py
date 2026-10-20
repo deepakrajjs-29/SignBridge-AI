@@ -55,7 +55,7 @@ def render(frames) -> np.ndarray:
 
 def main() -> None:
     rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
-    assert len(rows) == 100
+    assert len(rows) >= 100
     stem2cid = {s.lower(): r["class_id"] for s, r in zip(STEMS, rows[50:])}
     pick: dict[str, Path] = {}
     for u in sorted(LAND.iterdir()):

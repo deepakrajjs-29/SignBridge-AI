@@ -120,7 +120,15 @@ export function toSequence(feats: number[][]): { seq: number[][]; mask: number[]
   return { seq, mask };
 }
 
+/** Full pipeline WITHOUT temporal subsampling: raw landmark frames -> (T,189)
+ * model rows. This is what the client sends (Task 5): the 45-row resample now
+ * happens server-side in one place (deps.preprocess_window), so REST and the
+ * WS `window` message consume identical full-T rows. */
+export function buildFeatureRows(frames: Frames): number[][] {
+  return frameFeatures(normalize(canonicalize(frames)));
+}
+
 /** Full pipeline: raw landmark frames -> 45x189 model-ready rows. */
 export function buildSequence(frames: Frames): number[][] {
-  return toSequence(frameFeatures(normalize(canonicalize(frames)))).seq;
+  return toSequence(buildFeatureRows(frames)).seq;
 }

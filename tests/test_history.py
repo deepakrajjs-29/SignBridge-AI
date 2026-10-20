@@ -40,6 +40,35 @@ def test_session_predictions_include_label():  # every item has non-empty "label
         assert p.get("label"), f"prediction missing non-empty label: {p}"
 
 
+def test_rest_provisional_status_still_persists():
+    """REST<->WS asymmetry pin: a REST /predict answered with status
+    "provisional" IS written to History, while the WS path never persists
+    Provisional (test_ws.py::test_ws_provisional_not_persisted)."""
+    from app.deps import get_policy
+    policy = get_policy()
+    acc = float(policy.get("accept_threshold", policy.get("threshold", 0.4)))
+    prov = float(policy.get("provisional_threshold", acc))
+    rows = None
+    for seed in range(20):  # find rng input landing in the [prov, acc) band
+        cand = np.random.default_rng(seed).normal(0, 0.5, (45, 189)).tolist()
+        r = client.post("/api/v1/predict", json={"frames": cand}, headers=AUTH)
+        assert r.status_code == 200, r.text[:200]
+        conf = r.json()["prediction"]["confidence"]
+        if prov <= conf < acc:
+            assert r.json()["status"] == "provisional", r.json()
+            rows = cand
+            break
+    assert rows is not None, "no provisional-band input found in 20 seeds"
+    sid = client.post("/api/v1/session", json={}, headers=AUTH).json()["session_id"]
+    r = client.post("/api/v1/predict", json={"frames": rows, "session_id": sid}, headers=AUTH)
+    assert r.status_code == 200 and r.json()["status"] == "provisional", r.text[:200]
+    pid = r.json()["prediction"].get("prediction_id")
+    assert pid, "provisional REST prediction must carry a prediction_id"
+    h = client.get(f"/api/v1/sessions/{sid}/predictions", headers=AUTH).json()
+    assert any(p["prediction_id"] == pid for p in h["predictions"]), \
+        "REST provisional must persist to History (WS provisional must not)"
+
+
 def test_log_failure_is_logged_not_silent(monkeypatch, caplog):
     """Monkeypatched db.add raising -> predict still 200 AND a log record exists."""
     import contextlib

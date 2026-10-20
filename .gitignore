@@ -81,6 +81,8 @@ ehthumbs.db
 # Large processed dataset tensors (>50MB)
 data/dataset/processed/*_real.npz
 data/dataset/processed/tensors_100_real.npz
+data/dataset/processed/*_traj.npz
+data/dataset/_backup_pretrain/*.npz
 models/*_real.npz
 
 # Scratch / Agent Artifacts

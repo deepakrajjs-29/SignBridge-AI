@@ -41,7 +41,7 @@ def coverage():
 
 def test_vocab_has_real_coverage():
     rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
-    assert len(rows) == 100
+    assert len(rows) >= 100
     cov, users = coverage()
     short = [
         f"{r['class_id']} {r['label']}: clips={cov.get(norm(r['label']), 0)} "

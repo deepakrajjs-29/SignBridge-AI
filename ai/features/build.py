@@ -7,6 +7,7 @@ import numpy as np
 from preprocessing.landmarks import DIMS, HANDS, JPTS, hand_present
 
 SEQ_LEN, FEAT_DIM = 45, 189
+FEAT_DIM_V2 = FEAT_DIM + 4  # v2: v1 rows + [w0_u, w0_v, du, dv] global wrist trajectory
 
 
 def frame_features(norm: np.ndarray) -> np.ndarray:
@@ -34,6 +35,30 @@ def frame_features(norm: np.ndarray) -> np.ndarray:
         stats[i, 20] = n / 2.0
     feats = np.concatenate([coords, speed, stats], axis=1)
     assert feats.shape[1] == FEAT_DIM, feats.shape
+    return np.nan_to_num(feats, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+
+
+def frame_features_v2(canonical_raw: np.ndarray, norm: np.ndarray) -> np.ndarray:
+    """(T,193) = frame_features(norm) + global wrist trajectory from canonical_raw.
+
+    Trajectory channels (hand slot 0, image coords, pre-normalization):
+    [u, v, du, dv]; deltas are 0 at t=0 and suppressed when the hand is
+    missing in either frame of the pair.
+    """
+    base = frame_features(norm)
+    t = canonical_raw.shape[0]
+    present = np.array([hand_present(canonical_raw[i, 0]) for i in range(t)])
+    w = canonical_raw[:, 0, 0, :2].astype(np.float32).copy()
+    w[~present] = 0.0
+    traj = np.zeros((t, 4), dtype=np.float32)
+    traj[:, :2] = w
+    if t > 1:
+        d = w[1:] - w[:-1]
+        ok = present[1:] & present[:-1]
+        d[~ok] = 0.0
+        traj[1:, 2:] = d
+    feats = np.concatenate([base, traj], axis=1)
+    assert feats.shape[1] == FEAT_DIM_V2, feats.shape
     return np.nan_to_num(feats, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
 
 

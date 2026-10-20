@@ -277,6 +277,75 @@ Analysis: [Describe generalization behavior and any meaningful performance degra
 | Model Compatibility | Correct model/pipeline pairing | [Enter] | [Pass/Fail] | [Enter] |
 | UI Feedback | Clear prediction/status | [Enter] | [Pass/Fail] | [Enter] |
 
+### 17.1 Preliminary Manual Webcam Observations (15-Sign Session)
+
+**Classification:** Preliminary manual webcam observations — **not** a controlled benchmark and **not** a held-out accuracy measurement.
+
+**Cross-reference:** `Docs/eval/webcam_15_sign_checklist.md` (protocol) and `Docs/eval/webcam_truth.csv` (structured truth sheet — this session recorded as rows `C01`–`C15`, plus extra trial `X01` = Police). This addendum records a single informal live-camera session. Several automatic primary predictions were not captured on screen; some notes describe alternatives/suggestions rather than the primary. Because of missing primaries, ambiguous outcomes, and at least one session with no displayed result, **no aggregate accuracy percentage is computed or claimed for this session**, and it stays strictly separate from the offline benchmark of 81.29%.
+
+Model context: `SBAI-MDL-ISL-4.0.0`, 109 classes; frozen offline TEST argmax accuracy remains **81.29%** (n=3629, `Docs/eval/08_final_test.json`) — unaffected by this informal session.
+
+#### Observation table (original checklist IDs)
+
+| # | Class ID | Expected sign | Automatic primary prediction | Confidence (as displayed) | Alternatives / other notes | Observed outcome | Category |
+|--:| --- | --- | --- | --- | --- | --- | --- |
+| 1 | ISL_001 | Hello | *not_observed* (not captured) | 8.2% (attached to Hello suggestion) | Suggestions: Go, Child, T, Hello | Primary not captured | Unverified |
+| 2 | ISL_002 | Thank You | *not_observed* (not captured) | 11.4% (attached to suggestion) | Thank You appeared as a suggestion | Primary not captured | Unverified |
+| 3 | ISL_003 | Please | *unverified* | *unverified* | — | No reliable observation recorded | Unverified |
+| 4 | ISL_004 | Market | What | 100% (expected-sign Market: 34%) | — | Automatic primary incorrect | Incorrect prediction |
+| 5 | ISL_011 | Help | YOU (automatically selected) | expected-sign Help: 12.4% | — | Automatic primary incorrect | Incorrect prediction |
+| 6 | ISL_012 | Water | *not_observed* (not captured) | 9.6% (box reading) | — | Primary not captured | Unverified |
+| 7 | ISL_028 | School | *not_observed* (not captured) | 26.7% (box reading) | — | Primary not captured | Unverified |
+| 8 | ISL_035 | Go | Walk | 4.7% | — | Automatic primary incorrect (motion-related pair) | Incorrect prediction |
+| 9 | ISL_039 | Student | *none reported* | *not_observed* | — | Sign not recognized; no prediction reported | Recognition failure / no output |
+| 10 | ISL_045 | Teacher | Baby / Hero (primary not disambiguated) | *not_observed* (Teacher conf not reported) | Baby and Hero displayed | Both displayed predictions differ from expected | Incorrect prediction (primary not disambiguated) |
+| 11 | ISL_046 | Sit | Teacher | *not_observed* (Sit conf not reported) | — | Automatic primary incorrect | Incorrect prediction |
+| 12 | ISL_049 | Book | *not_observed* (not captured) | 13.5% (box reading) | — | Primary not captured | Unverified |
+| 13 | ISL_055 | Stay | *none displayed* | *not_observed* | Tester reports Stay not available in the sign list | Nothing appeared | Recognition failure / no output + sign-list availability |
+| 14 | ISL_060 | Walk | *not_observed* (not captured) | 14.7% (box reading) | — | Primary not captured | Unverified |
+| 15 | ISL_097 | Big | Family | 23.7% | — | Automatic primary incorrect | Incorrect prediction |
+| E1* | ISL_107 | Police* | What | expected-sign Police: 0.2% | — | Automatic primary incorrect at near-zero confidence | Incorrect prediction (extra trial) |
+
+\* Police was an extra trial outside the original 15-sign checklist — preserved as such, never substituted for a checklist row (CSV row `X01`).
+
+#### Result classification (live session only — kept separate from the offline 81.29% TEST score)
+
+1. **Observed results (automatic primary captured on screen):** 6 of 15 checklist rows (#4, #5, #8, #10, #11, #15) + the extra Police trial — **every one mismatched the expected sign**; no exact-match automatic pass was observed.
+2. **Low-confidence predictions:** 11 of the 12 observed confidence readings (0.2%, 4.7%, 8.2%, 9.6%, 11.4%, 12.4%, 13.5%, 14.7%, 23.7%, 26.7%, 34%) fall **below the server accept threshold 0.57** — under the current policy these are Provisional/Uncertain and are never auto-committed. The single high-confidence reading (What at 100% on Market) was **wrong**.
+3. **Incorrect automatic predictions:** Market→What, Help→YOU, Go→Walk, Teacher→Baby/Hero, Sit→Teacher, Big→Family (6 checklist rows) + Police→What (extra trial).
+4. **Missing / unverified information:** 7 checklist rows lack a recorded automatic primary (#1 Hello, #2 Thank You, #3 Please, #6 Water, #7 School, #12 Book, #14 Walk); confidence additionally missing for #10, #11; nothing at all recorded for #3. These are marked `unverified` / `not_observed` and are **excluded from every correctness count** — never counted as correct, never inferred.
+5. **Sign-list availability issue:** #13 Stay — tester reported Stay was not available in the sign list and nothing appeared. The dataset `class_map.csv` **does** define `ISL_055,Stay` (so this is a UI/observation-side availability issue, not an absent model class); not independently re-verified live. Student (#9) is a plain recognition failure (no prediction reported).
+
+#### Outcome taxonomy (no aggregate rate)
+
+| Category | Count | Meaning |
+| --- | ---: | --- |
+| Incorrect automatic prediction (checklist) | 6 | Primary shown (or displayed candidates) ≠ expected: #4 Market, #5 Help, #8 Go, #10 Teacher, #11 Sit, #15 Big |
+| Incorrect automatic prediction (extra trial) | 1 | Police (ISL_107) — outside the 15, counted separately |
+| Recognition failure / no output | 2 | #9 Student produced no prediction; #13 Stay produced no displayed result |
+| Unverified / incomplete observation | 7 | Automatic primary not captured: #1, #2, #3, #6, #7, #12, #14 — **excluded from correctness** (not counted as correct) |
+| **Session accuracy** | **Not reported** | Deliberately omitted — denominators and primaries are incomplete; a percentage would be misleading. This live session is **never** merged with the offline 81.29% TEST score |
+
+#### Interpretation notes
+
+1. **Very low displayed confidence** — 11 of the 12 observed readings (0.2%–34%) sit **below** policy `accept_threshold = 0.57`: these would be **Provisional/Uncertain** and are **not** committed as automatic successes under the current release gate. The one above-threshold reading (What at 100% on Market) was wrong. Low confidence with wrong primaries still indicates a reliability problem worth investigating.
+2. **Confusion between semantically or kinematically related signs** (Go↔Walk, Market/What/Big, Sit↔Teacher) warrants further controlled analysis; it aligns with offline per-class weaknesses (e.g. Sit F1 ≈ 0.17 on frozen TEST) but this session alone does not prove a mechanism.
+3. **Missing confidence values and unrecorded primaries** are observation gaps (tester did not capture the UI state), not model outputs of “no score.”
+4. **Static-versus-dynamic hypothesis (UNVERIFIED for this document):** the working hypothesis that the pipeline may under-weight natural movement (holding a sign still vs performing it dynamically) **has not been confirmed as root cause by this informal session.** It requires dedicated code inspection and controlled testing (see audit deliverable awaiting approval). It must not be reported as a proven defect until those checks are completed and recorded here with evidence. **Live static-held vs naturally-moving comparison: PENDING** — no such split result exists in project artifacts (the offline staticify/time_shuffle probes are synthetic input transforms, not live static/moving trials), so no such result is recorded here.
+5. **Follow-up (2026-10-20):** the audit and its approved P0–P3 fix plan have since been executed — status, probe results (staticify 0.0091 / time_shuffle 0.4274 vs full 0.8129 on frozen TEST), and the failed retraining gates are recorded in `Docs/eval/static_dynamic_audit.md` (§ Implementation Status) and `Docs/eval/trajectory_ablation_result.md`; the shipped model `SBAI-MDL-ISL-4.0.0` was kept active.
+
+#### Reporting status
+
+| Item | Status |
+| --- | --- |
+| 15-sign checklist protocol | Created (`webcam_15_sign_checklist.md`) |
+| This observation table | Recorded (preliminary, manual) — original checklist IDs + `unverified` / `not_observed` markers |
+| Full checklist row completion / truth CSV | **PARTIAL** — checklist rows `C01`–`C15` + extra `X01` appended to `webcam_truth.csv`; 7 of 15 primaries unverified; M13 deck rows (A/H/R/S) still unfilled |
+| Aggregate live accuracy claim | **NOT CALCULATED** (intentionally) — kept separate from offline TEST 81.29% |
+| Static vs dynamic root-cause confirmation | **NOT CONFIRMED** — hypothesis only |
+| Live static-held vs naturally-moving comparison | **PENDING** — no such data exists in project artifacts |
+| Gemini real-API A/B test | **PENDING** — not performed (no `VITE_GEMINI_API_KEY`); no result claimed |
+
 ## 18. Usability and Accessibility Results
 
 | Task | Participants / Runs | Success Rate | Average Time | Observed Issues | Interpretation |

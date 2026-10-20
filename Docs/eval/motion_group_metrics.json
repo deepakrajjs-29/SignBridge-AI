@@ -1,0 +1,900 @@
+{
+  "source": {
+    "features": "data/dataset/processed/tensors_109_real.npz (v1, speeds 126:168, raw)",
+    "per_class_f1": "Docs/eval/08_final_test_per_class.csv (frozen TEST, SBAI-MDL-ISL-4.0.0)",
+    "grouping": "np.quantile(energy, [1/3, 2/3]), ties -> lower group"
+  },
+  "n_classes": 109,
+  "n_groups": 3,
+  "per_class": [
+    {
+      "class_index": 0,
+      "class_id": "ISL_001",
+      "motion_energy": 0.012907030060887337,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.9552
+    },
+    {
+      "class_index": 1,
+      "class_id": "ISL_002",
+      "motion_energy": 0.017536627128720284,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7586
+    },
+    {
+      "class_index": 2,
+      "class_id": "ISL_003",
+      "motion_energy": 0.01910390704870224,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8065
+    },
+    {
+      "class_index": 3,
+      "class_id": "ISL_004",
+      "motion_energy": 0.07185756415128708,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8529
+    },
+    {
+      "class_index": 4,
+      "class_id": "ISL_005",
+      "motion_energy": 0.02506064623594284,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9552
+    },
+    {
+      "class_index": 5,
+      "class_id": "ISL_006",
+      "motion_energy": 0.016671590507030487,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.9394
+    },
+    {
+      "class_index": 6,
+      "class_id": "ISL_007",
+      "motion_energy": 0.02008005790412426,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8378
+    },
+    {
+      "class_index": 7,
+      "class_id": "ISL_008",
+      "motion_energy": 0.02393045648932457,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9412
+    },
+    {
+      "class_index": 8,
+      "class_id": "ISL_009",
+      "motion_energy": 0.02197391726076603,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8056
+    },
+    {
+      "class_index": 9,
+      "class_id": "ISL_010",
+      "motion_energy": 0.015790507197380066,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8235
+    },
+    {
+      "class_index": 10,
+      "class_id": "ISL_011",
+      "motion_energy": 0.053500525653362274,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8286
+    },
+    {
+      "class_index": 11,
+      "class_id": "ISL_012",
+      "motion_energy": 0.016431614756584167,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.6471
+    },
+    {
+      "class_index": 12,
+      "class_id": "ISL_013",
+      "motion_energy": 0.0135268559679389,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.5455
+    },
+    {
+      "class_index": 13,
+      "class_id": "ISL_014",
+      "motion_energy": 0.017367597669363022,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.6176
+    },
+    {
+      "class_index": 14,
+      "class_id": "ISL_015",
+      "motion_energy": 0.04722907021641731,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.7297
+    },
+    {
+      "class_index": 15,
+      "class_id": "ISL_016",
+      "motion_energy": 0.0453764982521534,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9275
+    },
+    {
+      "class_index": 16,
+      "class_id": "ISL_017",
+      "motion_energy": 0.020664198324084282,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.806
+    },
+    {
+      "class_index": 17,
+      "class_id": "ISL_018",
+      "motion_energy": 0.01628817617893219,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7397
+    },
+    {
+      "class_index": 18,
+      "class_id": "ISL_019",
+      "motion_energy": 0.0392831489443779,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.875
+    },
+    {
+      "class_index": 19,
+      "class_id": "ISL_020",
+      "motion_energy": 0.01342007890343666,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7463
+    },
+    {
+      "class_index": 20,
+      "class_id": "ISL_021",
+      "motion_energy": 0.0156040508300066,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8824
+    },
+    {
+      "class_index": 21,
+      "class_id": "ISL_022",
+      "motion_energy": 0.030416734516620636,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8364
+    },
+    {
+      "class_index": 22,
+      "class_id": "ISL_023",
+      "motion_energy": 0.0184770617634058,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8814
+    },
+    {
+      "class_index": 23,
+      "class_id": "ISL_024",
+      "motion_energy": 0.04115739464759827,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8254
+    },
+    {
+      "class_index": 24,
+      "class_id": "ISL_025",
+      "motion_energy": 0.04318862035870552,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.7037
+    },
+    {
+      "class_index": 25,
+      "class_id": "ISL_026",
+      "motion_energy": 0.027917081490159035,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8308
+    },
+    {
+      "class_index": 26,
+      "class_id": "ISL_027",
+      "motion_energy": 0.03155412897467613,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.918
+    },
+    {
+      "class_index": 27,
+      "class_id": "ISL_028",
+      "motion_energy": 0.024243401363492012,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8056
+    },
+    {
+      "class_index": 28,
+      "class_id": "ISL_029",
+      "motion_energy": 0.011823220178484917,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8148
+    },
+    {
+      "class_index": 29,
+      "class_id": "ISL_030",
+      "motion_energy": 0.017571091651916504,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8108
+    },
+    {
+      "class_index": 30,
+      "class_id": "ISL_031",
+      "motion_energy": 0.02390708401799202,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7778
+    },
+    {
+      "class_index": 31,
+      "class_id": "ISL_032",
+      "motion_energy": 0.02770085446536541,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7042
+    },
+    {
+      "class_index": 32,
+      "class_id": "ISL_033",
+      "motion_energy": 0.052144113928079605,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9275
+    },
+    {
+      "class_index": 33,
+      "class_id": "ISL_034",
+      "motion_energy": 0.01594483107328415,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.9032
+    },
+    {
+      "class_index": 34,
+      "class_id": "ISL_035",
+      "motion_energy": 0.025761112570762634,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9143
+    },
+    {
+      "class_index": 35,
+      "class_id": "ISL_036",
+      "motion_energy": 0.017082637175917625,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8767
+    },
+    {
+      "class_index": 36,
+      "class_id": "ISL_037",
+      "motion_energy": 0.024491338059306145,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9565
+    },
+    {
+      "class_index": 37,
+      "class_id": "ISL_038",
+      "motion_energy": 0.019215557724237442,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.918
+    },
+    {
+      "class_index": 38,
+      "class_id": "ISL_039",
+      "motion_energy": 0.025105830281972885,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8235
+    },
+    {
+      "class_index": 39,
+      "class_id": "ISL_040",
+      "motion_energy": 0.01934110000729561,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7761
+    },
+    {
+      "class_index": 40,
+      "class_id": "ISL_041",
+      "motion_energy": 0.015824878588318825,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8529
+    },
+    {
+      "class_index": 41,
+      "class_id": "ISL_042",
+      "motion_energy": 0.02159193716943264,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.6176
+    },
+    {
+      "class_index": 42,
+      "class_id": "ISL_043",
+      "motion_energy": 0.04211302101612091,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.5614
+    },
+    {
+      "class_index": 43,
+      "class_id": "ISL_044",
+      "motion_energy": 0.013791109435260296,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.3636
+    },
+    {
+      "class_index": 44,
+      "class_id": "ISL_045",
+      "motion_energy": 0.04548368230462074,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.7667
+    },
+    {
+      "class_index": 45,
+      "class_id": "ISL_046",
+      "motion_energy": 0.036051779985427856,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.1739
+    },
+    {
+      "class_index": 46,
+      "class_id": "ISL_047",
+      "motion_energy": 0.018965519964694977,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7119
+    },
+    {
+      "class_index": 47,
+      "class_id": "ISL_048",
+      "motion_energy": 0.017970435321331024,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8254
+    },
+    {
+      "class_index": 48,
+      "class_id": "ISL_049",
+      "motion_energy": 0.05199712514877319,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8533
+    },
+    {
+      "class_index": 49,
+      "class_id": "ISL_050",
+      "motion_energy": 0.050948649644851685,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.6667
+    },
+    {
+      "class_index": 50,
+      "class_id": "ISL_051",
+      "motion_energy": 0.011791320517659187,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8333
+    },
+    {
+      "class_index": 51,
+      "class_id": "ISL_052",
+      "motion_energy": 0.024866722524166107,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8889
+    },
+    {
+      "class_index": 52,
+      "class_id": "ISL_053",
+      "motion_energy": 0.0258423313498497,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.6479
+    },
+    {
+      "class_index": 53,
+      "class_id": "ISL_054",
+      "motion_energy": 0.031135953962802887,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9706
+    },
+    {
+      "class_index": 54,
+      "class_id": "ISL_055",
+      "motion_energy": 0.055953044444322586,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 1.0
+    },
+    {
+      "class_index": 55,
+      "class_id": "ISL_056",
+      "motion_energy": 0.018489409238100052,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7419
+    },
+    {
+      "class_index": 56,
+      "class_id": "ISL_057",
+      "motion_energy": 0.03669854998588562,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9688
+    },
+    {
+      "class_index": 57,
+      "class_id": "ISL_058",
+      "motion_energy": 0.030444998294115067,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7812
+    },
+    {
+      "class_index": 58,
+      "class_id": "ISL_059",
+      "motion_energy": 0.027098434045910835,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7273
+    },
+    {
+      "class_index": 59,
+      "class_id": "ISL_060",
+      "motion_energy": 0.05134955793619156,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.871
+    },
+    {
+      "class_index": 60,
+      "class_id": "ISL_061",
+      "motion_energy": 0.06082173436880112,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.6038
+    },
+    {
+      "class_index": 61,
+      "class_id": "ISL_062",
+      "motion_energy": 0.0176556333899498,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7761
+    },
+    {
+      "class_index": 62,
+      "class_id": "ISL_063",
+      "motion_energy": 0.05212483927607536,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.717
+    },
+    {
+      "class_index": 63,
+      "class_id": "ISL_064",
+      "motion_energy": 0.05641472339630127,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8788
+    },
+    {
+      "class_index": 64,
+      "class_id": "ISL_065",
+      "motion_energy": 0.07535353302955627,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8485
+    },
+    {
+      "class_index": 65,
+      "class_id": "ISL_066",
+      "motion_energy": 0.040912117809057236,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.4783
+    },
+    {
+      "class_index": 66,
+      "class_id": "ISL_067",
+      "motion_energy": 0.01779184862971306,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.6897
+    },
+    {
+      "class_index": 67,
+      "class_id": "ISL_068",
+      "motion_energy": 0.03601662814617157,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8788
+    },
+    {
+      "class_index": 68,
+      "class_id": "ISL_069",
+      "motion_energy": 0.027513369917869568,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8732
+    },
+    {
+      "class_index": 69,
+      "class_id": "ISL_070",
+      "motion_energy": 0.02093575894832611,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9524
+    },
+    {
+      "class_index": 70,
+      "class_id": "ISL_071",
+      "motion_energy": 0.019514456391334534,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7213
+    },
+    {
+      "class_index": 71,
+      "class_id": "ISL_072",
+      "motion_energy": 0.01609022170305252,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.88
+    },
+    {
+      "class_index": 72,
+      "class_id": "ISL_073",
+      "motion_energy": 0.046936891973018646,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9189
+    },
+    {
+      "class_index": 73,
+      "class_id": "ISL_074",
+      "motion_energy": 0.020981766283512115,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.5902
+    },
+    {
+      "class_index": 74,
+      "class_id": "ISL_075",
+      "motion_energy": 0.02429763413965702,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8438
+    },
+    {
+      "class_index": 75,
+      "class_id": "ISL_076",
+      "motion_energy": 0.03672002628445625,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9167
+    },
+    {
+      "class_index": 76,
+      "class_id": "ISL_077",
+      "motion_energy": 0.038164716213941574,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9375
+    },
+    {
+      "class_index": 77,
+      "class_id": "ISL_078",
+      "motion_energy": 0.013694850727915764,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.7463
+    },
+    {
+      "class_index": 78,
+      "class_id": "ISL_079",
+      "motion_energy": 0.01497646514326334,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8387
+    },
+    {
+      "class_index": 79,
+      "class_id": "ISL_080",
+      "motion_energy": 0.04522288590669632,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8451
+    },
+    {
+      "class_index": 80,
+      "class_id": "ISL_081",
+      "motion_energy": 0.014864531345665455,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.6038
+    },
+    {
+      "class_index": 81,
+      "class_id": "ISL_082",
+      "motion_energy": 0.019363243132829666,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8824
+    },
+    {
+      "class_index": 82,
+      "class_id": "ISL_083",
+      "motion_energy": 0.021650396287441254,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9524
+    },
+    {
+      "class_index": 83,
+      "class_id": "ISL_084",
+      "motion_energy": 0.020690999925136566,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7037
+    },
+    {
+      "class_index": 84,
+      "class_id": "ISL_085",
+      "motion_energy": 0.05623265728354454,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.7742
+    },
+    {
+      "class_index": 85,
+      "class_id": "ISL_086",
+      "motion_energy": 0.0381191149353981,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9167
+    },
+    {
+      "class_index": 86,
+      "class_id": "ISL_087",
+      "motion_energy": 0.07455603778362274,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9296
+    },
+    {
+      "class_index": 87,
+      "class_id": "ISL_088",
+      "motion_energy": 0.015556891448795795,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.6479
+    },
+    {
+      "class_index": 88,
+      "class_id": "ISL_089",
+      "motion_energy": 0.014558986760675907,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.75
+    },
+    {
+      "class_index": 89,
+      "class_id": "ISL_090",
+      "motion_energy": 0.01258784718811512,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.8767
+    },
+    {
+      "class_index": 90,
+      "class_id": "ISL_091",
+      "motion_energy": 0.0329151451587677,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9167
+    },
+    {
+      "class_index": 91,
+      "class_id": "ISL_092",
+      "motion_energy": 0.04937288165092468,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9355
+    },
+    {
+      "class_index": 92,
+      "class_id": "ISL_093",
+      "motion_energy": 0.049282293766736984,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8108
+    },
+    {
+      "class_index": 93,
+      "class_id": "ISL_094",
+      "motion_energy": 0.06394240260124207,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9231
+    },
+    {
+      "class_index": 94,
+      "class_id": "ISL_095",
+      "motion_energy": 0.03280691057443619,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8493
+    },
+    {
+      "class_index": 95,
+      "class_id": "ISL_096",
+      "motion_energy": 0.03921610489487648,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8052
+    },
+    {
+      "class_index": 96,
+      "class_id": "ISL_097",
+      "motion_energy": 0.03830278292298317,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8696
+    },
+    {
+      "class_index": 97,
+      "class_id": "ISL_098",
+      "motion_energy": 0.033242322504520416,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.9167
+    },
+    {
+      "class_index": 98,
+      "class_id": "ISL_099",
+      "motion_energy": 0.04549974948167801,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8955
+    },
+    {
+      "class_index": 99,
+      "class_id": "ISL_100",
+      "motion_energy": 0.033324163407087326,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.8889
+    },
+    {
+      "class_index": 100,
+      "class_id": "ISL_101",
+      "motion_energy": 0.04974144697189331,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9429
+    },
+    {
+      "class_index": 101,
+      "class_id": "ISL_102",
+      "motion_energy": 0.0446622297167778,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.9846
+    },
+    {
+      "class_index": 102,
+      "class_id": "ISL_103",
+      "motion_energy": 0.032205745577812195,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7733
+    },
+    {
+      "class_index": 103,
+      "class_id": "ISL_104",
+      "motion_energy": 0.011907530948519707,
+      "group": "low",
+      "group_index": 0,
+      "test_f1": 0.9062
+    },
+    {
+      "class_index": 104,
+      "class_id": "ISL_105",
+      "motion_energy": 0.04415139928460121,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8387
+    },
+    {
+      "class_index": 105,
+      "class_id": "ISL_106",
+      "motion_energy": 0.04334037005901337,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.6292
+    },
+    {
+      "class_index": 106,
+      "class_id": "ISL_107",
+      "motion_energy": 0.04254460707306862,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.8378
+    },
+    {
+      "class_index": 107,
+      "class_id": "ISL_108",
+      "motion_energy": 0.03408932685852051,
+      "group": "mid",
+      "group_index": 1,
+      "test_f1": 0.7541
+    },
+    {
+      "class_index": 108,
+      "class_id": "ISL_109",
+      "motion_energy": 0.05676374211907387,
+      "group": "high",
+      "group_index": 2,
+      "test_f1": 0.7568
+    }
+  ],
+  "groups": {
+    "low": {
+      "n_classes": 37,
+      "mean_f1": 0.7819,
+      "median_f1": 0.8108
+    },
+    "mid": {
+      "n_classes": 36,
+      "mean_f1": 0.8216,
+      "median_f1": 0.8466
+    },
+    "high": {
+      "n_classes": 36,
+      "mean_f1": 0.8209,
+      "median_f1": 0.8468
+    }
+  }
+}

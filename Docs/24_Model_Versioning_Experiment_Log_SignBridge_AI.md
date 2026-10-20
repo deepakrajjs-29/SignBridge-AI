@@ -263,17 +263,20 @@ The model registry is the authoritative index of model artifacts, metadata, life
 
 Required lineage: Dataset Version → Split Version → Feature Version → Code Commit → Experiment ID → Training Run → Model Artifact → Evaluation Report → Approval → Deployment.
 
+Actual model lineage: 1.0.0 (MVP-era) → 2.0.0 (100-class SYNTHETIC stub; production gates NOT cleared) → 3.0.0 (100-class REAL; test 0.8109/0.8062, n=3326; gate Docs/M10_GATE_100REAL.md) → 4.0.0 (109-class REAL ACTIVE; test 0.8129/0.8079, n=3629; gate Docs/M11_GATE_109REAL.md).
+
 | Lineage Node | Identifier Example |
 | --- | --- |
-| Dataset | ISL-SBAI-v1.0.0 |
-| Split | SPLIT-1.0 |
-| Feature | FV-1.0 |
-| Code | Git commit abc123 |
-| Experiment | EXP-2026-001 |
-| Run | RUN-2026-001-03 |
-| Model | SBAI-MDL-ISL-1.0.0 |
-| Evaluation | EVAL-2026-001 |
-| Deployment | DEP-2026-004 |
+| Dataset | tensors_109_real.npz (CURATION-v4.0; 14,826 real ISL500 sequences) |
+| Split | SPLIT-109 (annotations/SPLIT-4.0.json + split_idx_109.npz; signer-disjoint 8,800/2,397/3,629) |
+| Feature | FV-1.0 (189-D; seq_len 45) |
+| Code | Uncommitted M13 working-tree state — commit SHA not pinned in this record |
+| Experiment | EXP-2026-004 |
+| Run | EXP-2026-004-{lstm,gru}-full history CSVs |
+| Model | SBAI-MDL-ISL-4.0.0 (arch ENSEMBLE(LSTM128-LSTM64,GRU128-GRU64)+mirror-TTA,Softmax109; 109 classes ISL_001..ISL_109) |
+| Evaluation | Docs/M11_GATE_109REAL.md + Docs/eval/08_final_test.json |
+| Approval | M11 gate: Candidate, serving authorized — 0.90 release gates remain open debt (not Approved) |
+| Deployment | active_model SBAI-MDL-ISL-4.0.0 (models/registry.json) |
 
 ## 13. Dataset Version Tracking
 
@@ -410,13 +413,15 @@ Recommended format: EXP-<YEAR>-<SEQUENCE>-<SHORT_DESCRIPTION>.
 
 | Metric | Test Result | Target | Pass/Review |
 | --- | --- | --- | --- |
-| Accuracy | [Enter] | ≥90% target | [ ] |
-| Macro F1 | [Enter] | ≥0.90 target | [ ] |
-| Precision | [Enter] | [Enter target] | [ ] |
-| Recall | [Enter] | [Enter target] | [ ] |
-| Latency | [Enter] | <200 ms preferred | [ ] |
-| Throughput | [Enter] | ≥15 FPS target | [ ] |
-| Model size | [Enter] | [Enter limit] | [ ] |
+| Accuracy | 0.812896 (frozen test, n=3629, single touch; predecessor 3.0.0: 0.8109, n=3326) | ≥90% target | NOT MET — open release debt (M11) |
+| Macro F1 | 0.807865 (3.0.0: 0.8062) | ≥0.90 target | NOT MET — open release debt (M11) |
+| Precision | 0.818957 (macro, frozen test) | [Enter target] | Recorded (M13 §7) |
+| Recall | 0.812188 (macro, frozen test) | [Enter target] | Recorded (M13 §7) |
+| Latency | Ensemble p50 288.99 / p95 318.42 ms (VAL); p50 374.85 / p95 575.22 ms (TEST), per sign window CPU | <200 ms preferred | Exceeds preferred (ensemble); single-model probes 61.86 ms (LSTM) / 64.4 ms (GRU) meet |
+| Throughput | Not measured as FPS | ≥15 FPS target | Not measured |
+| Model size | Not recorded | [Enter limit] | Not measured |
+
+VAL companion metrics (n=2397, fitted VAL-only, M13 §7): argmax 0.833125, macro-F1 0.828963, ECE 0.028272, Brier 0.250855. Decision policy (accept_threshold 0.57, provisional 0.00, smoothing 5, tta_windows 1, temperature 1.0): commit precision 0.903357 @ coverage 0.820192 (VAL) and 0.895290 @ 0.813172 (TEST); FAR accepted 0.096643 (VAL) / 0.104710 (TEST); VAL counts recognized 1966 / provisional 431 / uncertain 0 / no-sign 0. Sources: Docs/M13_ACCURACY_CALIBRATION.md §7; Docs/eval/08_final_val.json, 08_final_test.json.
 
 All target values are configurable engineering targets and must not be recorded as achieved until measured.
 
@@ -450,26 +455,26 @@ All target values are configurable engineering targets and must not be recorded 
 
 | Field | Value |
 | --- | --- |
-| Calibration ID | [CAL-ID] |
-| Model Version | [Enter] |
-| Calibration Dataset | Validation set / [Enter] |
-| Objective | [Enter] |
-| Candidate Thresholds | [Enter range] |
-| Selected Threshold | [Enter] |
-| Recognition Rate | [Enter] |
-| Uncertain Rate | [Enter] |
-| No-Sign Rate | [Enter] |
-| False Positive Behavior | [Enter] |
-| Reviewer | [Enter] |
+| Calibration ID | M13 calibration record (Docs/M13_ACCURACY_CALIBRATION.md; scripts/calibrate_v4.py) |
+| Model Version | SBAI-MDL-ISL-4.0.0 |
+| Calibration Dataset | SPLIT-109 validation set (n=2397), fitted VAL-only; frozen test touched once |
+| Objective | Fit accept/provisional thresholds, smoothing, TTA windows, and temperature on VAL |
+| Candidate Thresholds | accept sweep on VAL; temperature candidates fitted and compared by ECE |
+| Selected Threshold | accept_threshold 0.57; provisional_threshold 0.00; smoothing 5; tta_windows 1; temperature 1.0 (identity — calibration fit rejected, already calibrated) |
+| Recognition Rate | VAL counts: recognized 1966 / provisional 431 / uncertain 0 / no-sign 0 (n=2397) |
+| Uncertain Rate | 0 (VAL) |
+| No-Sign Rate | 0 (VAL) |
+| False Positive Behavior | FAR accepted 0.096643 (VAL) / 0.104710 (TEST); commit precision 0.903357 @ coverage 0.820192 (VAL), 0.895290 @ 0.813172 (TEST); ECE 0.028272 VAL / 0.022447 TEST |
+| Reviewer | Not recorded (artifact: models/SBAI-MDL-ISL-4.0.0/calibration.json + policy.json) |
 
 ## 27. Model Comparison Log
 
 | Model | Accuracy | Macro F1 | Latency | FPS | Robustness | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Model A / [Version] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Model B / [Version] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Model C / [Version] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| Selected / [Version] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| SBAI-MDL-ISL-3.0.0 (100-class real ensemble) | 0.8109 (test n=3326) | 0.8062 | Not measured | Not measured | Not measured | Retired — superseded by 4.0.0 (gate M10) |
+| SBAI-MDL-ISL-4.0.0 (109-class real ensemble + mirror-TTA) | 0.8129 (test n=3629) | 0.8079 | p50 374.85 / p95 575.22 ms (TEST, per sign window CPU) | Not measured | Webcam-replay proxy full_sign 0.822/0.736 (M12) | ACTIVE — gate M11; 0.90 release gates open |
+| SBAI-MDL-ISL-4.1.0 candidate (GRU + time-jitter, EXP-2026-005) | Not scored to frozen test (val 0.816854 < required 0.833125) | Not scored (val 0.814275 < required 0.828963) | Not measured | Not measured | Not measured | Rejected — FAILED promotion gates, DISCARDED |
+| Selected — SBAI-MDL-ISL-4.0.0 + M13 policy (accept 0.57) | 0.812896 argmax; commit precision 0.895290 @ coverage 0.813172 (TEST) | 0.807865 | p50 288.99 / p95 318.42 ms (VAL ensemble) | Not measured | Protocol M13 §13 pending | Deployed policy (Docs/M13 §7) |
 
 ## 28. Model Selection Record
 
@@ -658,19 +663,25 @@ All target values are configurable engineering targets and must not be recorded 
 
 | EXP ID | Objective | Model | Dataset | Key Metric | Decision |
 | --- | --- | --- | --- | --- | --- |
-| EXP-2026-001 | LSTM baseline | 1.0.0 | v1.0.0 | [Enter] | [Keep/Reject] |
-| EXP-2026-002 | GRU baseline | 1.0.1 | v1.0.0 | [Enter] | [Keep/Reject] |
-| EXP-2026-003 | Velocity features | 1.1.0 | v1.0.0 | [Enter] | [Keep/Reject] |
-| EXP-2026-004 | Temporal augmentation | 1.1.1 | v1.0.0 | [Enter] | [Keep/Reject] |
-| EXP-2026-005 | Threshold calibration | 1.1.2 | v1.0.0 | [Enter] | [Keep/Reject] |
+| EXP-2026-001 | LSTM baseline (MVP-era) | 1.0.0 | v1.0.0 (synthetic-era) | Not recorded in current gate docs | Superseded by 2.0.0 lineage step |
+| EXP-2026-002 | GRU baseline (MVP-era) | 1.0.x challenger | v1.0.0 (synthetic-era) | Not recorded in current gate docs | Superseded |
+| EXP-2026-003 | 100-class REAL train + LSTM/GRU ensemble promotion | 3.0.0 | CURATION-v3.0 real, SPLIT-3.0 (test n=3326) | Ensemble test acc 0.8109 / macro-F1 0.8062; LSTM challenger 0.7721/0.7664; GRU 0.7676/0.7627 | Kept — promoted as 3.0.0 (gate Docs/M10_GATE_100REAL.md) |
+| EXP-2026-004 | 109-class REAL train; LSTM vs GRU challengers + deployed ensemble | 4.0.0 | tensors_109_real.npz, SPLIT-109 8,800/2,397/3,629 | Ensemble test acc 0.8129 / macro-F1 0.8079; GRU winner 0.8057/0.8012; LSTM challenger 0.7567/0.7506 | Kept — promoted as 4.0.0 ACTIVE (gate Docs/M11_GATE_109REAL.md; 0.90 gates open) |
+| EXP-2026-005 | GRU + time-jitter retrain (candidate 4.1.0) | 4.1.0 candidate | tensors_109_real.npz, SPLIT-109 | val macro-F1 0.814275 / val acc 0.816854, both below required 0.828963 / 0.833125 | FAILED promotion gates — DISCARDED; backups models/_backup_4.0.0_pretrain/ + data/dataset/_backup_pretrain/ |
+
+Rejected gates (closed investigations, no promotion; numbers from M13 and Docs/eval): TTA tta_windows=3 — gate FAIL (Δacc −0.0359 vs windows=1; p95 371.65 ms > 300 ms budget) → tta_windows stays 1 (Docs/eval/05_val_w1.json, 05_val_w3.json); motion-energy static trim — webcam-replay full_sign 0.835 → 0.768 (visible-correct 0.741 → 0.613) FAIL → reverted (Docs/eval/10_p1trim_gate_after.txt); temperature calibration fit — rejected, T=1.0 identity kept because model already calibrated (VAL ECE 0.028272).
 
 ## 42. Example Model Registry
 
+Real registry shape (models/registry.json; active_model = SBAI-MDL-ISL-4.0.0):
+
 | Model Version | Status | Dataset | Feature | Macro F1 | Latency | Checksum |
 | --- | --- | --- | --- | --- | --- | --- |
-| SBAI-MDL-ISL-1.0.0 | Retired | v1.0.0 | FV-1.0 | [ ] | [ ] | [hash] |
-| SBAI-MDL-ISL-1.1.0 | Approved | v1.0.0 | FV-1.0 | [ ] | [ ] | [hash] |
-| SBAI-MDL-ISL-1.2.0 | Candidate | v1.1.0 | FV-1.1 | [ ] | [ ] | [hash] |
+| SBAI-MDL-ISL-2.0.0 | Rejected — registered SYNTHETIC-trained stub; production gates NOT cleared | SYNTHETIC (stub eval only; acc 1.0 is invalid for release) | FV-1.0 | n/a (synthetic) | Not recorded | sha256_lstm fbe041e38921485c4b7596ac1ddf92c2400f8adb9660ec03d11c457cceb70a66 |
+| SBAI-MDL-ISL-3.0.0 | Retired — superseded by 4.0.0 (gate M10) | CURATION-v3.0 real, SPLIT-3.0 (test n=3326) | FV-1.0 | 0.8062 (acc 0.8109) | Not recorded | sha256_lstm bb4b09ee92f76d2ecb19a182f74eea6c6a0ff4d808bb39ca5909d792338591de |
+| SBAI-MDL-ISL-4.0.0 | ACTIVE (serving; status Candidate per M11 — 0.90 gates open) | tensors_109_real.npz, SPLIT-109 8,800/2,397/3,629 (test n=3629) | FV-1.0 (189-D, T=45) | 0.8079 (acc 0.8129) | p50 288.99 / p95 318.42 ms (VAL); p50 374.85 / p95 575.22 ms (TEST), per sign window CPU | sha256_lstm 3d2a8a0d8afa06fd7c84bd0320e60db5d7355ace84fea48c857feba05ad4a052 |
+
+Registry facts: arch "ENSEMBLE(LSTM128-LSTM64,GRU128-GRU64)+mirror-TTA,Softmax109"; 109 classes ISL_001..ISL_109; seq_len 45; feat_dim 189; export_parity_200 true; previous_model SBAI-MDL-ISL-3.0.0; per-version detail under models{} in models/registry.json.
 
 ## 43. Standard Experiment Log Template
 
@@ -842,6 +853,11 @@ All target values are configurable engineering targets and must not be recorded 
 | 20 Requirements Traceability Matrix | Requirement traceability |
 | 21 Data Flow Document | Data movement |
 | 22 Component & Module Design | Module boundaries |
+| Docs/M10_GATE_100REAL.md | 3.0.0 promotion gate record (100-class real; 0.8109/0.8062, n=3326) |
+| Docs/M11_GATE_109REAL.md | 4.0.0 promotion gate record (109-class real; 0.8129/0.8079, n=3629; open 0.90 release-gate debt) |
+| Docs/M12_WEBCAM_ACCURACY.md | Webcam-replay offline proxy accuracy evidence |
+| Docs/M13_ACCURACY_CALIBRATION.md | Canonical accuracy/calibration/policy record (thresholds, ECE/Brier, decision policy, eval artifacts) |
+| Docs/eval/*.json, *.txt | Raw evaluation harness artifacts (VAL/TEST finals, TTA gate, webcam-replay, trim gate) |
 | 23 Model Training Specification | Training process |
 
 ## 51. Version History and Approval

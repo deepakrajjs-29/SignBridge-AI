@@ -10,7 +10,7 @@ Indian Sign Language Recognition System
 | --- | --- |
 | Document ID | SB-11-TE |
 | Version | 1.0 |
-| Status | Draft / Review |
+| Status | Final (M13) |
 | Project | SignBridge AI |
 | Document Type | Testing & Evaluation Specification |
 | Prepared By | [Enter name / team] |
@@ -92,7 +92,9 @@ This document defines how SignBridge AI will be tested from raw input and landma
 - Test input validation, schema validation, error handling, and response formatting.
 - Test database CRUD operations and constraints.
 - Test UI state transitions and reusable components where automated frontend tests are available.
-Target: ≥80% automated code coverage for core backend/preprocessing logic; final threshold: [Confirm].
+Target: ≥80% automated code coverage for core backend/preprocessing logic; final threshold: [Confirm] (coverage % not measured).
+
+Current automated suite status (M13, verified 2026-10-19): backend **123 pytest tests passed**; frontend **48 Vitest tests passed** (8 files); `tsc --noEmit` clean. Backend test-file inventory includes: tests/test_calibration.py (calibration primitives, identity T=1.0, batch parity, live tta_windows), tests/test_decision_policy.py (decision-policy shape, inclusive boundaries, legacy two-state collapse), tests/test_class_mapping.py (class-map order ↔ label_of ↔ class_map.csv), tests/test_export_predictions.py (CSV export), tests/test_release400.py and tests/test_ensemble400.py (4.0.0 release/ensemble tripwires incl. probability-distribution shape), tests/test_ws.py (14 tests: WS flood re-pin, REST↔WS parity 45-row and full-T 105-row, window message, provisional-not-persisted), tests/test_history.py (REST provisional persistence asymmetry), plus API/split/model files (test_api_p4.py 31 passed, test_split_v2.py 2 passed, test_model_300.py 4 passed). Frontend: src/views/Live.test.tsx (19 tests: toState/provisional display, confidenceNote, flicker-safe commit), src/hands.test.ts (full-T buildFeatureRows), src/api/stream.test.ts (sendWindow queue/flush). Note: trim-related tests do NOT exist — the motion-energy trim experiment was reverted and its tests removed with it.
 
 ## 9. Preprocessing & Feature Engineering Tests
 
@@ -121,20 +123,22 @@ The recognition model must be evaluated on a frozen, held-out test set that is n
 
 | Metric | Definition / Purpose | Target / Acceptance |
 | --- | --- | --- |
-| Accuracy | Correct predictions divided by total predictions. | ≥90% target; [Confirm final] |
-| Precision | Correct positive predictions relative to all positive predictions. | ≥0.90 target per agreed evaluation |
-| Recall | Correct positive predictions relative to all actual positives. | ≥0.90 target per agreed evaluation |
-| F1-score | Harmonic mean of precision and recall. | ≥0.90 target |
-| Macro F1 | Average F1 across classes, treating classes equally. | ≥0.90 target |
-| Confusion Matrix | Identifies class-level confusions and weak classes. | No critical class failure |
-| Inference Latency | Time from ready model input to prediction result. | <200 ms preferred target |
-| Real-time FPS | Processed frames per second during recognition. | ≥15 FPS target; [Confirm] |
-| Model Size | Serialized model footprint. | [Confirm deployment limit] |
+| Accuracy | Correct predictions divided by total predictions. | ≥90% acceptance target; NOT MET — measured 0.812896 (frozen test n=3629, M11/M13); open release debt |
+| Precision | Correct positive predictions relative to all positive predictions. | ≥0.90 target per agreed evaluation; NOT MET — macro precision 0.818957 (frozen test) |
+| Recall | Correct positive predictions relative to all actual positives. | ≥0.90 target per agreed evaluation; NOT MET — macro recall 0.812188 (frozen test) |
+| F1-score | Harmonic mean of precision and recall. | ≥0.90 target; NOT MET — macro F1 0.807865 (frozen test) |
+| Macro F1 | Average F1 across classes, treating classes equally. | ≥0.90 target; NOT MET — 0.807865 (frozen test n=3629); 0.90 never reached on any real-data model |
+| Confusion Matrix | Identifies class-level confusions and weak classes. | No critical class failure — per-class tables in Docs/eval/08_final_test_per_class.csv; worst GRU classes ISL_046 0.20, ISL_044/066 0.41 (M11) |
+| Inference Latency | Time from ready model input to prediction result. | <200 ms preferred target; ensemble p50 288.99 ms (VAL) / 374.85 ms (TEST) exceeds; single-model probes 61.86 ms (LSTM) / 64.4 ms (GRU) meet |
+| Real-time FPS | Processed frames per second during recognition. | ≥15 FPS target; Not measured as FPS — per-sign-window latency proxies in Docs/25 §42 |
+| Model Size | Serialized model footprint. | [Confirm deployment limit] — not recorded |
+
+Measured evaluation artifacts (docs of record): Docs/eval/01_baseline_val.json (VAL baseline n=2397, argmax 0.833125), 05_val_w1.json / 05_val_w3.json (TTA windows=1 vs 3 gate: Δacc −0.0359, p95 371.65 ms > 300 → stays 1), 06_webcamsim_val.txt (VAL webcam-replay), 08_final_val.json / 08_final_test.json (final single-touch scores incl. ECE 0.028272 VAL / 0.022447 TEST), 10_p1trim_gate_after.txt (rejected trim experiment). Canonical narrative: Docs/M13_ACCURACY_CALIBRATION.md §7; promotion gates: Docs/M10_GATE_100REAL.md (3.0.0), Docs/M11_GATE_109REAL.md (4.0.0); webcam proxy: Docs/M12_WEBCAM_ACCURACY.md.
 
 ## 12. Dataset Evaluation Protocol
 
 - Maintain separate training, validation, and test partitions.
-- Suggested baseline split: 70% training, 15% validation, 15% testing; revise if the final dataset protocol specifies otherwise.
+- Baseline split: 70% training, 15% validation, 15% testing; revise if the final dataset protocol specifies otherwise. Actual final protocol (supersedes the suggestion): SPLIT-109 signer-disjoint — 8,800 train / 2,397 validation / 3,629 test of 14,826 sequences (nominal 70/15/15; annotations/SPLIT-4.0.json + split_idx_109.npz; train U001–U010, val U011–U012, test U013–U015; leakage PASS per M10/M11).
 - Avoid signer leakage: samples from the same signer should not be distributed across train and test when measuring signer-independent generalization.
 - Report class distribution and identify under-represented classes.
 - Document the exact dataset version, class list, number of signers, and number of sequences used for every reported result.
@@ -206,13 +210,13 @@ The recognition model must be evaluated on a frozen, held-out test set that is n
 
 | Measure | Target | Actual Result |
 | --- | --- | --- |
-| Prediction latency | <200 ms preferred | [Enter result] |
-| Recognition throughput | ≥15 FPS target | [Enter result] |
-| API response time | [Confirm by endpoint] | [Enter result] |
-| Memory usage | [Confirm device limit] | [Enter result] |
-| CPU/GPU utilization | [Confirm operating range] | [Enter result] |
-| Concurrent users | [Confirm expected load] | [Enter result] |
-| Startup time | [Confirm target] | [Enter result] |
+| Prediction latency | <200 ms preferred | Ensemble per-sign-window p50 288.99 ms / p95 318.42 ms (VAL); p50 374.85 ms / p95 575.22 ms (TEST), CPU, windows-aware (M13 §7); single-model probes p50 61.86 ms (LSTM) / 64.4 ms (GRU) |
+| Recognition throughput | ≥15 FPS target | Not measured as FPS — window-latency proxies above; see Docs/25 §42 |
+| API response time | [Confirm by endpoint] | Not measured — no API load benchmark run |
+| Memory usage | [Confirm device limit] | Not measured — no soak/memory benchmark run |
+| CPU/GPU utilization | [Confirm operating range] | Not measured |
+| Concurrent users | [Confirm expected load] | Not measured |
+| Startup time | [Confirm target] | Not measured — TensorFlow cold-start ~60 s documented as LIM-013 (Doc 32), mitigated by startup warm-up |
 
 ## 20. Load & Stress Testing
 
@@ -314,6 +318,8 @@ A regression suite must be maintained for all previously discovered defects and 
 - Signer-independent performance is reported when signer-separated data is available.
 - Inference latency and memory fit the target deployment environment.
 - Model version, training configuration, dataset version, and evaluation results are archived.
+
+Threshold status (M11/M13, active model SBAI-MDL-ISL-4.0.0): accuracy 0.8129 and macro F1 0.8079 do NOT meet the ≥0.90 acceptance thresholds — recorded as open release debt; model status is Candidate (serving authorized), not Approved.
 ## 30. System Acceptance Criteria
 
 - Critical functional tests pass.
@@ -347,7 +353,7 @@ A regression suite must be maintained for all previously discovered defects and 
 
 - Backend/unit/integration tests: Pytest.
 - API validation: Pytest + HTTP client or equivalent API test framework.
-- Frontend tests: Jest/React Testing Library or the selected project framework.
+- Frontend tests: Vitest + React Testing Library (project uses Vitest, not Jest).
 - End-to-end browser testing: Playwright or equivalent.
 - Model evaluation: Python scripts/notebooks with versioned configuration.
 - Performance/load testing: Locust, k6, or an approved equivalent.
@@ -369,11 +375,11 @@ A regression suite must be maintained for all previously discovered defects and 
 
 | Parameter | Current Value | Final Value |
 | --- | --- | --- |
-| Target accuracy | ≥90% | [Confirm] |
-| Target macro F1 | ≥0.90 | [Confirm] |
-| Preferred inference latency | <200 ms | [Confirm] |
-| Target real-time FPS | ≥15 FPS | [Confirm] |
-| Train/validation/test split | 70/15/15 suggested | [Confirm] |
+| Target accuracy | ≥90% | ≥0.90 acceptance gate — NOT MET (0.8129 frozen test; open release debt per M11) |
+| Target macro F1 | ≥0.90 | ≥0.90 acceptance gate — NOT MET (0.8079 frozen test; open release debt per M11) |
+| Preferred inference latency | <200 ms | Single-model probes 61.86–64.4 ms meet; deployed ensemble p50 288.99 ms (VAL) / 374.85 ms (TEST) exceeds — see Docs/25 |
+| Target real-time FPS | ≥15 FPS | Not measured as FPS (M13) |
+| Train/validation/test split | 70/15/15 suggested | SPLIT-109 signer-disjoint 8,800/2,397/3,629 (final) |
 | Minimum automated code coverage | ≥80% for core logic | [Confirm] |
 | Supported browsers/devices | [Define] | [Confirm] |
 | Maximum API payload size | [Define] | [Confirm] |
@@ -426,7 +432,7 @@ A regression suite must be maintained for all previously discovered defects and 
 
 | Version | Date | Author | Change Description | Status |
 | --- | --- | --- | --- | --- |
-| 1.0 | [Enter date] | [Enter name] | Initial Testing & Evaluation specification. | Draft |
+| 1.0 | [Enter date] | [Enter name] | Initial Testing & Evaluation specification. | Final (M13) |
 | 1.1 | [Enter date] | [Enter name] | [Enter changes] | [Review/Approved] |
 | 2.0 | [Enter date] | [Enter name] | [Major revision if required] | [Review/Approved] |
 

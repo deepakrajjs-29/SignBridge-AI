@@ -198,7 +198,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
               onClick={() => onNavigate("vocab")}
               className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-2.5 hover:border-brand-500 hover:shadow-md transition text-center space-y-2"
             >
-              <div className="aspect-4/3 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+              <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
                 <img
                   src={`/assets/${item.id}.jpg`}
                   alt={`${item.label} ISL sign`}
@@ -293,7 +293,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
                 Vocabulary Explorer
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Search all 100 registered dynamic ISL sign classes with reference demonstration photos.
+                Search all 109 registered dynamic ISL sign classes with reference demonstration photos.
               </p>
             </div>
           </button>
@@ -324,7 +324,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
             <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">Step 3 • AI</span>
             <h4 className="font-bold text-slate-900 dark:text-white text-sm">FastAPI Inference</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Keras LSTM / GRU neural model classifies the gesture sequence across 100 classes within 50 ms.
+              Keras LSTM / GRU neural model classifies the gesture sequence across 109 classes within 50 ms.
             </p>
           </div>
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">

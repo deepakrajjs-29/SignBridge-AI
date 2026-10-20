@@ -36,7 +36,7 @@ def client(tmp_path, monkeypatch):
 
     engine = create_engine(url)
     n_classes, n_photos = m3_seed_100.seed_100(engine)
-    assert (n_classes, n_photos) == (100, 100)
+    assert (n_classes, n_photos) == (109, 109)
     engine.dispose()
     reset_rate_limit()
     yield TestClient(app)
@@ -44,7 +44,7 @@ def client(tmp_path, monkeypatch):
 
 
 def test_classes_100_and_text_to_sign_photo(client):
-    assert len(client.get("/api/v1/classes").json()["classes"]) == 100
+    assert len(client.get("/api/v1/classes").json()["classes"]) == 109
     r = client.post("/api/v1/text-to-sign", json={"text": "good where city"}, headers=AUTH)
     assert r.status_code == 200, r.text[:200]
     body = r.json()
@@ -55,12 +55,12 @@ def test_classes_100_and_text_to_sign_photo(client):
     assert all(i["supported"] for i in body["items"])
 
 
-def test_model_is_2_0_0(client):
+def test_model_is_4_0_0(client):
     b = client.get("/api/v1/model").json()
     assert b["success"] is True
-    assert b["model"]["model_version"] == "SBAI-MDL-ISL-3.0.0"
-    assert b["model"]["classes"] == 100
-    assert "Softmax100" in b["model"]["architecture"]
+    assert b["model"]["model_version"] == "SBAI-MDL-ISL-4.0.0"
+    assert b["model"]["classes"] == 109
+    assert "Softmax109" in b["model"]["architecture"]
 
 
 def test_text_to_sign_longest_phrase_first_and_escape(client):

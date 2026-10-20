@@ -19,19 +19,15 @@ import csv
 
 LOCAL = ROOT / "data/dataset/raw/isl500"
 
-# Exact HF filename stems (verified against live repo listing 2026-10-11).
-STEMS = [
-    "Good", "Bad", "Why", "Which", "Stay", "Wait", "Open", "Close",
-    "Give", "Walk", "Bread", "Pain", "Road", "City", "Shop", "Bank",
-    "Month", "Year", "Yesterday", "Goodafternoon", "Goodevening",
-    "You", "We", "They", "I", "Wife", "Husband", "Uncle", "Aunt",
-    "Baby", "Pizza", "Mango", "Lunch", "Onion", "Lion", "Dog", "Cat",
-    "Red", "Blue", "Green", "Saturday", "Sunday", "Hour", "Computer",
-    "Movie", "Music", "Big", "Small", "Hot", "Cold",
-]
-
-# Sanity: stems must match class_map ISL_051-100 labels (normalized).
+# HF filename stems, derived from class_map ISL_051+ labels: strip
+# non-alphanumerics, then capitalize (matches HF naming: 'Good Afternoon'->
+# 'Goodafternoon', verified against the live repo file list).
+# Idempotent: snapshot_download skips files already on disk, and report()
+# verifies every stem meets the cut rule (exit 1 otherwise).
 rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
+STEMS = [re.sub(r"[^A-Za-z0-9]", "", r["label"]).capitalize() for r in rows[50:]]
+
+# Sanity: stems must match class_map ISL_051+ labels (normalized).
 labels = [r["label"] for r in rows[50:]]
 
 

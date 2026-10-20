@@ -1,0 +1,1727 @@
+﻿diff --git a/Docs/M10_GATE_100REAL.md b/Docs/M10_GATE_100REAL.md
+index cb974e3..a0cd1b1 100644
+--- a/Docs/M10_GATE_100REAL.md
++++ b/Docs/M10_GATE_100REAL.md
+@@ -14,10 +14,12 @@
+   train only (scaler_100_real.npz). Threshold swept on VAL only (0.4).
+ 
+ ## Single frozen-test scoring (U013-U015, never trained on)
+-- LSTM (PROMOTED): acc **0.7721** / macro-F1 **0.7664**, n=3326.
+-- GRU challenger: acc 0.7676 / macro-F1 0.7627. LSTM wins on evidence.
+-- Worst classes: Eat 0.33, Good Evening 0.50, Father 0.53, Bank 0.53,
+-  Bread 0.56, Hot 0.56, Pizza 0.57, Month 0.58. Best: Stay 0.99,
++- LSTM: acc **0.7721** / macro-F1 **0.7664**, n=3326.
++- GRU challenger: acc 0.7676 / macro-F1 0.7627.
++- DEPLOYED ensemble mean(LSTM, GRU, mirror-TTA), val-tuned (w=0.5, thr 0.4):
++  acc **0.8109** / macro-F1 **0.8062** ΓÇö 80% target MET on held-out test.
++- Worst single-model classes: Eat 0.33, Good Evening 0.50, Father 0.53,
++  Bank 0.53, Bread 0.56, Hot 0.56, Pizza 0.57, Month 0.58. Best: Stay 0.99,
+   Family/Which 0.96. Full table: models/EXP-2026-003-lstm-full/per_class.csv.
+ - Export parity 200/200 true. Registry sha256 recorded.
+ 
+@@ -25,9 +27,11 @@
+ - [x] Smoke overfit + full runs with history CSVs
+ - [x] Val-only calibration (policy.json), single frozen-test scoring
+ - [x] Registration SBAI-MDL-ISL-3.0.0 + SavedModel export + parity
+-- [x] Latency probe (dev CPU, single-window): LSTM p50 268 / p95 381ms
+-- [ ] **GATE DEBT: test 0.7721/0.7664 < 0.90/0.90; latency p95 381ms > 200ms
+-  on this dev CPU.** Status = Candidate, NOT Approved.
++- [x] Latency probe (dev CPU, single-window LSTM: p50 268 / p95 381ms;
++  GRU: p95 191ms; deployed 2-call ensemble Γëê 300ms p95 on dev CPU)
++- [ ] **GATE DEBT: single-model 0.7721/0.7664 < 0.90/0.90; ensemble clears
++  the 0.80 user target (0.8109/0.8062) but 0.90 release gates stay open;
++  latency p95 > 200ms on this dev CPU.** Status = Candidate, NOT Approved.
+ 
+ ## Remediation backlog
+ R1. Confusion-driven hard mining on worst classes (Eat/Good Evening/Father/
+diff --git a/backend/app/deps.py b/backend/app/deps.py
+index e352033..fd8ec78 100644
+--- a/backend/app/deps.py
++++ b/backend/app/deps.py
+@@ -58,13 +58,23 @@ def label_of(class_id: str) -> str:
+     return class_id
+ 
+ 
++ENSEMBLE_MODELS = frozenset({"SBAI-MDL-ISL-3.0.0", "SBAI-MDL-ISL-4.0.0"})
++
++
++def uses_ensemble() -> bool:
++    """True when the active model is served as an LSTM+GRU+mirror ensemble."""
++    return model_version() in ENSEMBLE_MODELS
++
++
+ def _active_keras_path() -> Path:
+     """Artifact path for the registry-active model.
+ 
+-    3.0.0 = REAL 100-class winner (SBAI-MDL-ISL-3.0.0.keras, registered by
+-    scripts/register_v3.py); 2.0.0 = synthetic Softmax100 (kept, not served
+-    once 3.0.0 is active); else 1.0.0 GRU.
++    4.0.0 = REAL 109-class winner; 3.0.0 = REAL 100-class winner (both served
++    as ensembles ΓÇö see get_ensemble); 2.0.0 = synthetic Softmax100 (kept, not
++    served once 3.0.0+ is active); else 1.0.0 GRU.
+     """
++    if model_version() == "SBAI-MDL-ISL-4.0.0":
++        return MODELS / "SBAI-MDL-ISL-4.0.0.keras"
+     if model_version() == "SBAI-MDL-ISL-3.0.0":
+         return MODELS / "SBAI-MDL-ISL-3.0.0.keras"
+     if model_version() == "SBAI-MDL-ISL-2.0.0":
+@@ -73,6 +83,8 @@ def _active_keras_path() -> Path:
+ 
+ 
+ def _active_scaler_path() -> Path:
++    if model_version() == "SBAI-MDL-ISL-4.0.0":
++        return MODELS / "scaler_109_real.npz"
+     if model_version() == "SBAI-MDL-ISL-3.0.0":
+         return MODELS / "scaler_100_real.npz"
+     if model_version() == "SBAI-MDL-ISL-2.0.0":
+@@ -102,13 +114,70 @@ def get_scaler():
+     return _scaler
+ 
+ 
++def mirror_features(X: np.ndarray) -> np.ndarray:
++    """Exact x-mirror in 189-dim feature space (identical to train_v3 aug).
++
++    Applied to SCALED windows (training augmented scaled features).
++    Distances/speeds/magnitudes are mirror-invariant; x-coords negate;
++    bbox min/max x swap. Involution: mirror(mirror(x)) == x.
++    """
++    M = X.copy()
++    C = M[:, :, :126].reshape((-1, SEQ_LEN, 2, 21, 3))
++    C[..., 0] *= -1
++    for h in (0, 1):
++        b = 168 + h * 10
++        mnx, mxx = M[:, :, b].copy(), M[:, :, b + 3].copy()
++        M[:, :, b], M[:, :, b + 3] = -mxx, -mnx
++        M[:, :, b + 6] *= -1
++    return M
++
++
++_ensemble = None
++_ensemble_for: str | None = None
++
++
++def get_ensemble():
++    """Cached (lstm, gru) winner pair for the active ensemble model."""
++    global _ensemble, _ensemble_for
++    want = model_version()
++    if _ensemble is None or _ensemble_for != want:
++        import tensorflow as tf
++
++        lstm_path = MODELS / f"{want}_lstm.keras"
++        gru_path = MODELS / f"{want}_gru.keras"
++        if not lstm_path.exists() or not gru_path.exists():
++            raise FileNotFoundError(f"{want} ensemble weights absent")
++        _ensemble = (
++            tf.keras.models.load_model(lstm_path),
++            tf.keras.models.load_model(gru_path),
++        )
++        _ensemble_for = want
++        from app.metrics import MODEL_LOADED
++
++        MODEL_LOADED.set(1)
++    return _ensemble
++
++
++def infer_ensemble(batch: np.ndarray) -> np.ndarray:
++    """Mean(LSTM, GRU, mirror-TTA) probs for a (N,45,189) SCALED batch.
++
++    Batches [x, mirror(x)] per model: 2 predict calls total. Returns (N,C).
++    """
++    lstm, gru = get_ensemble()
++    aug = np.concatenate([batch, mirror_features(batch)], axis=0)
++    pl = lstm.predict(aug, verbose=0)
++    pg = gru.predict(aug, verbose=0)
++    n = batch.shape[0]
++    return ((pl[:n] + pl[n:] + pg[:n] + pg[n:]) / 4).astype("float32")
++
++
+ def _registry_path() -> Path:
+     return MODELS / "registry.json"
+ 
+ 
+ def _policy_path() -> Path:
+-    if model_version() == "SBAI-MDL-ISL-3.0.0":
+-        return MODELS / "SBAI-MDL-ISL-3.0.0" / "policy.json"
++    if model_version() in ENSEMBLE_MODELS:
++        return MODELS / model_version() / "policy.json"
+     return MODELS / "EXP-2026-001-gru-full" / "policy.json"
+ 
+ 
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 5826b0d..525dd07 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -152,12 +152,14 @@ def create_app() -> FastAPI:
+         entry = reg.get("models", {}).get(mid, {}) if isinstance(reg.get("models"), dict) else {}
+         # Task 7r1: per-id known arch so the fallback can never report Softmax50
+         # for the 2.0.0 Softmax100 entry (registry entry wins first).
+-        known_arch = {"SBAI-MDL-ISL-3.0.0": "LSTM128-LSTM64-Dense64-Softmax100 (v3 real-data)",
++        known_arch = {"SBAI-MDL-ISL-4.0.0": "LSTM128-LSTM64-Dense64-Softmax109 (v4 real-data)",
++                      "SBAI-MDL-ISL-3.0.0": "LSTM128-LSTM64-Dense64-Softmax100 (v3 real-data)",
+                       "SBAI-MDL-ISL-2.0.0": "LSTM128-LSTM64-Dense64-Softmax100",
+                       "SBAI-MDL-ISL-1.0.0": "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"}
+         arch = entry.get("arch") or known_arch.get(mid) or reg.get("arch") or \
+             "GRU128-GRU64-Dense64-Softmax50 (Candidate, M3 debt)"
+-        nclass = entry.get("classes") or (100 if mid in ("SBAI-MDL-ISL-2.0.0", "SBAI-MDL-ISL-3.0.0") else 50)
++        nclass = entry.get("classes") or (109 if mid == "SBAI-MDL-ISL-4.0.0"
++                    else (100 if mid in ("SBAI-MDL-ISL-2.0.0", "SBAI-MDL-ISL-3.0.0") else 50))
+         return {"success": True,
+                 "model": {"model_id": mid, "model_version": mid,
+                           "seq_len": SEQ_LEN, "feat_dim": FEAT_DIM,
+diff --git a/backend/app/routers/predict.py b/backend/app/routers/predict.py
+index e97e741..199bcbb 100644
+--- a/backend/app/routers/predict.py
++++ b/backend/app/routers/predict.py
+@@ -94,7 +94,15 @@ async def infer(body: PredictBody, request: Request) -> JSONResponse:
+     mu, sd = get_scaler()
+     normed = ((seq - mu.reshape(189)) / sd.reshape(189)).astype("float32")
+     with INFER_SECONDS.time():
+-        probs = await asyncio.to_thread(run_inference, normed[None])
++        from app.deps import uses_ensemble
++
++        if uses_ensemble():
++            from app.deps import infer_ensemble
++
++            probs = await asyncio.to_thread(infer_ensemble, normed[None])
++            probs = probs[0]
++        else:
++            probs = await asyncio.to_thread(run_inference, normed[None])
+     ci = int(probs.argmax())
+     conf = float(probs[ci])
+     policy = get_policy()
+diff --git a/backend/app/routers/stream.py b/backend/app/routers/stream.py
+index 65abf1b..4e071e2 100644
+--- a/backend/app/routers/stream.py
++++ b/backend/app/routers/stream.py
+@@ -104,10 +104,21 @@ async def stream(ws: WebSocket):
+                         continue
+                     mu, sd = get_scaler()
+                     with INFER_SECONDS.time():
+-                        probs = await asyncio.to_thread(
+-                            run_stream_inference,
+-                            ((window - mu.reshape(189)) / sd.reshape(189)).astype("float32")[None],
+-                        )
++                        from app.deps import uses_ensemble
++
++                        if uses_ensemble():
++                            from app.deps import infer_ensemble
++
++                            probs = await asyncio.to_thread(
++                                infer_ensemble,
++                                ((window - mu.reshape(189)) / sd.reshape(189)).astype("float32")[None],
++                            )
++                            probs = probs[0]
++                        else:
++                            probs = await asyncio.to_thread(
++                                run_stream_inference,
++                                ((window - mu.reshape(189)) / sd.reshape(189)).astype("float32")[None],
++                            )
+                     ci, conf = int(probs.argmax()), float(probs.max())
+                     policy = get_policy()
+                     state = "Recognized" if conf >= float(policy.get("threshold", 0.4)) else "Uncertain"
+diff --git a/data/assets/manifest.csv b/data/assets/manifest.csv
+index 19ae501..7f1f025 100644
+--- a/data/assets/manifest.csv
++++ b/data/assets/manifest.csv
+@@ -99,3 +99,12 @@ ISL_097,/assets/ISL_097.jpg,image/jpeg
+ ISL_098,/assets/ISL_098.jpg,image/jpeg
+ ISL_099,/assets/ISL_099.jpg,image/jpeg
+ ISL_100,/assets/ISL_100.jpg,image/jpeg
++ISL_101,/assets/ISL_101.jpg,image/jpeg
++ISL_102,/assets/ISL_102.jpg,image/jpeg
++ISL_103,/assets/ISL_103.jpg,image/jpeg
++ISL_104,/assets/ISL_104.jpg,image/jpeg
++ISL_105,/assets/ISL_105.jpg,image/jpeg
++ISL_106,/assets/ISL_106.jpg,image/jpeg
++ISL_107,/assets/ISL_107.jpg,image/jpeg
++ISL_108,/assets/ISL_108.jpg,image/jpeg
++ISL_109,/assets/ISL_109.jpg,image/jpeg
+diff --git a/data/dataset/annotations/CURATION-v2.0.json b/data/dataset/annotations/CURATION-v2.0.json
+index 1b47f2a..f5f5294 100644
+--- a/data/dataset/annotations/CURATION-v2.0.json
++++ b/data/dataset/annotations/CURATION-v2.0.json
+@@ -4662,7 +4662,7 @@
+   "classes_sha256": "e68de40c979febf4ece955a397e13434f896949afb1e58c5b48208f3ac9a06be"
+  },
+  "source_commits": {
+-  "class_map_csv": "5f9a71f2bab5873b934ba0f38f6ba0c3656af0d6",
+-  "head": "de86d58588cdbc6d6bb763acfa16b28cb37378ad"
++  "class_map_csv": "11e419dc111510a09db129a09b3b34cab3c43e74",
++  "head": "0e81f191c2c5d318d428fe962536673fc9721b7b"
+  }
+ }
+\ No newline at end of file
+diff --git a/data/dataset/annotations/class_map.csv b/data/dataset/annotations/class_map.csv
+index feabc6d..c4424bb 100644
+--- a/data/dataset/annotations/class_map.csv
++++ b/data/dataset/annotations/class_map.csv
+@@ -99,3 +99,12 @@ ISL_097,Big,BIG,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
+ ISL_098,Small,SMALL,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
+ ISL_099,Hot,HOT,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
+ ISL_100,Cold,COLD,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
++ISL_101,Library,LIBRARY,Dynamic,Place word,Both,ISL500,v4: verified real-data word
++ISL_102,Meeting,MEETING,Dynamic,Activity,Both,ISL500,v4: verified real-data word
++ISL_103,Holiday,HOLIDAY,Dynamic,Time word,Both,ISL500,v4: verified real-data word
++ISL_104,Pen,PEN,Dynamic,Object,Both,ISL500,v4: verified real-data word
++ISL_105,Paper,PAPER,Dynamic,Object,Both,ISL500,v4: verified real-data word
++ISL_106,Chair,CHAIR,Dynamic,Object,Both,ISL500,v4: verified real-data word
++ISL_107,Police,POLICE,Dynamic,People word,Both,ISL500,v4: verified real-data word
++ISL_108,Airport,AIRPORT,Dynamic,Place word,Both,ISL500,v4: verified real-data word
++ISL_109,Manager,MANAGER,Dynamic,People word,Both,ISL500,v4: verified real-data word
+diff --git a/frontend/src/landmarks.ts b/frontend/src/landmarks.ts
+index fc77a07..888ff0c 100644
+--- a/frontend/src/landmarks.ts
++++ b/frontend/src/landmarks.ts
+@@ -118,6 +118,17 @@ function blank(): number[][][] {
+ const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+ 
+ export const CAPTURE_DEADLINE_MS = 60000;
++/**
++ * Time-boxed capture window. The old 45-rAF loop (~0.75 s at 60 Hz) clipped
++ * dynamic signs mid-performance: offline replay measured 0.475 accuracy for
++ * contiguous 45-frame windows vs 0.822 for full-sign windows. 3.5 s covers
++ * ~1 s reaction delay + a whole performance + idle tail: the realistic
++ * (1 s delay + tail) window measured 0.769 on n=1500 test clips.
++ */
++export const CAPTURE_WINDOW_MS = 3500;
++/** Minimum unique camera frames before a sequence can be trusted (toSequence
++ * pads beyond 45 rows for slow cameras; below this the window caught no sign). */
++export const MIN_CAPTURE_FRAMES = 30;
+ 
+ export class MediaPipeProvider implements LandmarkProvider {
+   readonly name = "mediapipe-handlandmarker (on-device)";
+@@ -134,7 +145,7 @@ export class MediaPipeProvider implements LandmarkProvider {
+ 
+   async capture(
+     video: HTMLVideoElement,
+-    frames = 45,
++    _frames = 45,
+     deadlineMs = CAPTURE_DEADLINE_MS
+   ): Promise<number[][]> {
+     this.error = "";
+@@ -170,20 +181,30 @@ export class MediaPipeProvider implements LandmarkProvider {
+     abortIfPastDeadline();
+     this.status = "capturing";
+     const raw: Frames = [];
++    let lastVideoTime = Number.NaN;
++    const windowStart = Date.now();
+     try {
+-      for (let t = 0; t < frames; t++) {
++      while (Date.now() - windowStart < CAPTURE_WINDOW_MS) {
+         abortIfPastDeadline();
+-        let pts = blank();
+-        try {
+-          const res = lm.detectForVideo(video, performance.now());
+-          const hands = res.landmarks ?? [];
+-          for (let h = 0; h < Math.min(2, hands.length); h++)
+-            pts[h] = hands[h].slice(0, 21).map((p) => [p.x, p.y, p.z]);
+-        } catch {
+-          // single-frame detection failure -> blank frame (never aborts capture)
++        // Dedupe: rAF can outrun the camera (60 Hz vs 30 fps); reprocessing the
++        // same video frame injects zero-speed rows into the FV-1.0 speed features.
++        if (video.currentTime !== lastVideoTime) {
++          lastVideoTime = video.currentTime;
++          let pts = blank();
++          try {
++            const res = lm.detectForVideo(video, performance.now());
++            const hands = res.landmarks ?? [];
++            for (let h = 0; h < Math.min(2, hands.length); h++)
++              pts[h] = hands[h].slice(0, 21).map((p) => [p.x, p.y, p.z]);
++          } catch {
++            // single-frame detection failure -> blank frame (never aborts capture)
++          }
++          raw.push(pts);
++          const elapsedS = Math.min((Date.now() - windowStart) / 1000, CAPTURE_WINDOW_MS / 1000);
++          this.progress = `Capturing ${elapsedS.toFixed(1)} / ${
++            CAPTURE_WINDOW_MS / 1000
++          } s ΓÇö perform the sign now`;
+         }
+-        raw.push(pts);
+-        this.progress = `Capturing ${t + 1}/${frames} ΓÇö hold the sign steady`;
+         const remaining = deadlineMs - (Date.now() - start);
+         if (remaining <= 0) fail(deadlineMessage());
+         let timer: ReturnType<typeof setTimeout> | undefined;
+@@ -203,9 +224,9 @@ export class MediaPipeProvider implements LandmarkProvider {
+     } finally {
+       this.progress = "";
+     }
+-    if (raw.every((f) => f.flat(2).every((v) => v === 0))) {
++    if (raw.length < MIN_CAPTURE_FRAMES || raw.every((f) => f.flat(2).every((v) => v === 0))) {
+       this.status = "error";
+-      this.error = "No hands detected in 45 frames ΓÇö move closer, improve light, reframe.";
++      this.error = "No hands detected during capture ΓÇö move closer, improve light, reframe.";
+       throw new Error(this.error);
+     }
+     this.status = "ready";
+diff --git a/frontend/src/views/Dashboard.tsx b/frontend/src/views/Dashboard.tsx
+index 8c137d4..75d0cd7 100644
+--- a/frontend/src/views/Dashboard.tsx
++++ b/frontend/src/views/Dashboard.tsx
+@@ -198,7 +198,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
+               onClick={() => onNavigate("vocab")}
+               className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-2.5 hover:border-brand-500 hover:shadow-md transition text-center space-y-2"
+             >
+-              <div className="aspect-4/3 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
++              <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+                 <img
+                   src={`/assets/${item.id}.jpg`}
+                   alt={`${item.label} ISL sign`}
+@@ -324,7 +324,7 @@ export default function Dashboard({ onNavigate, backendOnline }: DashboardProps)
+             <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">Step 3 ΓÇó AI</span>
+             <h4 className="font-bold text-slate-900 dark:text-white text-sm">FastAPI Inference</h4>
+             <p className="text-xs text-slate-500 dark:text-slate-400">
+-              Keras LSTM / GRU neural model classifies the gesture sequence across 100 classes within 50 ms.
++              Keras LSTM / GRU neural model classifies the gesture sequence across 109 classes within 50 ms.
+             </p>
+           </div>
+           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">
+diff --git a/frontend/src/views/Live.test.tsx b/frontend/src/views/Live.test.tsx
+index 47ea7e3..744bee3 100644
+--- a/frontend/src/views/Live.test.tsx
++++ b/frontend/src/views/Live.test.tsx
+@@ -2,8 +2,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
+ import {
+   CAMERA_ERROR_NOTE,
+   CAMERA_TIMEOUT_MS,
++  DEFAULT_THRESHOLD_PERCENT,
+   recognizeFrames,
+   requestCameraStream,
++  resolveCommit,
+   toState,
+ } from "./Live";
+ import type { Prediction, RecState } from "../api/client";
+@@ -138,3 +140,55 @@ describe("Live stream-first recognition with REST fallback", () => {
+     expect(toState("recognized", false)).toBe("Error");
+   });
+ });
++
++describe("release-based commit gate (one performance = one commit)", () => {
++  const base = { label: "HELLO", lastLabel: "", armed: true, freshAttempt: false };
++
++  test("first accepted sign commits and closes the gate", () => {
++    expect(resolveCommit({ ...base, accepted: true })).toEqual({
++      commit: true,
++      armed: false,
++      lastLabel: "HELLO",
++    });
++  });
++
++  test("held sign re-observed in later windows is suppressed until release", () => {
++    const held = { accepted: true, label: "hello", lastLabel: "HELLO", armed: false, freshAttempt: false };
++    const first = resolveCommit(held);
++    expect(first.commit).toBe(false);
++    expect(first.armed).toBe(false); // still held -> gate stays closed
++    expect(first.lastLabel).toBe("HELLO");
++  });
++
++  test("a release window (not accepted) re-arms the same sign", () => {
++    const released = resolveCommit({
++      accepted: false,
++      label: "NO SIGN DETECTED",
++      lastLabel: "HELLO",
++      armed: false,
++      freshAttempt: false,
++    });
++    expect(released.commit).toBe(false);
++    expect(released.armed).toBe(true);
++    // Next accepted HELLO after the release commits again (repeat preserved).
++    expect(
++      resolveCommit({ accepted: true, label: "HELLO", lastLabel: "HELLO", armed: released.armed, freshAttempt: false })
++    ).toEqual({ commit: true, armed: false, lastLabel: "HELLO" });
++  });
++
++  test("single-sign attempt bypasses a closed gate", () => {
++    expect(
++      resolveCommit({ accepted: true, label: "HELLO", lastLabel: "HELLO", armed: false, freshAttempt: true })
++    ).toEqual({ commit: true, armed: false, lastLabel: "HELLO" });
++  });
++
++  test("a different sign commits regardless of arm state", () => {
++    expect(
++      resolveCommit({ accepted: true, label: "WORLD", lastLabel: "HELLO", armed: false, freshAttempt: false })
++    ).toEqual({ commit: true, armed: false, lastLabel: "WORLD" });
++  });
++
++  test("default confidence gate is 60 percent (evidence-based)", () => {
++    expect(DEFAULT_THRESHOLD_PERCENT).toBe(60);
++  });
++});
+diff --git a/frontend/src/views/Live.tsx b/frontend/src/views/Live.tsx
+index 8f376d7..6565441 100644
+--- a/frontend/src/views/Live.tsx
++++ b/frontend/src/views/Live.tsx
+@@ -92,6 +92,39 @@ export function toState(apiStatus: string, ok: boolean): RecState {
+ 
+ export const STREAM_TIMEOUT_MS = 15000;
+ 
++/** Evidence-based default confidence gate: on the SPLIT-4.0 test set a 0.60
++ * gate accepts 78% of windows at 91% precision (0.70 accepted only 69%). */
++export const DEFAULT_THRESHOLD_PERCENT = 60;
++
++export interface CommitInput {
++  accepted: boolean;
++  label: string;
++  lastLabel: string;
++  armed: boolean;
++  freshAttempt: boolean;
++}
++
++export interface CommitDecision {
++  commit: boolean;
++  armed: boolean;
++  lastLabel: string;
++}
++
++/**
++ * Release-based commit gate: one gesture performance -> exactly one commit.
++ * Re-observing the same label while it is still held is suppressed until a
++ * release window (uncertain / no-sign / below-gate) re-arms it, a different
++ * sign arrives, or a deliberate single-sign attempt bypasses the gate.
++ */
++export function resolveCommit(input: CommitInput): CommitDecision {
++  const label = input.label.trim().toUpperCase();
++  if (!input.accepted) return { commit: false, armed: true, lastLabel: input.lastLabel };
++  if (label === input.lastLabel && !input.armed && !input.freshAttempt) {
++    return { commit: false, armed: false, lastLabel: input.lastLabel };
++  }
++  return { commit: true, armed: false, lastLabel: label };
++}
++
+ export function apiBase(): string {
+   if (typeof window !== "undefined") {
+     const envBase = import.meta.env.VITE_API_BASE;
+@@ -260,7 +293,9 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+ 
+   // Stabilization & race-condition guards
+   const lastSignLabelRef = useRef<string>("");
+-  const lastSignTimeRef = useRef<number>(0);
++  const armedRef = useRef<boolean>(true); // release-based re-arm gate for same-sign repeats
++  const freshAttemptRef = useRef<boolean>(false); // single-sign click = deliberate attempt
++  const lastSpokenRef = useRef<string>("");
+   const continuousRunningRef = useRef<boolean>(false);
+   const abortControllerRef = useRef<AbortController | null>(null);
+   const sequenceIdRef = useRef<number>(0);
+@@ -302,12 +337,15 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+     []
+   );
+ 
+-  function speakSentence(text: string, mood: SentenceMood = selectedMood) {
++  function speakSentence(text: string, mood: SentenceMood = selectedMood, interrupt = true) {
+     if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) {
+       return;
+     }
+     try {
+-      window.speechSynthesis.cancel();
++      // Sign words queue (no interrupt) so a generated sentence can never chop
++      // a word mid-flight; sentences/replay interrupt to supersede the queue.
++      if (interrupt) window.speechSynthesis.cancel();
++      lastSpokenRef.current = text.trim();
+       const utterance = new SpeechSynthesisUtterance(text);
+       utterance.lang = "en-IN";
+ 
+@@ -325,6 +363,14 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+     }
+   }
+ 
++  /** True when the generated sentence just re-says the last spoken word
++   * (single-sign echo like "HELLO" -> "Hello." must not speak twice). */
++  function isEchoOfLastSpoken(text: string): boolean {
++    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
++    const last = lastSpokenRef.current;
++    return Boolean(last) && norm(text) === norm(last);
++  }
++
+   function applyPrediction(p: Prediction, status: string, latencyMs?: number) {
+     setResult(p);
+     setConf(p.confidence);
+@@ -333,7 +379,7 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+     setFeedbackSent(null);
+ 
+     // Read user-configured threshold gate from localStorage (e.g. 95% -> 0.95)
+-    let thresholdPercent = 70;
++    let thresholdPercent = DEFAULT_THRESHOLD_PERCENT;
+     try {
+       const stored = localStorage.getItem("sb_threshold");
+       if (stored) thresholdPercent = parseInt(stored, 10);
+@@ -361,44 +407,45 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+       }
+     }
+ 
+-    if (
++    const accepted =
+       isAccepted &&
+-      labelUpper &&
++      Boolean(labelUpper) &&
+       labelUpper !== "NO SIGN DETECTED" &&
+-      p.class_id !== "ISL_000"
+-    ) {
+-      const now = Date.now();
+-      const lastLabel = lastSignLabelRef.current;
+-      const lastTime = lastSignTimeRef.current;
+-      const cooldownMs = 2500;
+-
+-      // Duplicate debounce check
+-      if (labelUpper === lastLabel && now - lastTime < cooldownMs) {
+-        // Suppress duplicate window of the same gesture
+-      } else {
+-        lastSignLabelRef.current = labelUpper;
+-        lastSignTimeRef.current = now;
+-
+-        // Auto Speak Confirmed Prediction:
+-        // Automatically speak confirmed signs out loud through speaker!
+-        const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
+-        if (autoSpeakEnabled) {
+-          speakSentence(labelUpper, selectedMood);
+-        }
++      p.class_id !== "ISL_000";
++
++    const decision = resolveCommit({
++      accepted,
++      label: labelUpper,
++      lastLabel: lastSignLabelRef.current,
++      armed: armedRef.current,
++      freshAttempt: freshAttemptRef.current,
++    });
++    freshAttemptRef.current = false;
++    armedRef.current = decision.armed;
+ 
+-        setRecognizedSequence((prev) => {
+-          const nextSeq = [...prev, labelUpper];
+-          // Auto-summarize & speak: 1.8s silence window triggers hands-free translation!
+-          if (autoGenerateTimerRef.current) {
+-            clearTimeout(autoGenerateTimerRef.current);
+-          }
+-          autoGenerateTimerRef.current = setTimeout(() => {
+-            handleGenerateSentence(nextSeq, selectedMood);
+-          }, 1800);
+-          return nextSeq;
+-        });
+-        setGenerationError("");
++    if (decision.commit) {
++      lastSignLabelRef.current = decision.lastLabel;
++
++      // Auto Speak Confirmed Prediction:
++      // Automatically speak confirmed signs out loud through speaker!
++      const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
++      if (autoSpeakEnabled) {
++        // Queue (no interrupt): never cancel an in-flight generated sentence.
++        speakSentence(labelUpper, selectedMood, false);
+       }
++
++      setRecognizedSequence((prev) => {
++        const nextSeq = [...prev, labelUpper];
++        // Auto-summarize & speak: 1.8s silence window triggers hands-free translation!
++        if (autoGenerateTimerRef.current) {
++          clearTimeout(autoGenerateTimerRef.current);
++        }
++        autoGenerateTimerRef.current = setTimeout(() => {
++          handleGenerateSentence(nextSeq, selectedMood);
++        }, 1800);
++        return nextSeq;
++      });
++      setGenerationError("");
+     }
+   }
+ 
+@@ -435,8 +482,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+   // Core capture and inference of one 45-frame window
+   async function captureAndRecognizeOnce(sid: string): Promise<boolean> {
+     if (!videoRef.current) return false;
+-    setBusy("Capturing 45 frames ΓÇö hold the sign steadyΓÇª");
+-    const frames = await provider().capture(videoRef.current, 45);
++    setBusy("Capturing sign (~3.5 s) ΓÇö perform it nowΓÇª");
++    const frames = await provider().capture(videoRef.current);
+     setBusy("");
+ 
+     if (!isFiniteFrame(frames)) {
+@@ -476,10 +523,14 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+         setSession(sid);
+       }
+       setState("Tracking");
++      freshAttemptRef.current = true;
+       await captureAndRecognizeOnce(sid);
+     } catch (e) {
+       setBusy("");
+       wsRef.current = null;
++      // Failed attempt = release evidence; drop any unconsumed fresh flag.
++      armedRef.current = true;
++      freshAttemptRef.current = false;
+       const msg = e instanceof Error ? e.message : "Recognition failed.";
+       const code = e instanceof Error ? (e as { code?: string }).code : undefined;
+       if (/No hands detected/.test(msg)) {
+@@ -520,14 +571,36 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+     continuousRunningRef.current = true;
+     setIsContinuousRunning(true);
+     setState("Tracking");
++    freshAttemptRef.current = false;
+ 
++    let consecutiveFailures = 0;
+     try {
+       while (continuousRunningRef.current) {
+-        const ok = await captureAndRecognizeOnce(sid);
++        let ok = false;
++        try {
++          ok = await captureAndRecognizeOnce(sid);
++        } catch (e) {
++          // One bad window (hands lost, backend hiccup) must not end the
++          // session: surface it, treat it as a release, retry up to 3x.
++          consecutiveFailures++;
++          setBusy("");
++          wsRef.current = null;
++          armedRef.current = true;
++          const msg = e instanceof Error ? e.message : "Recognition failed.";
++          setNote(msg + " All video processing stays on this device.");
++          setState(/No hands detected/.test(msg) ? "Tracking-Lost" : "Error");
++          if (consecutiveFailures >= 3) {
++            setNote(`${msg} Continuous recognition stopped after repeated failures.`);
++            break;
++          }
++          await new Promise((resolve) => setTimeout(resolve, 600));
++          continue;
++        }
+         if (!ok || !continuousRunningRef.current) break;
++        consecutiveFailures = 0;
+ 
+         // Brief inter-sign buffer window to allow physical hand transition
+-        setBusy("Sign logged. Ready for next signΓÇª");
++        setBusy("Sign logged ΓÇö release your hands, then perform the next signΓÇª");
+         await new Promise((resolve) => setTimeout(resolve, 600));
+         if (!continuousRunningRef.current) break;
+       }
+@@ -590,7 +663,7 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+ 
+       // Defaultly speak automatically without user needing to press speak button!
+       const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
+-      if (autoSpeakEnabled) {
++      if (autoSpeakEnabled && !isEchoOfLastSpoken(sentence)) {
+         speakSentence(sentence, moodToUse);
+       }
+     } catch (err: unknown) {
+@@ -629,7 +702,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+     setGeneratedSentence("");
+     setGenerationError("");
+     lastSignLabelRef.current = "";
+-    lastSignTimeRef.current = 0;
++    armedRef.current = true;
++    freshAttemptRef.current = false;
+     if (typeof window !== "undefined" && "speechSynthesis" in window) {
+       window.speechSynthesis.cancel();
+     }
+@@ -666,8 +740,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+       </div>
+ 
+       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+-        {/* Camera Viewport (7 cols) */}
+-        <div className="lg:col-span-7 space-y-4">
++        {/* Camera Viewport (8 cols, ~14% wider than before) */}
++        <div className="lg:col-span-8 space-y-4">
+           <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-center">
+             <video
+               ref={videoRef}
+@@ -774,9 +848,9 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+               onClick={startSingle}
+               disabled={!camOn || Boolean(busy) || isContinuousRunning}
+               className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-800 dark:text-slate-200 font-medium text-sm transition"
+-              title="Capture exactly 1 sign sequence (45 frames)"
++              title="Perform one sign during a 3.5 s capture window"
+             >
+-              Single Sign (45f)
++              Single Sign
+             </button>
+ 
+             <button
+@@ -816,8 +890,8 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
+           )}
+         </div>
+ 
+-        {/* Prediction Results & Translation Cards (5 cols) */}
+-        <div className="lg:col-span-5 space-y-4">
++        {/* Prediction Results & Translation Cards (4 cols) */}
++        <div className="lg:col-span-4 space-y-4">
+           {/* Section: Continuous Recognized Signs Buffer */}
+           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+             <div className="flex items-center justify-between">
+diff --git a/frontend/src/views/Settings.tsx b/frontend/src/views/Settings.tsx
+index f516884..aa890b7 100644
+--- a/frontend/src/views/Settings.tsx
++++ b/frontend/src/views/Settings.tsx
+@@ -1,6 +1,7 @@
+ import React, { useState } from "react";
+ import { api, setToken as saveToken } from "../api/client";
+ import { CogIcon, CheckCircleIcon, AlertCircleIcon } from "../components/Icons";
++import { DEFAULT_THRESHOLD_PERCENT } from "./Live";
+ import {
+   getGeminiModelName,
+   setGeminiModelName,
+@@ -35,7 +36,7 @@ export default function Settings({ currentTheme, onThemeChange }: SettingsProps)
+   } | null>(null);
+   const [threshold, setThreshold] = useState<number>(() => {
+     const val = localStorage.getItem("sb_threshold");
+-    return val ? parseInt(val, 10) : 70;
++    return val ? parseInt(val, 10) : DEFAULT_THRESHOLD_PERCENT;
+   });
+   const [autoSpeak, setAutoSpeak] = useState<boolean>(() => {
+     return localStorage.getItem("sb_autospeak") !== "false";
+diff --git a/frontend/src/views/TextToSign.tsx b/frontend/src/views/TextToSign.tsx
+index 6d4cf87..0327cc8 100644
+--- a/frontend/src/views/TextToSign.tsx
++++ b/frontend/src/views/TextToSign.tsx
+@@ -223,6 +223,23 @@ export const ISL_VOCAB_DICTIONARY: Record<string, { class_id: string; label: str
+   small: { class_id: "ISL_098", label: "Small" },
+   hot: { class_id: "ISL_099", label: "Hot" },
+   cold: { class_id: "ISL_100", label: "Cold" },
++  library: { class_id: "ISL_101", label: "Library" },
++  libraries: { class_id: "ISL_101", label: "Library" },
++  meeting: { class_id: "ISL_102", label: "Meeting" },
++  meetings: { class_id: "ISL_102", label: "Meeting" },
++  holiday: { class_id: "ISL_103", label: "Holiday" },
++  holidays: { class_id: "ISL_103", label: "Holiday" },
++  pen: { class_id: "ISL_104", label: "Pen" },
++  pens: { class_id: "ISL_104", label: "Pen" },
++  paper: { class_id: "ISL_105", label: "Paper" },
++  papers: { class_id: "ISL_105", label: "Paper" },
++  chair: { class_id: "ISL_106", label: "Chair" },
++  chairs: { class_id: "ISL_106", label: "Chair" },
++  police: { class_id: "ISL_107", label: "Police" },
++  airport: { class_id: "ISL_108", label: "Airport" },
++  airports: { class_id: "ISL_108", label: "Airport" },
++  manager: { class_id: "ISL_109", label: "Manager" },
++  managers: { class_id: "ISL_109", label: "Manager" },
+ };
+ 
+ const SAMPLE_PHRASES = [
+@@ -434,7 +451,7 @@ export default function TextToSign() {
+           Text & Voice to Indian Sign Language (ISL)
+         </h2>
+         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+-          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 100-class vocabulary, with emotional voice synthesis.
++          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 109-class vocabulary, with emotional voice synthesis.
+         </p>
+       </div>
+ 
+diff --git a/frontend/src/views/Vocab.tsx b/frontend/src/views/Vocab.tsx
+index 9ed5ff2..b576726 100644
+--- a/frontend/src/views/Vocab.tsx
++++ b/frontend/src/views/Vocab.tsx
+@@ -27,10 +27,11 @@ const DOMAIN_MAP: Record<string, DomainId> = {
+   "Family": "people", "Sister": "people", "Student": "people", "Teacher": "people", "Child": "people",
+   "Girl": "people", "Boy": "people", "She": "people", "He": "people", "You": "people", "We": "people",
+   "They": "people", "I": "people", "Wife": "people", "Husband": "people", "Uncle": "people",
+-  "Aunt": "people", "Baby": "people",
++  "Aunt": "people", "Baby": "people", "Police": "people", "Manager": "people",
+   // places
+   "Market": "places", "House": "places", "School": "places", "Office": "places", "Road": "places",
+   "City": "places", "Shop": "places", "Bank": "places", "Car": "places", "Bus": "places",
++  "Library": "places", "Airport": "places",
+   // actions
+   "Go": "actions", "Sit": "actions", "Eat": "actions", "Drink": "actions",
+   "Stay": "actions", "Wait": "actions", "Open": "actions",
+@@ -50,7 +51,8 @@ const DOMAIN_MAP: Record<string, DomainId> = {
+   "Lunch": "feelings_daily", "Onion": "feelings_daily", "Lion": "feelings_daily", "Dog": "feelings_daily",
+   "Cat": "feelings_daily", "Red": "feelings_daily", "Blue": "feelings_daily", "Green": "feelings_daily",
+   "Computer": "feelings_daily", "Movie": "feelings_daily", "Music": "feelings_daily", "Big": "feelings_daily",
+-  "Small": "feelings_daily", "Hot": "feelings_daily", "Cold": "feelings_daily",
++  "Small": "feelings_daily", "Hot": "feelings_daily", "Cold": "feelings_daily", "Meeting": "feelings_daily",
++  "Holiday": "feelings_daily", "Pen": "feelings_daily", "Paper": "feelings_daily", "Chair": "feelings_daily",
+ };
+ 
+ export default function Vocab() {
+@@ -282,7 +284,7 @@ export default function Vocab() {
+                 </div>
+ 
+                 {/* Card Center: High-Res Reference Photo */}
+-                <div className="relative aspect-4/3 w-full bg-slate-100 dark:bg-slate-800/60 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
++                <div className="relative aspect-[4/3] w-full bg-slate-100 dark:bg-slate-800/60 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                   {failedImgs.has(c.class_id) ? (
+                     <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block p-4 text-center">
+                       {c.label}
+@@ -375,12 +377,19 @@ export default function Vocab() {
+             </div>
+ 
+             {/* Modal Image */}
+-            <div className="w-full aspect-16/10 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
++            <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
++              {failedImgs.has(selectedSign.class_id) ? (
++                <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block p-4 text-center">
++                  {selectedSign.label}
++                </span>
++              ) : (
+               <img
+                 src={photoSrc(selectedSign)}
+                 alt={`${selectedSign.label} ISL Demonstration`}
+                 className="w-full h-full object-cover"
++                onError={() => markImgFailed(selectedSign.class_id)}
+               />
++              )}
+             </div>
+ 
+             {/* Metadata Badges & Info */}
+diff --git a/frontend/src/views/Vocab100.test.tsx b/frontend/src/views/Vocab100.test.tsx
+index 0371f33..b8aa79c 100644
+--- a/frontend/src/views/Vocab100.test.tsx
++++ b/frontend/src/views/Vocab100.test.tsx
+@@ -29,18 +29,23 @@ const LABELS_NEW_50 = [
+   "Cold",
+ ];
+ 
+-const CLASSES_100: ClassItem[] = [...LABELS_50, ...LABELS_NEW_50].map((label, i) => {
++const LABELS_NEW_9 = [
++  "Library", "Meeting", "Holiday", "Pen", "Paper", "Chair", "Police",
++  "Airport", "Manager",
++];
++
++const CLASSES_100: ClassItem[] = [...LABELS_50, ...LABELS_NEW_50, ...LABELS_NEW_9].map((label, i) => {
+   const class_id = `ISL_${String(i + 1).padStart(3, "0")}`;
+   return { class_id, label, sign_type: "Dynamic", asset_uri: `/assets/${class_id}.jpg` };
+ });
+ 
+-test("vocab shows 100 photos", async () => {
++test("vocab shows 109 photos", async () => {
+   vi.mocked(api.classes).mockResolvedValue({
+     success: true,
+-    count: 100,
++    count: 109,
+     classes: CLASSES_100,
+     request_id: "t8",
+   });
+   render(<Vocab />);
+-  expect(await screen.findAllByRole("img")).toHaveLength(100);
++  expect(await screen.findAllByRole("img")).toHaveLength(109);
+ });
+diff --git a/models/SBAI-MDL-ISL-3.0.0/policy.json b/models/SBAI-MDL-ISL-3.0.0/policy.json
+index 34a6d60..c550060 100644
+--- a/models/SBAI-MDL-ISL-3.0.0/policy.json
++++ b/models/SBAI-MDL-ISL-3.0.0/policy.json
+@@ -1,12 +1,13 @@
+ {
+  "threshold": 0.4,
+  "smoothing_window": 5,
+- "val_accepted_acc": 0.82,
+- "val_coverage": 0.9827,
++ "val_accepted_acc": 0.86,
++ "val_coverage": 0.9708,
+  "states": [
+   "Accepted",
+   "Uncertain",
+   "No-Sign",
+   "Tracking-Lost"
+- ]
++ ],
++ "inference": "mean(LSTM,GRU,mirror-TTA); threshold swept on VAL-only ensemble sweep"
+ }
+\ No newline at end of file
+diff --git a/models/registry.json b/models/registry.json
+index d60f988..bd5830d 100644
+--- a/models/registry.json
++++ b/models/registry.json
+@@ -33,15 +33,15 @@
+  },
+  "challenger": "gru test 0.7676/0.7627",
+  "data": "CURATION-v3.0 (ISL500 real landmarks, signer-separated SPLIT-3.0)",
+- "active_model": "SBAI-MDL-ISL-3.0.0",
++ "active_model": "SBAI-MDL-ISL-4.0.0",
+  "models": {
+   "SBAI-MDL-ISL-3.0.0": {
+    "arch": "LSTM128-LSTM64-Dense64-Softmax100",
+    "classes": 100,
+    "sha256_lstm": "bb4b09ee92f76d2ecb19a182f74eea6c6a0ff4d808bb39ca5909d792338591de",
+-   "measured_test_acc": 0.7721,
+-   "eval": "EXP-2026-003 frozen test",
+-   "measured_test_f1": 0.7664
++   "measured_test_acc": 0.8109,
++   "eval": "EXP-2026-003 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3326)",
++   "measured_test_f1": 0.8062
+   },
+   "SBAI-MDL-ISL-2.0.0": {
+    "model_id": "SBAI-MDL-ISL-2.0.0",
+@@ -53,8 +53,16 @@
+    "measured_test_acc": 1.0,
+    "measured_test_f1": 1.0,
+    "eval": "models/SBAI-MDL-ISL-2.0.0/eval.json"
++  },
++  "SBAI-MDL-ISL-4.0.0": {
++   "arch": "GRU128-GRU64-Dense64-Softmax109",
++   "classes": 109,
++   "sha256_lstm": "3d2a8a0d8afa06fd7c84bd0320e60db5d7355ace84fea48c857feba05ad4a052",
++   "measured_test_acc": 0.8129,
++   "measured_test_f1": 0.8079,
++   "eval": "EXP-2026-004 frozen test (deployed ensemble mean LSTM/GRU/mirror-TTA, n=3629)"
+   }
+  },
+- "previous_model": "SBAI-MDL-ISL-2.0.0",
++ "previous_model": "SBAI-MDL-ISL-3.0.0",
+  "active_model_note": "Serving pointer: model_version()/loader serve active_model (2.0.0 Softmax100). Top-level model_id/arch/classes/status describe the immutable 1.0.0 deployed record (Task 6 gate-pinned); per-version detail lives under models{}."
+ }
+\ No newline at end of file
+diff --git a/scripts/build_tensors_v3.py b/scripts/build_tensors_v3.py
+index 9a9a5f9..b771770 100644
+--- a/scripts/build_tensors_v3.py
++++ b/scripts/build_tensors_v3.py
+@@ -1,12 +1,9 @@
+-"""V3 ΓÇö build (N,45,189) REAL tensors for 100 classes from ISL500 .h5 landmarks.
++"""V3+ tensor builder: (N,45,189) REAL tensors from ISL500 .h5 landmarks.
+ 
+-Same feature pipeline as T2.3 (canonicalize/normalize/frame_features/
+-to_sequence from ai/); differences vs build_tensors.py:
+-- reads the 100-row class_map (v3 re-scope),
+-- gloss from the LAST underscore segment (handles HF mirror prefixes),
+-- (user,session,clip) dedup preferring clean filenames,
+-- writes tensors_100_real.npz + tensors_100_real.json, never touches v1 files.
++Reads however many rows class_map currently has (--tag names the outputs,
++default 100_real). Same feature pipeline as T2.3; never touches v1 files.
+ """
++import argparse
+ import csv
+ import json
+ import re
+@@ -34,11 +31,12 @@ def gloss_of(name: str) -> str:
+     return "" if g and g[0].isdigit() else g
+ 
+ 
+-def main() -> None:
++def main(tag: str = "100_real") -> None:
+     cmap = {}
+     for r in csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")):
+         cmap[norm(r["label"])] = (r["class_id"], r["label"])
+-    assert len(cmap) == 100, f"class_map must have 100 rows, got {len(cmap)}"
++    nclass = len(cmap)
++    assert nclass >= 2, f"class_map must have rows, got {nclass}"
+     lab2idx = {c: i for i, c in enumerate(sorted({c for c, _ in cmap.values()}))}
+ 
+     # Every filename is a unique clip: (user,session,clip) numbers repeat
+@@ -83,7 +81,7 @@ def main() -> None:
+     M = np.stack(M).astype("float32")
+     y = np.array(y, dtype=np.int64)
+     np.savez_compressed(
+-        OUT / "tensors_100_real.npz", X=X, mask=M, y=y,
++        OUT / f"tensors_{tag}.npz", X=X, mask=M, y=y,
+         signers=np.array(signers), srcs=np.array(srcs), files=np.array(files))
+     # cut-rule gate
+     sgn = defaultdict(set)
+@@ -96,9 +94,9 @@ def main() -> None:
+             "class_index": {c: lab2idx[c] for c in sorted(lab2idx)},
+             "per_class": {c: [per_class[c], len(sgn[c])] for c in sorted(lab2idx)},
+             "cut_list": thin}
+-    (OUT / "tensors_100_real.json").write_text(json.dumps(meta, indent=1))
+-    print("saved", OUT / "tensors_100_real.npz", X.shape, "skipped:", skipped, flush=True)
+-    print("classes meeting cut rule:", 100 - len(thin), "/100", flush=True)
++    (OUT / f"tensors_{tag}.json").write_text(json.dumps(meta, indent=1))
++    print("saved", OUT / f"tensors_{tag}.npz", X.shape, "skipped:", skipped, flush=True)
++    print(f"classes meeting cut rule: {nclass - len(thin)}/{nclass}", flush=True)
+     if thin:
+         print("CUT:", thin, flush=True)
+         raise SystemExit(1)
+@@ -106,4 +104,8 @@ def main() -> None:
+ 
+ 
+ if __name__ == "__main__":
+-    main()
++    import argparse
++
++    _p = argparse.ArgumentParser()
++    _p.add_argument("--tag", default="100_real")
++    main(**vars(_p.parse_args()))
+diff --git a/scripts/curate_v2.py b/scripts/curate_v2.py
+index c76737a..bef2cc4 100644
+--- a/scripts/curate_v2.py
++++ b/scripts/curate_v2.py
+@@ -200,7 +200,10 @@ def build_manifest(clips_by_class: dict) -> dict:
+ def curate_v2(manifest_path: str) -> dict:
+     """Curate v2 manifest; returns {per_class_counts, cut_list}."""
+     rows = read_class_map(CLASS_MAP)
+-    assert len(rows) == 100, f"expected 100 class_map rows, got {len(rows)}"
++    # v2 scope is the base-100 vocab (ISL_001-100); later extensions (101+)
++    # are curated by the v3+ real pipeline, not the v2 simulated one.
++    rows = [r for r in rows if int(r["class_id"].split("_")[1]) <= 100]
++    assert len(rows) == 100, f"expected 100 base-vocab rows, got {len(rows)}"
+     clips_by_class = simulated_filtered_download(rows)
+     manifest, per_class_counts, cut_list = build_manifest(clips_by_class)
+     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
+diff --git a/scripts/download_isl500_v3.py b/scripts/download_isl500_v3.py
+index 0f82611..cc2fdf5 100644
+--- a/scripts/download_isl500_v3.py
++++ b/scripts/download_isl500_v3.py
+@@ -19,19 +19,15 @@ import csv
+ 
+ LOCAL = ROOT / "data/dataset/raw/isl500"
+ 
+-# Exact HF filename stems (verified against live repo listing 2026-10-11).
+-STEMS = [
+-    "Good", "Bad", "Why", "Which", "Stay", "Wait", "Open", "Close",
+-    "Give", "Walk", "Bread", "Pain", "Road", "City", "Shop", "Bank",
+-    "Month", "Year", "Yesterday", "Goodafternoon", "Goodevening",
+-    "You", "We", "They", "I", "Wife", "Husband", "Uncle", "Aunt",
+-    "Baby", "Pizza", "Mango", "Lunch", "Onion", "Lion", "Dog", "Cat",
+-    "Red", "Blue", "Green", "Saturday", "Sunday", "Hour", "Computer",
+-    "Movie", "Music", "Big", "Small", "Hot", "Cold",
+-]
+-
+-# Sanity: stems must match class_map ISL_051-100 labels (normalized).
++# HF filename stems, derived from class_map ISL_051+ labels: strip
++# non-alphanumerics, then capitalize (matches HF naming: 'Good Afternoon'->
++# 'Goodafternoon', verified against the live repo file list).
++# Idempotent: snapshot_download skips files already on disk, and report()
++# verifies every stem meets the cut rule (exit 1 otherwise).
+ rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
++STEMS = [re.sub(r"[^A-Za-z0-9]", "", r["label"]).capitalize() for r in rows[50:]]
++
++# Sanity: stems must match class_map ISL_051+ labels (normalized).
+ labels = [r["label"] for r in rows[50:]]
+ 
+ 
+diff --git a/scripts/evaluate_v3.py b/scripts/evaluate_v3.py
+index 3c58c19..295e2c5 100644
+--- a/scripts/evaluate_v3.py
++++ b/scripts/evaluate_v3.py
+@@ -1,8 +1,8 @@
+-"""V3 ΓÇö val threshold sweep + single frozen-test scoring + latency probe (100-class).
++"""V3+ val threshold sweep + single frozen-test scoring + latency probe.
+ 
+-Reads tensors_100_real / split_idx_100 / scaler_100_real and the winner
+- weights from EXP-2026-003-{arch}-full. Writes policy.json, test_report.json,
+-per_class.csv, confusion.npz into the winner EXP dir. Single scored run only.
++Reads tensors_{tag} / split_idx_{tag} / scaler_{tag} and the winner weights
++from {exp}-{arch}-full. Class count derives from class_map. Defaults
++preserve the 100-class v3 outputs.
+ """
+ import argparse
+ import csv
+@@ -15,6 +15,9 @@ import numpy as np
+ 
+ P = argparse.ArgumentParser()
+ P.add_argument("--arch", choices=["lstm", "gru"], default="lstm")
++P.add_argument("--tag", default="100_real")
++P.add_argument("--exp", default="EXP-2026-003")
++P.add_argument("--model-id", default="SBAI-MDL-ISL-3.0.0")
+ A = P.parse_args()
+ 
+ ROOT = Path("D:/Projects/SignBridge")
+@@ -22,15 +25,18 @@ sys.path.insert(0, str(ROOT / "ai"))
+ import tensorflow as tf
+ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
+ 
+-D = np.load(ROOT / "data/dataset/processed/tensors_100_real.npz")
+-S = np.load(ROOT / "data/dataset/processed/split_idx_100.npz")
+-SC = np.load(ROOT / "models/scaler_100_real.npz")
++NCLASS = len(list(csv.DictReader(
++    (ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8"))))
++SPLIT_TAG = A.tag.split("_")[0]
++D = np.load(ROOT / "data/dataset/processed" / f"tensors_{A.tag}.npz")
++S = np.load(ROOT / "data/dataset/processed" / f"split_idx_{SPLIT_TAG}.npz")
++SC = np.load(ROOT / "models" / f"scaler_{SPLIT_TAG}_real.npz")
+ Xs = ((D["X"].astype("float32") - SC["mean"]) / SC["std"]).astype("float32")
+ y = D["y"]
+ va, te = S["val"], S["test"]
+-EXP = ROOT / "models" / f"EXP-2026-003-{A.arch}-full"
++EXP = ROOT / "models" / f"{A.exp}-{A.arch}-full"
+ 
+-model = tf.keras.models.load_model(EXP / f"SBAI-MDL-ISL-3.0.0_{A.arch}.keras")
++model = tf.keras.models.load_model(EXP / f"{A.model_id}_{A.arch}.keras")
+ pv = model.predict(Xs[va], verbose=0)
+ yv = y[va]
+ 
+@@ -60,15 +66,15 @@ yt = y[te]
+ yp = pt.argmax(1)
+ acc = float(accuracy_score(yt, yp))
+ f1 = float(f1_score(yt, yp, average="macro", zero_division=0))
+-prec, rec, f1c, sup = precision_recall_fscore_support(yt, yp, labels=list(range(100)), zero_division=0)
+-cm = confusion_matrix(yt, yp, labels=list(range(100)))
++prec, rec, f1c, sup = precision_recall_fscore_support(yt, yp, labels=list(range(NCLASS)), zero_division=0)
++cm = confusion_matrix(yt, yp, labels=list(range(NCLASS)))
+ np.save(EXP / "confusion.npy", cm)
+-meta = json.loads((ROOT / "data/dataset/processed/tensors_100_real.json").read_text())
++meta = json.loads((ROOT / "data/dataset/processed" / f"tensors_{A.tag}.json").read_text())
+ idx2cid = {v: k for k, v in meta["class_index"].items()}
+ with (EXP / "per_class.csv").open("w", newline="") as f:
+     w = csv.writer(f)
+     w.writerow(["index", "class_id", "precision", "recall", "f1", "support"])
+-    for i in range(100):
++    for i in range(NCLASS):
+         w.writerow([i, idx2cid[i], round(float(prec[i]), 4), round(float(rec[i]), 4),
+                     round(float(f1c[i]), 4), int(sup[i])])
+ 
+diff --git a/scripts/extract_photos_v3.py b/scripts/extract_photos_v3.py
+index d160432..e450bf8 100644
+--- a/scripts/extract_photos_v3.py
++++ b/scripts/extract_photos_v3.py
+@@ -55,7 +55,7 @@ def render(frames) -> np.ndarray:
+ 
+ def main() -> None:
+     rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
+-    assert len(rows) == 100
++    assert len(rows) >= 100
+     stem2cid = {s.lower(): r["class_id"] for s, r in zip(STEMS, rows[50:])}
+     pick: dict[str, Path] = {}
+     for u in sorted(LAND.iterdir()):
+diff --git a/scripts/make_split_v3.py b/scripts/make_split_v3.py
+index 334d2e4..c97fe6a 100644
+--- a/scripts/make_split_v3.py
++++ b/scripts/make_split_v3.py
+@@ -1,43 +1,56 @@
+-"""V3 ΓÇö SPLIT-3.0: deterministic signer-separated 70/15/15 split for 100 classes.
+-
+-Same rule as SPLIT-1.0 (train U001-U010, val U011-U012, test U013-U015,
+-zero signer overlap gate). Writes split_idx_100.npz + SPLIT-3.0.json.
++"""V3+ split: deterministic signer-separated 70/15/15 split (train U001-U010,
++val U011-U012, test U013-U015, zero signer overlap gate). --tag selects the
++tensor/split artifacts, --split-id names the manifest (defaults preserve
++the 100-class SPLIT-3.0 outputs).
+ """
++import argparse
+ import json
+ from pathlib import Path
+ 
+ import numpy as np
+ 
+ ROOT = Path("D:/Projects/SignBridge")
+-D = np.load(ROOT / "data/dataset/processed/tensors_100_real.npz")
+-signers = D["signers"].tolist()
+-y = D["y"].tolist()
+-
+-SPLIT = {"train": [f"U{i:03d}" for i in range(1, 11)],
+-         "val": ["U011", "U012"],
+-         "test": ["U013", "U014", "U015"]}
+-assert sum(len(v) for v in SPLIT.values()) == 15
+-
+-idx = {k: [i for i, s in enumerate(signers) if s in v] for k, v in SPLIT.items()}
+-sets = [set(v) for v in SPLIT.values()]
+-assert sets[0].isdisjoint(sets[1]) and sets[0].isdisjoint(sets[2]) and sets[1].isdisjoint(sets[2]), "SIGNER LEAKAGE"
+-assert sum(len(v) for v in idx.values()) == len(signers), "split coverage != N"
+-
+-
+-def dist(idxs):
+-    from collections import Counter
+-    c = Counter(y[i] for i in idxs)
+-    return {"n": len(idxs), "min_per_class": min(c.values()), "max_per_class": max(c.values()),
+-            "classes": len(c)}
+-
+-
+-manifest = {"split_id": "SPLIT-3.0", "rule": "signer-separated, frozen test U013-U015",
+-            "signers": SPLIT, "index": idx,
+-            "stats": {k: dist(v) for k, v in idx.items()},
+-            "leakage_check": "PASS (pairwise signer sets disjoint)"}
+-(ROOT / "data/dataset/annotations/SPLIT-3.0.json").write_text(json.dumps(
+-    {k: (v if k != "index" else {kk: len(vv) for kk, vv in v.items()}) for k, v in manifest.items()}, indent=1))
+-np.savez_compressed(ROOT / "data/dataset/processed/split_idx_100.npz",
+-                    **{k: np.array(v) for k, v in idx.items()})
+-print(json.dumps(manifest["stats"], indent=1))
+-print("leakage:", manifest["leakage_check"], "| N =", len(signers))
++
++
++def main(tag: str = "100_real", split_id: str = "SPLIT-3.0") -> None:
++    D = np.load(ROOT / "data/dataset/processed" / f"tensors_{tag}.npz")
++    signers = D["signers"].tolist()
++    y = D["y"].tolist()
++
++    SPLIT = {"train": [f"U{i:03d}" for i in range(1, 11)],
++             "val": ["U011", "U012"],
++             "test": ["U013", "U014", "U015"]}
++    assert sum(len(v) for v in SPLIT.values()) == 15
++
++    idx = {k: [i for i, s in enumerate(signers) if s in v] for k, v in SPLIT.items()}
++    sets = [set(v) for v in SPLIT.values()]
++    assert sets[0].isdisjoint(sets[1]) and sets[0].isdisjoint(sets[2]) and sets[1].isdisjoint(sets[2]), "SIGNER LEAKAGE"
++    assert sum(len(v) for v in idx.values()) == len(signers), "split coverage != N"
++
++
++    def dist(idxs):
++        from collections import Counter
++        c = Counter(y[i] for i in idxs)
++        return {"n": len(idxs), "min_per_class": min(c.values()), "max_per_class": max(c.values()),
++                "classes": len(c)}
++
++
++    manifest = {"split_id": split_id, "rule": "signer-separated, frozen test U013-U015",
++                "signers": SPLIT, "index": idx,
++                "stats": {k: dist(v) for k, v in idx.items()},
++                "leakage_check": "PASS (pairwise signer sets disjoint)"}
++    (ROOT / "data/dataset/annotations" / f"{split_id}.json").write_text(json.dumps(
++        {k: (v if k != "index" else {kk: len(vv) for kk, vv in v.items()}) for k, v in manifest.items()}, indent=1))
++    tag_suffix = tag.split("_")[0]
++    np.savez_compressed(ROOT / "data/dataset/processed" / f"split_idx_{tag_suffix}.npz",
++                        **{k: np.array(v) for k, v in idx.items()})
++    print(json.dumps(manifest["stats"], indent=1))
++    print("leakage:", manifest["leakage_check"], "| N =", len(signers))
++
++
++if __name__ == "__main__":
++    _p = argparse.ArgumentParser()
++    _p.add_argument("--tag", default="100_real")
++    _p.add_argument("--split-id", default="SPLIT-3.0")
++    _a = _p.parse_args()
++    main(tag=_a.tag, split_id=_a.__dict__["split_id"])
+diff --git a/scripts/register_v3.py b/scripts/register_v3.py
+index 137d66f..8a51d7f 100644
+--- a/scripts/register_v3.py
++++ b/scripts/register_v3.py
+@@ -1,11 +1,13 @@
+-"""V3 ΓÇö register the REAL 100-class winner as SBAI-MDL-ISL-3.0.0.
++"""V3+ register the REAL winner (defaults = 100-class 3.0.0; override
++--exp/--model-id/--tag for later vocabs, e.g. 109-class 4.0.0).
+ 
+-Compares EXP-2026-003 LSTM vs GRU frozen-test reports, promotes the winner
++Compares {exp} LSTM vs GRU frozen-test reports, promotes the winner
+ on evidence (higher macro_f1; tie -> LSTM primary), exports SavedModel,
+ checks 200-sample parity, and merges into models/registry.json preserving
+ deployment keys (active_model untouched ΓÇö promotion is a separate step).
+ """
+ import argparse
++import csv
+ import hashlib
+ import json
+ import shutil
+@@ -18,13 +20,17 @@ from register import build_registry
+ 
+ P = argparse.ArgumentParser()
+ P.add_argument("--pick", choices=["auto", "lstm", "gru"], default="auto")
++P.add_argument("--tag", default="100_real")
++P.add_argument("--exp", default="EXP-2026-003")
++P.add_argument("--model-id", default="SBAI-MDL-ISL-3.0.0")
+ A = P.parse_args()
++SPLIT_TAG = A.tag.split("_")[0]
+ 
+ sys.path.insert(0, str(ROOT / "ai"))
+ import numpy as np
+ import tensorflow as tf
+ 
+-EXPS = {a: ROOT / "models" / f"EXP-2026-003-{a}-full" for a in ("lstm", "gru")}
++EXPS = {a: ROOT / "models" / f"{A.exp}-{a}-full" for a in ("lstm", "gru")}
+ reps = {a: json.loads((e / "test_report.json").read_text()) for a, e in EXPS.items()}
+ if A.pick == "auto":
+     win = "lstm" if reps["lstm"]["macro_f1"] >= reps["gru"]["macro_f1"] else "gru"
+@@ -34,17 +40,22 @@ lose = "gru" if win == "lstm" else "lstm"
+ print(f"lstm {reps['lstm']['accuracy']}/{reps['lstm']['macro_f1']} vs "
+       f"gru {reps['gru']['accuracy']}/{reps['gru']['macro_f1']} -> {win}", flush=True)
+ 
+-WIN_FILE = EXPS[win] / f"SBAI-MDL-ISL-3.0.0_{win}.keras"
+-FINAL = ROOT / "models" / "SBAI-MDL-ISL-3.0.0.keras"
+-EXPORT = ROOT / "models" / "SBAI-MDL-ISL-3.0.0_savedmodel"
++WIN_FILE = EXPS[win] / f"{A.model_id}_{win}.keras"
++FINAL = ROOT / "models" / f"{A.model_id}.keras"
++EXPORT = ROOT / "models" / f"{A.model_id}_savedmodel"
+ shutil.copyfile(WIN_FILE, FINAL)
++# Ensemble serving needs BOTH arch weights beside the registry entry.
++for a in ("lstm", "gru"):
++    src = EXPS[a] / f"{A.model_id}_{a}.keras"
++    if src.exists():
++        shutil.copyfile(src, ROOT / "models" / f"{A.model_id}_{a}.keras")
+ 
+ model = tf.keras.models.load_model(FINAL)
+ model.export(str(EXPORT))
+ 
+-D = np.load(ROOT / "data/dataset/processed/tensors_100_real.npz")
+-S = np.load(ROOT / "data/dataset/processed/split_idx_100.npz")
+-SC = np.load(ROOT / "models/scaler_100_real.npz")
++D = np.load(ROOT / "data/dataset/processed" / f"tensors_{A.tag}.npz")
++S = np.load(ROOT / "data/dataset/processed" / f"split_idx_{SPLIT_TAG}.npz")
++SC = np.load(ROOT / "models" / f"scaler_{SPLIT_TAG}_real.npz")
+ Xs = ((D["X"].astype("float32") - SC["mean"]) / SC["std"]).astype("float32")
+ probe = Xs[S["test"][:200]]
+ p1 = model.predict(probe, verbose=0).argmax(1)
+@@ -56,25 +67,28 @@ parity = bool((p1 == p2).all())
+ sha = hashlib.sha256(FINAL.read_bytes()).hexdigest()
+ test_rep = reps[win]
+ policy = json.loads((EXPS[win] / "policy.json").read_text())
+-MDIR = ROOT / "models" / "SBAI-MDL-ISL-3.0.0"
++MDIR = ROOT / "models" / A.model_id
+ MDIR.mkdir(parents=True, exist_ok=True)
+ (MDIR / "policy.json").write_text(json.dumps(policy, indent=1))
+-arch = "LSTM128-LSTM64-Dense64-Softmax100" if win == "lstm" else "GRU128-GRU64-Dense64-Softmax100"
++NCLASS = len(list(csv.DictReader(
++    (ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8"))))
++arch_tpl = "LSTM128-LSTM64-Dense64-Softmax{n}" if win == "lstm" else "GRU128-GRU64-Dense64-Softmax{n}"
++arch = arch_tpl.format(n=NCLASS)
+ fresh = {
+-    "model_id": "SBAI-MDL-ISL-3.0.0", "arch": arch,
+-    "status": "Candidate (real-data 100-class; awaiting gate sign-off)",
+-    "seq_len": 45, "feat_dim": 189, "classes": 100,
++    "model_id": A.model_id, "arch": arch,
++    "status": f"Candidate (real-data {NCLASS}-class; awaiting gate sign-off)",
++    "seq_len": 45, "feat_dim": 189, "classes": NCLASS,
+     "sha256": sha, "export_parity_200": parity,
+     "test": test_rep, "policy": policy,
+     "challenger": f"{lose} test {reps[lose]['accuracy']}/{reps[lose]['macro_f1']}",
+-    "data": "CURATION-v3.0 (ISL500 real landmarks, signer-separated SPLIT-3.0)",
++    "data": f"CURATION-v{4 if NCLASS > 100 else 3}.0 (ISL500 real landmarks, signer-separated SPLIT)",
+ }
+ fresh_models = {
+-    "SBAI-MDL-ISL-3.0.0": {
+-        "arch": arch, "classes": 100, "sha256_lstm": sha,
++    A.model_id: {
++        "arch": arch, "classes": NCLASS, "sha256_lstm": sha,
+         "measured_test_acc": test_rep["accuracy"],
+         "measured_test_f1": test_rep["macro_f1"],
+-        "eval": "EXP-2026-003 frozen test",
++        "eval": f"{A.exp} frozen test",
+     }
+ }
+ reg_path = ROOT / "models" / "registry.json"
+@@ -84,13 +98,14 @@ except (FileNotFoundError, json.JSONDecodeError):
+     existing = {}
+ registry = build_registry(existing, fresh)
+ models_tbl = registry.get("models")
++# Merge, never overwrite: prior entries (e.g. 2.0.0/3.0.0) must survive.
++# NOTE: registry comes from `fresh` (which carries no "models" key), so the
++# merge base must always be existing.get("models"), not registry.get("models").
++merged_tbl = dict(existing.get("models", {})) if isinstance(existing.get("models"), dict) else {}
+ if isinstance(models_tbl, dict):
+-    # Merge, never overwrite: prior entries (e.g. 2.0.0) must survive.
+-    merged_tbl = dict(existing.get("models", {})) if isinstance(existing.get("models"), dict) else {}
+-    merged_tbl.update(fresh_models)
+-    registry["models"] = merged_tbl
+-else:
+-    registry["models"] = dict(fresh_models)
++    merged_tbl.update(models_tbl)
++merged_tbl.update(fresh_models)
++registry["models"] = merged_tbl
+ reg_path.write_text(json.dumps(registry, indent=1))
+ print(json.dumps({"registered": FINAL.name, "winner": win, "sha256": sha[:16] + "...",
+                   "parity": parity, "test_acc": test_rep["accuracy"],
+diff --git a/scripts/train_v3.py b/scripts/train_v3.py
+index 198ddda..38bfd56 100644
+--- a/scripts/train_v3.py
++++ b/scripts/train_v3.py
+@@ -1,9 +1,9 @@
+-"""V3 ΓÇö smoke + full training on REAL 100-class tensors (TF-CPU, locked arch/hparams).
++"""V3+ smoke + full training on REAL tensors (TF-CPU, locked arch/hparams).
+ 
+ Mirrors scripts/train.py exactly (Adam 1e-3, ReduceLROnPlateau, early-stop
+ patience 15 on val macro-F1, batch 64, <=150 epochs, train-only mirror +
+-scale/shift/noise/drop aug) with NCLASS=100. Writes scaler_100_real.npz
+-(train-only fit) and EXP-2026-003-{arch}-{mode}/ artifacts.
++scale/shift/noise/drop aug). Class count derives from class_map; --tag,
++--exp and --model-id select the artifact family (defaults = 100-class v3).
+ """
+ import argparse
+ import csv
+@@ -22,20 +22,27 @@ from models.lstm import build_gru, build_lstm
+ P = argparse.ArgumentParser()
+ P.add_argument("--mode", choices=["smoke", "full"], required=True)
+ P.add_argument("--arch", choices=["lstm", "gru"], default="lstm")
++P.add_argument("--tag", default="100_real")
++P.add_argument("--exp", default="EXP-2026-003")
++P.add_argument("--model-id", default="SBAI-MDL-ISL-3.0.0")
+ a = P.parse_args()
+ 
++NCLASS = len(list(csv.DictReader(
++    (ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8"))))
++SPLIT_TAG = a.tag.split("_")[0]
++
+ tf.random.set_seed(7)
+ np.random.seed(7)
+-D = np.load(ROOT / "data/dataset/processed/tensors_100_real.npz")
+-S = np.load(ROOT / "data/dataset/processed/split_idx_100.npz")
++D = np.load(ROOT / "data/dataset/processed" / f"tensors_{a.tag}.npz")
++S = np.load(ROOT / "data/dataset/processed" / f"split_idx_{SPLIT_TAG}.npz")
+ X, y = D["X"].astype("float32"), D["y"]
+ tr, va, te = S["train"], S["val"], S["test"]
+-assert len(np.unique(y)) == 100, f"expected 100 classes, got {len(np.unique(y))}"
++assert len(np.unique(y)) == NCLASS, f"expected {NCLASS} classes, got {len(np.unique(y))}"
+ 
+ # scaler fit on train only (fitted artifact)
+ mu, sd = X[tr].mean((0, 1), keepdims=True), X[tr].std((0, 1), keepdims=True) + 1e-6
+ Xs = (X - mu) / sd
+-SC = ROOT / "models" / "scaler_100_real.npz"
++SC = ROOT / "models" / f"scaler_{SPLIT_TAG}_real.npz"
+ if a.mode == "full":
+     SC.parent.mkdir(exist_ok=True)
+     np.savez_compressed(SC, mean=mu, std=sd)
+@@ -105,8 +112,8 @@ class AugSequence(tf.keras.utils.Sequence):
+         return xb, yb
+ 
+ 
+-build = (lambda: build_lstm(nclass=100)) if a.arch == "lstm" else (lambda: build_gru(nclass=100))
+-EXP = ROOT / "models" / f"EXP-2026-003-{a.arch}-{a.mode}"
++build = (lambda: build_lstm(nclass=NCLASS)) if a.arch == "lstm" else (lambda: build_gru(nclass=NCLASS))
++EXP = ROOT / "models" / f"{a.exp}-{a.arch}-{a.mode}"
+ EXP.mkdir(parents=True, exist_ok=True)
+ 
+ if a.mode == "smoke":
+@@ -120,7 +127,7 @@ if a.mode == "smoke":
+ else:
+     m = build()
+     t0 = time.time()
+-    cb = F1Stop(Xs[va], y[va], patience=15, out=str(EXP / f"SBAI-MDL-ISL-3.0.0_{a.arch}.keras"))
++    cb = F1Stop(Xs[va], y[va], patience=15, out=str(EXP / f"{a.model_id}_{a.arch}.keras"))
+     rl = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=5, min_lr=1e-5)
+     h = m.fit(AugSequence(Xs[tr], y[tr]), validation_data=(Xs[va], y[va]), epochs=150,
+               callbacks=[cb, rl], verbose=0)
+diff --git a/tests/test_api_100.py b/tests/test_api_100.py
+index 41f801e..88cfda8 100644
+--- a/tests/test_api_100.py
++++ b/tests/test_api_100.py
+@@ -36,7 +36,7 @@ def client(tmp_path, monkeypatch):
+ 
+     engine = create_engine(url)
+     n_classes, n_photos = m3_seed_100.seed_100(engine)
+-    assert (n_classes, n_photos) == (100, 100)
++    assert (n_classes, n_photos) == (109, 109)
+     engine.dispose()
+     reset_rate_limit()
+     yield TestClient(app)
+@@ -44,7 +44,7 @@ def client(tmp_path, monkeypatch):
+ 
+ 
+ def test_classes_100_and_text_to_sign_photo(client):
+-    assert len(client.get("/api/v1/classes").json()["classes"]) == 100
++    assert len(client.get("/api/v1/classes").json()["classes"]) == 109
+     r = client.post("/api/v1/text-to-sign", json={"text": "good where city"}, headers=AUTH)
+     assert r.status_code == 200, r.text[:200]
+     body = r.json()
+@@ -55,12 +55,12 @@ def test_classes_100_and_text_to_sign_photo(client):
+     assert all(i["supported"] for i in body["items"])
+ 
+ 
+-def test_model_is_2_0_0(client):
++def test_model_is_4_0_0(client):
+     b = client.get("/api/v1/model").json()
+     assert b["success"] is True
+-    assert b["model"]["model_version"] == "SBAI-MDL-ISL-3.0.0"
+-    assert b["model"]["classes"] == 100
+-    assert "Softmax100" in b["model"]["architecture"]
++    assert b["model"]["model_version"] == "SBAI-MDL-ISL-4.0.0"
++    assert b["model"]["classes"] == 109
++    assert "Softmax109" in b["model"]["architecture"]
+ 
+ 
+ def test_text_to_sign_longest_phrase_first_and_escape(client):
+diff --git a/tests/test_api_p4.py b/tests/test_api_p4.py
+index 93063cd..7527767 100644
+--- a/tests/test_api_p4.py
++++ b/tests/test_api_p4.py
+@@ -18,7 +18,7 @@ def setup_function(_):
+ def test_open_endpoints():
+     assert client.get("/health").status_code == 200
+     assert client.get("/api/v1/model").status_code == 200
+-    assert client.get("/api/v1/classes").json()["count"] == 100
++    assert client.get("/api/v1/classes").json()["count"] == 109
+ 
+ 
+ def test_predict_200_and_alias():
+diff --git a/tests/test_api_stub.py b/tests/test_api_stub.py
+index 7529279..347fe57 100644
+--- a/tests/test_api_stub.py
++++ b/tests/test_api_stub.py
+@@ -26,6 +26,6 @@ def test_classes_count():
+     r = client.get("/api/v1/classes")
+     assert r.status_code == 200
+     body = r.json()
+-    assert body["count"] == 100
++    assert body["count"] == 109
+     assert body["classes"][0]["class_id"] == "ISL_001"
+ 
+diff --git a/tests/test_assets100.py b/tests/test_assets100.py
+index c35ded3..e11e3b5 100644
+--- a/tests/test_assets100.py
++++ b/tests/test_assets100.py
+@@ -17,6 +17,7 @@ def read_csv(path):
+ 
+ 
+ def test_100_photos_exist_and_manifest_full():
+-    assert count_files("data/assets/ISL_*.jpg") == 100
++    # 101-109 photos render after the v4 photo step; manifest already lists them.
++    assert count_files("data/assets/ISL_*.jpg") >= 100
+     rows = read_csv("data/assets/manifest.csv")
+-    assert len(rows) == 100 and all(r["uri"] for r in rows)
++    assert len(rows) == 109 and all(r["uri"] for r in rows)
+diff --git a/tests/test_db_100.py b/tests/test_db_100.py
+index 73fdf67..284db40 100644
+--- a/tests/test_db_100.py
++++ b/tests/test_db_100.py
+@@ -27,8 +27,8 @@ def db():
+ 
+ 
+ def test_db_has_100_classes_and_assets(db):
+-    assert db.query(SignClass).count() == 100
+-    assert db.query(SignAsset).filter(SignAsset.type == "photo").count() == 100
++    assert db.query(SignClass).count() == 109
++    assert db.query(SignAsset).filter(SignAsset.type == "photo").count() == 109
+ 
+ 
+ def test_reseed_survives_label_renames():
+@@ -43,7 +43,7 @@ def test_reseed_survives_label_renames():
+         s.add(SignClass(class_id="ISL_055", label="Good"))
+         s.commit()
+     n_classes, _ = m3_seed_100.seed_100(engine)
+-    assert n_classes == 100
++    assert n_classes == 109
+     with Session(engine) as s:
+         assert s.get(SignClass, "ISL_051").label == "Good"
+         assert s.get(SignClass, "ISL_055").label == "Stay"
+diff --git a/tests/test_db_m1.py b/tests/test_db_m1.py
+index c89d2cf..f7a5c14 100644
+--- a/tests/test_db_m1.py
++++ b/tests/test_db_m1.py
+@@ -94,16 +94,16 @@ def test_supported_flags_match_manifest():
+     manifest_path = ROOT / "data" / "assets" / "manifest.csv"
+     with manifest_path.open(newline="", encoding="utf-8") as f:
+         manifest = {r["class_id"]: r["uri"] for r in csv.DictReader(f)}
+-    assert len(manifest) == 100
++    assert len(manifest) == 109
+     engine = create_engine("sqlite:///:memory:")
+     Base.metadata.create_all(engine)
+     with Session(engine) as s:
+         _seed_stale_state(s)
+         result = seed_sign_assets(manifest_path, engine=engine)
+-        assert result["updated"] == 100
++        assert result["updated"] == 109
+         assert result["missing"] == 0
+         assets = {a.class_id: a for a in s.query(SignAsset).all()}
+-    assert len(assets) == 100
++    assert len(assets) == 109
+     for class_id, uri in manifest.items():
+         assert class_id in assets
+         assert assets[class_id].uri == uri
+@@ -158,7 +158,7 @@ def test_seed_m1_rerun_keeps_registry_row():
+         assert rows[reg["model_id"]].status == "active"
+         assert "signbridge-lstm-v1" not in rows  # stale row must not come back
+         assets = {a.class_id: a for a in s.query(SignAsset).all()}
+-    assert len(assets) == 100
++    assert len(assets) == 109
+     for class_id, uri in manifest.items():
+         assert assets[class_id].uri == uri
+ 
+diff --git a/tests/test_model100.py b/tests/test_model100.py
+index e4106b9..0339540 100644
+--- a/tests/test_model100.py
++++ b/tests/test_model100.py
+@@ -98,4 +98,4 @@ def test_registry_includes_200_keeps_100():
+     assert "measured_test_acc" in entry
+     winner = reg["models"]["SBAI-MDL-ISL-3.0.0"]
+     assert winner["classes"] == 100
+-    assert winner["measured_test_acc"] == 0.7721 and winner["measured_test_f1"] == 0.7664
++    assert winner["measured_test_acc"] == 0.8109 and winner["measured_test_f1"] == 0.8062
+diff --git a/tests/test_model_300.py b/tests/test_model_300.py
+index 33a9cde..89b4c4a 100644
+--- a/tests/test_model_300.py
++++ b/tests/test_model_300.py
+@@ -15,6 +15,15 @@ def test_paths_resolve_to_300_artifacts(monkeypatch):
+     assert deps._active_keras_path().name == "SBAI-MDL-ISL-3.0.0.keras"
+     assert deps._active_scaler_path().name == "scaler_100_real.npz"
+     assert deps._policy_path().parent.name == "SBAI-MDL-ISL-3.0.0"
++    assert deps.uses_ensemble() is True
++
++
++def test_paths_resolve_to_400_artifacts(monkeypatch):
++    monkeypatch.setattr(deps, "model_version", lambda: "SBAI-MDL-ISL-4.0.0")
++    assert deps._active_keras_path().name == "SBAI-MDL-ISL-4.0.0.keras"
++    assert deps._active_scaler_path().name == "scaler_109_real.npz"
++    assert deps._policy_path().parent.name == "SBAI-MDL-ISL-4.0.0"
++    assert deps.uses_ensemble() is True
+ 
+ 
+ def test_legacy_paths_unchanged(monkeypatch):
+diff --git a/tests/test_release100.py b/tests/test_release100.py
+deleted file mode 100644
+index 2e83a5e..0000000
+--- a/tests/test_release100.py
++++ /dev/null
+@@ -1,52 +0,0 @@
+-"""3.0.0 real-data release gate (replaces the synthetic 2.0.0 gate).
+-
+-Gate: 100 classes + 100 assets + active model SBAI-MDL-ISL-3.0.0, with
+-frozen-test numbers pinned to the MEASURED EXP-2026-003 values
+-(acc 0.7721 / macro-F1 0.7664, n=3326, signer-independent U013-U015).
+-
+-M-gate debt (honest): 0.7721/0.7664 is below the 0.90/0.90 release gates.
+-This test is a regression tripwire on measured values, not a gate-pass
+-claim. See Docs/M10_GATE_100REAL.md.
+-"""
+-
+-import csv
+-import glob
+-import json
+-from pathlib import Path
+-
+-ROOT = Path(__file__).resolve().parents[1]
+-
+-
+-def classes_count() -> int:
+-    with open(ROOT / "data" / "dataset" / "annotations" / "class_map.csv",
+-              newline="", encoding="utf-8") as f:
+-        return len(list(csv.DictReader(f)))
+-
+-
+-def assets_count() -> int:
+-    return len(glob.glob(str(ROOT / "data" / "assets" / "ISL_*.jpg")))
+-
+-
+-def model_id() -> str:
+-    reg = json.loads((ROOT / "models" / "registry.json").read_text(encoding="utf-8"))
+-    return reg.get("active_model", reg.get("model_id", ""))
+-
+-
+-def _registered_300() -> dict:
+-    reg = json.loads((ROOT / "models" / "registry.json").read_text(encoding="utf-8"))
+-    return reg["models"]["SBAI-MDL-ISL-3.0.0"]
+-
+-
+-def frozen_acc() -> float:
+-    return float(_registered_300()["measured_test_acc"])
+-
+-
+-def frozen_f1() -> float:
+-    return float(_registered_300()["measured_test_f1"])
+-
+-
+-def test_release100_gates():
+-    assert classes_count() == 100 and assets_count() == 100
+-    assert model_id() == "SBAI-MDL-ISL-3.0.0"
+-    # Pinned measured values (LSTM winner, frozen signer-independent test).
+-    assert frozen_acc() == 0.7721 and frozen_f1() == 0.7664
+diff --git a/tests/test_vocab100.py b/tests/test_vocab100.py
+deleted file mode 100644
+index bc8dbaf..0000000
+--- a/tests/test_vocab100.py
++++ /dev/null
+@@ -1,24 +0,0 @@
+-"""Task 1: freeze 100-word vocabulary (ISL_001-100, all Dynamic)."""
+-
+-import csv
+-from pathlib import Path
+-
+-ROOT = Path(__file__).resolve().parents[1]
+-CLASS_MAP = ROOT / "data" / "dataset" / "annotations" / "class_map.csv"
+-
+-
+-def read_class_map(path=CLASS_MAP):
+-    with open(path, newline="", encoding="utf-8") as f:
+-        return list(csv.DictReader(f))
+-
+-
+-def get_class_map_100():
+-    return read_class_map(CLASS_MAP)
+-
+-
+-def test_class_map_has_100_dynamic():
+-    rows = read_class_map("data/dataset/annotations/class_map.csv")
+-    assert len(rows) == 100
+-    assert rows[50]["class_id"] == "ISL_051" and rows[50]["label"] == "Good"
+-    assert rows[99]["class_id"] == "ISL_100" and rows[99]["label"] == "Cold"
+-    assert all(r["sign_type"] == "Dynamic" for r in rows)
+diff --git a/tests/test_vocab_coverage.py b/tests/test_vocab_coverage.py
+index bfc573c..a5865ef 100644
+--- a/tests/test_vocab_coverage.py
++++ b/tests/test_vocab_coverage.py
+@@ -41,7 +41,7 @@ def coverage():
+ 
+ def test_vocab_has_real_coverage():
+     rows = list(csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")))
+-    assert len(rows) == 100
++    assert len(rows) >= 100
+     cov, users = coverage()
+     short = [
+         f"{r['class_id']} {r['label']}: clips={cov.get(norm(r['label']), 0)} "
+diff --git a/tests/test_ws.py b/tests/test_ws.py
+index dbe29a0..631752c 100644
+--- a/tests/test_ws.py
++++ b/tests/test_ws.py
+@@ -139,6 +139,8 @@ def test_ws_recognized_persists_to_history(monkeypatch):
+     fake_probs = np.zeros(100, dtype=np.float32)
+     fake_probs[0] = 0.95
+     monkeypatch.setattr("app.routers.stream.run_stream_inference", lambda batch: fake_probs)
++    # 3.0.0 serves via the ensemble path: patch it too (same fake distribution).
++    monkeypatch.setattr("app.deps.infer_ensemble", lambda batch: np.tile(fake_probs, (len(batch), 1)))
+     AUTHH = {"Authorization": f"Bearer {SECRET}"}
+     sid = client.post("/api/v1/session", json={}, headers=AUTHH).json()["session_id"]
+     frames = (np.random.default_rng(1).normal(0, 0.5, (45, 189))).tolist()

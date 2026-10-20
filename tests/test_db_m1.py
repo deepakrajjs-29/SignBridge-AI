@@ -94,16 +94,16 @@ def test_supported_flags_match_manifest():
     manifest_path = ROOT / "data" / "assets" / "manifest.csv"
     with manifest_path.open(newline="", encoding="utf-8") as f:
         manifest = {r["class_id"]: r["uri"] for r in csv.DictReader(f)}
-    assert len(manifest) == 100
+    assert len(manifest) == 109
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     with Session(engine) as s:
         _seed_stale_state(s)
         result = seed_sign_assets(manifest_path, engine=engine)
-        assert result["updated"] == 100
+        assert result["updated"] == 109
         assert result["missing"] == 0
         assets = {a.class_id: a for a in s.query(SignAsset).all()}
-    assert len(assets) == 100
+    assert len(assets) == 109
     for class_id, uri in manifest.items():
         assert class_id in assets
         assert assets[class_id].uri == uri
@@ -158,7 +158,7 @@ def test_seed_m1_rerun_keeps_registry_row():
         assert rows[reg["model_id"]].status == "active"
         assert "signbridge-lstm-v1" not in rows  # stale row must not come back
         assets = {a.class_id: a for a in s.query(SignAsset).all()}
-    assert len(assets) == 100
+    assert len(assets) == 109
     for class_id, uri in manifest.items():
         assert assets[class_id].uri == uri
 

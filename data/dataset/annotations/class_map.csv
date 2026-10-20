@@ -99,3 +99,12 @@ ISL_097,Big,BIG,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
 ISL_098,Small,SMALL,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
 ISL_099,Hot,HOT,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
 ISL_100,Cold,COLD,Dynamic,Adjective,Both,ISL500,v3 re-scope: real-data word
+ISL_101,Library,LIBRARY,Dynamic,Place word,Both,ISL500,v4: verified real-data word
+ISL_102,Meeting,MEETING,Dynamic,Activity,Both,ISL500,v4: verified real-data word
+ISL_103,Holiday,HOLIDAY,Dynamic,Time word,Both,ISL500,v4: verified real-data word
+ISL_104,Pen,PEN,Dynamic,Object,Both,ISL500,v4: verified real-data word
+ISL_105,Paper,PAPER,Dynamic,Object,Both,ISL500,v4: verified real-data word
+ISL_106,Chair,CHAIR,Dynamic,Object,Both,ISL500,v4: verified real-data word
+ISL_107,Police,POLICE,Dynamic,People word,Both,ISL500,v4: verified real-data word
+ISL_108,Airport,AIRPORT,Dynamic,Place word,Both,ISL500,v4: verified real-data word
+ISL_109,Manager,MANAGER,Dynamic,People word,Both,ISL500,v4: verified real-data word

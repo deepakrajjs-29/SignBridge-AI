@@ -1,12 +1,9 @@
-"""V3 — build (N,45,189) REAL tensors for 100 classes from ISL500 .h5 landmarks.
+"""V3+ tensor builder: (N,45,189) REAL tensors from ISL500 .h5 landmarks.
 
-Same feature pipeline as T2.3 (canonicalize/normalize/frame_features/
-to_sequence from ai/); differences vs build_tensors.py:
-- reads the 100-row class_map (v3 re-scope),
-- gloss from the LAST underscore segment (handles HF mirror prefixes),
-- (user,session,clip) dedup preferring clean filenames,
-- writes tensors_100_real.npz + tensors_100_real.json, never touches v1 files.
+Reads however many rows class_map currently has (--tag names the outputs,
+default 100_real). Same feature pipeline as T2.3; never touches v1 files.
 """
+import argparse
 import csv
 import json
 import re
@@ -19,7 +16,14 @@ import numpy as np
 ROOT = Path("D:/Projects/SignBridge")
 sys.path.insert(0, str(ROOT / "ai"))
 from preprocessing.landmarks import canonicalize, load_h5, normalize
-from features.build import frame_features, to_sequence, SEQ_LEN, FEAT_DIM
+from features.build import (
+    FEAT_DIM,
+    FEAT_DIM_V2,
+    SEQ_LEN,
+    frame_features,
+    frame_features_v2,
+    to_sequence,
+)
 
 RAW = ROOT / "data" / "dataset" / "raw" / "isl500" / "Landmarks" / "MediaPipe"
 OUT = ROOT / "data" / "dataset" / "processed"
@@ -34,11 +38,14 @@ def gloss_of(name: str) -> str:
     return "" if g and g[0].isdigit() else g
 
 
-def main() -> None:
+def main(tag: str = "100_real", feat: str = "v1") -> None:
+    assert feat in ("v1", "v2"), feat
+    feat_dim = FEAT_DIM if feat == "v1" else FEAT_DIM_V2
     cmap = {}
     for r in csv.DictReader((ROOT / "data/dataset/annotations/class_map.csv").open(encoding="utf-8")):
         cmap[norm(r["label"])] = (r["class_id"], r["label"])
-    assert len(cmap) == 100, f"class_map must have 100 rows, got {len(cmap)}"
+    nclass = len(cmap)
+    assert nclass >= 2, f"class_map must have rows, got {nclass}"
     lab2idx = {c: i for i, c in enumerate(sorted({c for c, _ in cmap.values()}))}
 
     # Every filename is a unique clip: (user,session,clip) numbers repeat
@@ -65,7 +72,9 @@ def main() -> None:
         signer = f"U{mu.group(1)}" if mu else user
         try:
             frames = load_h5(str(p))
-            feats = frame_features(normalize(canonicalize(frames)))
+            canon = canonicalize(frames)
+            normed = normalize(canon)
+            feats = frame_features_v2(canon, normed) if feat == "v2" else frame_features(normed)
             seq, mask = to_sequence(feats)
         except Exception as e:
             skipped += 1
@@ -82,8 +91,15 @@ def main() -> None:
     X = np.stack(X).astype("float32")
     M = np.stack(M).astype("float32")
     y = np.array(y, dtype=np.int64)
+    if feat == "v2":
+        ref = OUT / f"tensors_{tag.split('_')[0]}_real.npz"
+        assert ref.exists(), f"v1 reference npz missing: {ref}"
+        R = np.load(ref)
+        assert np.array_equal(R["y"], y), "y mismatch vs v1 npz — sample order/labels differ"
+        assert np.array_equal(R["files"], np.array(files)), "files mismatch vs v1 npz"
+        print(f"integrity guard OK vs {ref.name}", flush=True)
     np.savez_compressed(
-        OUT / "tensors_100_real.npz", X=X, mask=M, y=y,
+        OUT / f"tensors_{tag}.npz", X=X, mask=M, y=y,
         signers=np.array(signers), srcs=np.array(srcs), files=np.array(files))
     # cut-rule gate
     sgn = defaultdict(set)
@@ -91,14 +107,14 @@ def main() -> None:
         sgn[c].add(s)
     thin = [c for c in sorted(lab2idx) if per_class[c] < 15 or len(sgn[c]) < 10]
     meta = {"n": len(y), "classes": len(set(y.tolist())), "seq_len": SEQ_LEN,
-            "feat_dim": FEAT_DIM, "skipped": skipped,
+            "feat_dim": feat_dim, "feat": feat, "skipped": skipped,
             "signers": sorted(set(signers)),
             "class_index": {c: lab2idx[c] for c in sorted(lab2idx)},
             "per_class": {c: [per_class[c], len(sgn[c])] for c in sorted(lab2idx)},
             "cut_list": thin}
-    (OUT / "tensors_100_real.json").write_text(json.dumps(meta, indent=1))
-    print("saved", OUT / "tensors_100_real.npz", X.shape, "skipped:", skipped, flush=True)
-    print("classes meeting cut rule:", 100 - len(thin), "/100", flush=True)
+    (OUT / f"tensors_{tag}.json").write_text(json.dumps(meta, indent=1))
+    print("saved", OUT / f"tensors_{tag}.npz", X.shape, "skipped:", skipped, flush=True)
+    print(f"classes meeting cut rule: {nclass - len(thin)}/{nclass}", flush=True)
     if thin:
         print("CUT:", thin, flush=True)
         raise SystemExit(1)
@@ -106,4 +122,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    _p = argparse.ArgumentParser()
+    _p.add_argument("--tag", default="100_real")
+    _p.add_argument("--feat", choices=["v1", "v2"], default="v1")
+    main(**vars(_p.parse_args()))

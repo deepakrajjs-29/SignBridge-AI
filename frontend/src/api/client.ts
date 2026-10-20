@@ -72,6 +72,7 @@ export type RecState =
   | "Ready"
   | "Tracking"
   | "Recognized"
+  | "Provisional"
   | "Uncertain"
   | "No-Sign"
   | "Tracking-Lost"
@@ -82,6 +83,13 @@ export interface Prediction {
   label: string;
   confidence: number;
   prediction_id?: string;
+}
+
+/** Real top-k model candidates (top entry matches the primary prediction). */
+export interface AlternativeCandidate {
+  class_id: string;
+  label: string;
+  confidence: number;
 }
 
 export interface ModelInfo {
@@ -101,6 +109,8 @@ export interface ClassItem {
   meaning?: string;
   handedness?: string;
   asset_uri?: string;
+  /** placeholder | dataset_render | needs_verified_reference */
+  asset_status?: string;
 }
 
 
@@ -146,6 +156,7 @@ export const api = {
     req<{
       success: boolean;
       prediction: Prediction;
+      alternatives?: AlternativeCandidate[];
       status: string;
       model_version: string;
       processing_time_ms: number;

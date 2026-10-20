@@ -1,0 +1,16 @@
+{
+  "threshold": 0.57,
+  "smoothing_window": 5,
+  "val_coverage": 0.820192,
+  "states": [
+    "Accepted",
+    "Uncertain",
+    "No-Sign",
+    "Tracking-Lost"
+  ],
+  "accept_threshold": 0.57,
+  "provisional_threshold": 0.0,
+  "tta_windows": 1,
+  "val_accepted_accuracy": 0.903357,
+  "updated_by": "calibrate_v4"
+}
