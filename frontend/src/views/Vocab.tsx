@@ -94,7 +94,7 @@ export default function Vocab() {
   }
 
   function showImageFallback(c: ClassItem): boolean {
-    return needsVerifiedRef(c) || failedImgs.has(c.class_id);
+    return failedImgs.has(c.class_id);
   }
 
   function speakLabel(text: string, id: string, e?: React.MouseEvent) {
@@ -224,16 +224,14 @@ export default function Vocab() {
               key={t.id}
               type="button"
               onClick={() => setCategory(t.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border ${
-                category === t.id
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border ${category === t.id
                   ? "bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-500/25"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
-              }`}
+                }`}
             >
               <span>{t.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                category === t.id ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-              }`}>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === t.id ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}>
                 {categoryCounts[t.id] ?? 0}
               </span>
             </button>
@@ -321,11 +319,10 @@ export default function Vocab() {
                   <button
                     type="button"
                     onClick={(e) => speakLabel(c.label, c.class_id, e)}
-                    className={`absolute bottom-2 right-2 p-1.5 rounded-lg backdrop-blur-md transition shadow-sm ${
-                      isSpeaking
+                    className={`absolute bottom-2 right-2 p-1.5 rounded-lg backdrop-blur-md transition shadow-sm ${isSpeaking
                         ? "bg-emerald-500 text-white animate-pulse"
                         : "bg-black/50 hover:bg-brand-600 text-white opacity-85 group-hover:opacity-100"
-                    }`}
+                      }`}
                     title={`Pronounce ${c.label}`}
                     aria-label={`Pronounce ${c.label}`}
                   >
@@ -408,12 +405,12 @@ export default function Vocab() {
                   )}
                 </div>
               ) : (
-              <img
-                src={photoSrc(selectedSign)}
-                alt={`${selectedSign.label} ISL Demonstration`}
-                className="w-full h-full object-cover"
-                onError={() => markImgFailed(selectedSign.class_id)}
-              />
+                <img
+                  src={photoSrc(selectedSign)}
+                  alt={`${selectedSign.label} ISL Demonstration`}
+                  className="w-full h-full object-cover"
+                  onError={() => markImgFailed(selectedSign.class_id)}
+                />
               )}
             </div>
 

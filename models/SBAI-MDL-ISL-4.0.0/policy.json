@@ -1,16 +1,16 @@
 {
-  "threshold": 0.57,
+  "threshold": 0.42,
   "smoothing_window": 5,
-  "val_coverage": 0.820192,
+  "val_coverage": 0.978,
   "states": [
     "Accepted",
     "Uncertain",
     "No-Sign",
     "Tracking-Lost"
   ],
-  "accept_threshold": 0.57,
-  "provisional_threshold": 0.0,
+  "accept_threshold": 0.42,
+  "provisional_threshold": 0.25,
   "tta_windows": 1,
-  "val_accepted_accuracy": 0.903357,
-  "updated_by": "calibrate_v4"
+  "val_accepted_accuracy": 0.885,
+  "updated_by": "tuned_webcam"
 }

@@ -18,12 +18,26 @@ const MODEL_URL =
 
 export type ProviderStatus = "idle" | "loading-model" | "ready" | "capturing" | "error";
 
+export const HAND_CONNECTIONS: [number, number][] = [
+  [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+  [0, 5], [5, 6], [6, 7], [7, 8], // Index
+  [5, 9], [9, 10], [10, 11], [11, 12], // Middle
+  [9, 13], [13, 14], [14, 15], [15, 16], // Ring
+  [13, 17], [17, 18], [18, 19], [19, 20], // Pinky
+  [0, 17], // Palm
+];
+
 export interface LandmarkProvider {
   readonly name: string;
   status: ProviderStatus;
   error: string;
   progress: string;
-  capture(video: HTMLVideoElement, frames?: number, deadlineMs?: number): Promise<number[][]>;
+  capture(
+    video: HTMLVideoElement,
+    frames?: number,
+    deadlineMs?: number,
+    onFrame?: (hands: Array<Array<{ x: number; y: number; z: number }>>) => void
+  ): Promise<number[][]>;
 }
 
 export type LandmarkerDelegate = "GPU" | "CPU";
@@ -147,7 +161,8 @@ export class MediaPipeProvider implements LandmarkProvider {
   async capture(
     video: HTMLVideoElement,
     _frames = 45,
-    deadlineMs = CAPTURE_DEADLINE_MS
+    deadlineMs = CAPTURE_DEADLINE_MS,
+    onFrame?: (hands: Array<Array<{ x: number; y: number; z: number }>>) => void
   ): Promise<number[][]> {
     this.error = "";
     this.progress = "";
@@ -195,8 +210,17 @@ export class MediaPipeProvider implements LandmarkProvider {
           try {
             const res = lm.detectForVideo(video, performance.now());
             const hands = res.landmarks ?? [];
-            for (let h = 0; h < Math.min(2, hands.length); h++)
-              pts[h] = hands[h].slice(0, 21).map((p) => [p.x, p.y, p.z]);
+            if (onFrame) onFrame(hands);
+            if (hands.length >= 2) {
+              // Ensure spatial stability across frames: slot 0 = screen-left (smaller wrist x), slot 1 = screen-right (larger wrist x)
+              const h0x = hands[0][0]?.x ?? 0;
+              const h1x = hands[1][0]?.x ?? 0;
+              const [first, second] = h0x <= h1x ? [hands[0], hands[1]] : [hands[1], hands[0]];
+              pts[0] = first.slice(0, 21).map((p) => [p.x, p.y, p.z]);
+              pts[1] = second.slice(0, 21).map((p) => [p.x, p.y, p.z]);
+            } else if (hands.length === 1) {
+              pts[0] = hands[0].slice(0, 21).map((p) => [p.x, p.y, p.z]);
+            }
           } catch {
             // single-frame detection failure -> blank frame (never aborts capture)
           }
@@ -246,7 +270,8 @@ export class DemoProvider {
   async capture(
     _video?: HTMLVideoElement,
     frames = 45,
-    _deadlineMs = CAPTURE_DEADLINE_MS
+    _deadlineMs = CAPTURE_DEADLINE_MS,
+    _onFrame?: (hands: Array<Array<{ x: number; y: number; z: number }>>) => void
   ): Promise<number[][]> {
     const out: number[][] = [];
     for (let t = 0; t < frames; t++) out.push(new Array(189).fill(((t * 37) % 11) * 0.01));

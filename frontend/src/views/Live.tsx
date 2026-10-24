@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type AlternativeCandidate, type Prediction, type RecState } from "../api/client";
 import { connectStream, type StreamCallbacks } from "../api/stream";
-import { MediaPipeProvider, dispose as disposeLandmarker, isFiniteFrame } from "../landmarks";
+import {
+  MediaPipeProvider,
+  dispose as disposeLandmarker,
+  isFiniteFrame,
+  HAND_CONNECTIONS,
+  landmarker,
+} from "../landmarks";
 import { interpretSignSequence, type SentenceMood } from "../api/gemini";
 import { saveSentenceRecord } from "../api/sentenceHistory";
 import {
@@ -415,6 +421,66 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
   const streamRef = useRef<MediaStream | null>(null);
   const providerRef = useRef<MediaPipeProvider | null>(null);
   const wsRef = useRef<{ stop: () => void } | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [handsCount, setHandsCount] = useState<number>(0);
+
+  function drawHandsSkeleton(hands: Array<Array<{ x: number; y: number; z: number }>>) {
+    setHandsCount(hands ? hands.length : 0);
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!hands || hands.length === 0) return;
+
+    ctx.save();
+    // Mirror rendering because video element is CSS-mirrored (-scale-x-100)
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+
+    for (let h = 0; h < hands.length; h++) {
+      const hand = hands[h];
+      const isFirst = h === 0;
+      const strokeColor = isFirst ? "#06b6d4" : "#10b981";
+      const jointColor = "#f59e0b";
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = strokeColor;
+      ctx.shadowColor = strokeColor;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      for (const [i, j] of HAND_CONNECTIONS) {
+        const p1 = hand[i];
+        const p2 = hand[j];
+        if (p1 && p2) {
+          ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+          ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+        }
+      }
+      ctx.stroke();
+
+      ctx.shadowBlur = 3;
+      for (let j = 0; j < hand.length; j++) {
+        const p = hand[j];
+        if (!p) continue;
+        ctx.fillStyle = j === 0 || j === 4 || j === 8 || j === 12 || j === 16 || j === 20 ? "#ef4444" : jointColor;
+        ctx.beginPath();
+        const radius = j === 0 || j === 4 || j === 8 || j === 12 || j === 16 || j === 20 ? 4.5 : 3;
+        ctx.arc(p.x * canvas.width, p.y * canvas.height, radius, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
 
   // Stabilization & race-condition guards
   const lastSignLabelRef = useRef<string>("");
@@ -435,6 +501,52 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
     if (!providerRef.current) providerRef.current = new MediaPipeProvider();
     return providerRef.current;
   }
+
+  useEffect(() => {
+    let animId: number;
+    let active = true;
+    if (!camOn) {
+      setHandsCount(0);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+    const runPreview = async () => {
+      try {
+        const lm = await landmarker();
+        const loop = () => {
+          if (!active) return;
+          if (videoRef.current && videoRef.current.readyState >= 2 && provider().status !== "capturing") {
+            try {
+              const res = lm.detectForVideo(videoRef.current, performance.now());
+              if (res.landmarks) {
+                drawHandsSkeleton(res.landmarks);
+              }
+            } catch {
+              /* ignore frame drop */
+            }
+          }
+          animId = requestAnimationFrame(loop);
+        };
+        animId = requestAnimationFrame(loop);
+      } catch {
+        /* landmarker handling */
+      }
+    };
+    void runPreview();
+    return () => {
+      active = false;
+      cancelAnimationFrame(animId);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+  }, [camOn]);
 
   useEffect(
     () => () => {
@@ -513,8 +625,13 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
     const gate = readThresholdGate();
     const meetsThreshold = gate === null || p.confidence >= gate / 100;
 
-    // A prediction is only accepted if backend recognized it AND confidence meets the (optional) user gate:
-    const isAccepted = status.toLowerCase() === "recognized" && meetsThreshold;
+    // A prediction is accepted if backend recognized it, or if deliberate single sign / provisional has sufficient confidence (>= 40%):
+    const isSingleSignDeliberate = freshAttemptRef.current;
+    const isAccepted =
+      (status.toLowerCase() === "recognized" ||
+        (isSingleSignDeliberate && p.confidence >= 0.38) ||
+        (status.toLowerCase() === "provisional" && p.confidence >= 0.42)) &&
+      meetsThreshold;
     const labelUpper = (p.label || "").trim().toUpperCase();
     const displayUncertain =
       !isAccepted &&
@@ -659,7 +776,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
   async function captureAndRecognizeOnce(sid: string): Promise<boolean> {
     if (!videoRef.current) return false;
     setBusy("Capturing sign (~3.5 s) — perform it now…");
-    const frames = await provider().capture(videoRef.current);
+    const frames = await provider().capture(videoRef.current, 45, undefined, drawHandsSkeleton);
     setBusy("");
 
     if (!isFiniteFrame(frames)) {
@@ -969,6 +1086,11 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
               playsInline
               aria-label="camera-preview"
             />
+            <canvas
+              ref={canvasRef}
+              className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${camOn ? "block" : "hidden"}`}
+              aria-hidden="true"
+            />
             {!camOn && (
               <div className="text-center p-6 space-y-3">
                 <div className="w-16 h-16 rounded-full bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
@@ -988,9 +1110,19 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
             {/* Live Indicator Overlay */}
             {camOn && (
               <>
-                <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold text-white border border-white/10 z-10">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>{isContinuousRunning ? "Continuous Mode Active" : "Camera Live"}</span>
+                <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold text-white border border-white/10">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{isContinuousRunning ? "Continuous Mode Active" : "Camera Live"}</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-md text-xs font-semibold border ${
+                    handsCount > 0
+                      ? "bg-emerald-950/80 text-emerald-300 border-emerald-700/60"
+                      : "bg-amber-950/80 text-amber-300 border-amber-700/60"
+                  }`}>
+                    <span>{handsCount > 0 ? "✋" : "👐"}</span>
+                    <span>{handsCount > 0 ? `${handsCount} Hand${handsCount > 1 ? "s" : ""} Tracked` : "Position Hands in View"}</span>
+                  </div>
                 </div>
 
                 {/* Hand Position Guide Overlay */}

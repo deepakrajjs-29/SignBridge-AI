@@ -15,7 +15,7 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ComponentType<{ classN
   { id: "live", label: "Live Translator", icon: CameraIcon },
   { id: "text-to-sign", label: "Text to Sign", icon: SparklesIcon },
   { id: "history", label: "History & Logs", icon: HistoryIcon },
-  { id: "vocab", label: "Vocabulary (50)", icon: BookOpenIcon },
+  { id: "vocab", label: "Vocabulary (109)", icon: BookOpenIcon },
   { id: "admin", label: "Model Admin", icon: ShieldCheckIcon },
   { id: "settings", label: "Settings", icon: CogIcon },
 ];
