@@ -90,6 +90,7 @@ scratch/
 .superpowers/
 .playwright-mcp/
 .worktrees/
+**/chrome_temp_profile/
 
 # Temporary office / duplicated report copies
 ~$*.docx

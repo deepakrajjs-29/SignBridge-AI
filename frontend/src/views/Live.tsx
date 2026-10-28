@@ -108,9 +108,9 @@ export function confidenceNote(status: string, confidence: number): string | nul
   const s = status.toLowerCase();
   if (s === "recognized") return null;
   if (s === "provisional") {
-    return `Provisional (${(confidence * 100).toFixed(1)}%) — plausible, needs more evidence. Not added to your sequence.`;
+    return `Provisional (${(confidence * 100).toFixed(1)}%) — plausible, needs more evidence. Not added to your sequence. Please sign it again clearly.`;
   }
-  return `Low confidence (${(confidence * 100).toFixed(1)}%) — shown as Uncertain, not definitive.`;
+  return `Low confidence (${(confidence * 100).toFixed(1)}%) — shown as Uncertain, not definitive. Please sign it again.`;
 }
 
 export const STREAM_TIMEOUT_MS = 15000;
@@ -449,14 +449,14 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
 
     for (let h = 0; h < hands.length; h++) {
       const hand = hands[h];
-      const isFirst = h === 0;
-      const strokeColor = isFirst ? "#06b6d4" : "#10b981";
-      const jointColor = "#f59e0b";
+      const strokeColor = "rgba(239, 68, 68, 0.35)"; // very light, subtle red
+      const jointColor = "rgba(239, 68, 68, 0.4)";
+      const fingertipColor = "rgba(239, 68, 68, 0.6)";
 
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = strokeColor;
-      ctx.shadowColor = strokeColor;
-      ctx.shadowBlur = 6;
+      ctx.shadowColor = "rgba(239, 68, 68, 0.15)";
+      ctx.shadowBlur = 2;
       ctx.beginPath();
       for (const [i, j] of HAND_CONNECTIONS) {
         const p1 = hand[i];
@@ -468,13 +468,14 @@ export default function Live({ onResult = () => {}, activeSessionId = "" }: Live
       }
       ctx.stroke();
 
-      ctx.shadowBlur = 3;
+      ctx.shadowBlur = 0;
       for (let j = 0; j < hand.length; j++) {
         const p = hand[j];
         if (!p) continue;
-        ctx.fillStyle = j === 0 || j === 4 || j === 8 || j === 12 || j === 16 || j === 20 ? "#ef4444" : jointColor;
+        const isKeyPoint = j === 0 || j === 4 || j === 8 || j === 12 || j === 16 || j === 20;
+        ctx.fillStyle = isKeyPoint ? fingertipColor : jointColor;
         ctx.beginPath();
-        const radius = j === 0 || j === 4 || j === 8 || j === 12 || j === 16 || j === 20 ? 4.5 : 3;
+        const radius = isKeyPoint ? 2.5 : 1.8;
         ctx.arc(p.x * canvas.width, p.y * canvas.height, radius, 0, 2 * Math.PI);
         ctx.fill();
       }
@@ -601,6 +602,13 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
     }
   }
 
+  function speakPrompt(promptText: string) {
+    const autoSpeakEnabled = localStorage.getItem("sb_autospeak") !== "false";
+    if (autoSpeakEnabled) {
+      speakSentence(promptText, "normal", true);
+    }
+  }
+
   /** True when the generated sentence just re-says the last spoken word
    * (single-sign echo like "HELLO" -> "Hello." must not speak twice). */
   function isEchoOfLastSpoken(text: string): boolean {
@@ -653,10 +661,28 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
       setNote(
         `Confidence (${(p.confidence * 100).toFixed(1)}%) is below your ${gate}% gate — flagged as Uncertain.`
       );
+      speakPrompt("Please sign it again.");
     } else {
       setState(toState(status, true));
       const noteText = confidenceNote(status, p.confidence);
       if (noteText) setNote(noteText);
+      const st = status.toLowerCase();
+      const hasOptions = nextAlts.length > 0 && p.class_id !== "ISL_000" && labelUpper !== "NO SIGN DETECTED";
+      if (st === "provisional") {
+        speakPrompt(
+          hasOptions
+            ? "Please sign it again clearly, or choose the option."
+            : "Please sign it again clearly."
+        );
+      } else if (st === "uncertain") {
+        speakPrompt(
+          hasOptions
+            ? "Please sign it again, or choose the option."
+            : "Please sign it again."
+        );
+      } else if (st === "no-sign") {
+        speakPrompt("No sign recognized. Please sign it again.");
+      }
     }
 
     const accepted =
@@ -735,8 +761,9 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
     setShowConfirmPanel(false);
     setCandidates([]);
     if (reason === "retry") {
-      setNote("Cleared uncertain result — perform the sign again.");
+      setNote("Options incorrect — please reframe your hands and sign it again.");
       armedRef.current = true;
+      speakPrompt("Options incorrect. Please reframe your hands and sign it again.");
     } else {
       setNote("Uncertain result dismissed — not added to your sentence.");
     }
@@ -852,6 +879,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
       const code = e instanceof Error ? (e as { code?: string }).code : undefined;
       if (/No hands detected/.test(msg)) {
         setState("Tracking-Lost");
+        speakPrompt("No hands detected. Please show your hands and sign it again.");
       } else {
         setState("Error");
       }
@@ -920,7 +948,12 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
           armedRef.current = true;
           const msg = e instanceof Error ? e.message : "Recognition failed.";
           setNote(msg + " All video processing stays on this device.");
-          setState(/No hands detected/.test(msg) ? "Tracking-Lost" : "Error");
+          if (/No hands detected/.test(msg)) {
+            setState("Tracking-Lost");
+            speakPrompt("No hands detected. Please show your hands and sign it again.");
+          } else {
+            setState("Error");
+          }
           if (consecutiveFailures >= 3) {
             setNote(`${msg} Continuous recognition stopped after repeated failures.`);
             break;
@@ -1064,21 +1097,21 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
   const confidencePercentage = Math.round(conf * 100);
 
   return (
-    <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <CameraIcon className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+        <h2 className="text-2xl font-bold text-midnight dark:text-white flex items-center gap-2">
+          <CameraIcon className="w-6 h-6 text-teal-deep dark:text-seafoam" />
           Continuous Sign Language Recognition & Translation
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-text-secondary mt-1">
           Perform multiple consecutive ISL signs to accumulate a sentence sequence, then generate natural English through Gemini AI and hear it spoken aloud.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Camera Viewport (8 cols, ~14% wider than before) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Camera Viewport (col-span-7 - expanded for clearer hand tracking) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-900 dark:bg-[#070c18] border border-card-border shadow-xs flex items-center justify-center">
             <video
               ref={videoRef}
               className={`w-full h-full object-cover transform -scale-x-100 ${camOn ? "block" : "hidden"}`}
@@ -1093,14 +1126,14 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
             />
             {!camOn && (
               <div className="text-center p-6 space-y-3">
-                <div className="w-16 h-16 rounded-full bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-slate-800 dark:bg-midnight-light text-seafoam dark:text-sky-400 mx-auto flex items-center justify-center border border-seafoam/20 dark:border-brand-500/20">
                   <CameraIcon className="w-8 h-8" />
                 </div>
-                <p className="text-slate-400 text-sm font-medium">Camera is currently inactive</p>
+                <p className="text-slate-300 text-sm font-medium">Camera is currently inactive</p>
                 <button
                   type="button"
                   onClick={() => enableCamera()}
-                  className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md transition"
+                  className="px-5 py-2.5 rounded-xl bg-teal-deep dark:bg-brand-600 hover:bg-deep-teal-hover dark:hover:bg-brand-700 text-white font-semibold text-sm shadow-xs transition"
                 >
                   Enable Camera
                 </button>
@@ -1111,71 +1144,71 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
             {camOn && (
               <>
                 <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold text-white border border-white/10">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>{isContinuousRunning ? "Continuous Mode Active" : "Camera Live"}</span>
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-midnight/80 backdrop-blur-md text-xs font-semibold text-white border border-white/10">
+                    <span className="w-2 h-2 rounded-full bg-seafoam dark:bg-sky-400 animate-pulse"></span>
+                    <span>{isContinuousRunning ? "Continuous Mode Active" : "Camera Ready • 30 FPS"}</span>
                   </div>
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-md text-xs font-semibold border ${
                     handsCount > 0
-                      ? "bg-emerald-950/80 text-emerald-300 border-emerald-700/60"
-                      : "bg-amber-950/80 text-amber-300 border-amber-700/60"
+                      ? "bg-seafoam/90 dark:bg-brand-600/90 text-midnight dark:text-white border-seafoam dark:border-brand-400"
+                      : "bg-midnight/70 text-white/90 border-white/10"
                   }`}>
                     <span>{handsCount > 0 ? "✋" : "👐"}</span>
-                    <span>{handsCount > 0 ? `${handsCount} Hand${handsCount > 1 ? "s" : ""} Tracked` : "Position Hands in View"}</span>
+                    <span>{handsCount > 0 ? `${handsCount} Hand${handsCount > 1 ? "s" : ""} Tracked` : "Position hands in frame"}</span>
                   </div>
                 </div>
 
                 {/* Hand Position Guide Overlay */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
-                  <div className="w-4/5 h-4/5 border border-dashed border-brand-400/40 rounded-2xl flex flex-col justify-between p-3">
-                    <div className="flex justify-between">
-                      <span className="w-4 h-4 border-t-2 border-l-2 border-brand-400"></span>
-                      <span className="w-4 h-4 border-t-2 border-r-2 border-brand-400"></span>
-                    </div>
-                    <div className="text-center">
-                      <span className="text-[10px] font-mono tracking-wider text-brand-300 bg-black/50 px-3 py-1 rounded-full backdrop-blur-xs border border-brand-500/20">
-                        POSITION HANDS IN FRAME
+                <div className="absolute inset-4 pointer-events-none flex items-center justify-center p-2">
+                  <div className="w-full h-full border-2 border-dashed border-white/35 rounded-xl flex flex-col justify-between p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-midnight/70 backdrop-blur-md text-white/90 text-xs font-medium">
+                        Position hands within frame
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-seafoam/90 dark:bg-brand-600/90 backdrop-blur-md text-midnight dark:text-white text-xs font-semibold tracking-wide">
+                        {handsCount > 0 ? "Hands Detected" : "Awaiting Sign"}
                       </span>
                     </div>
-                <div className="flex justify-between">
-                  <span className="w-4 h-4 border-b-2 border-l-2 border-brand-400"></span>
-                  <span className="w-4 h-4 border-b-2 border-r-2 border-brand-400"></span>
+                    <div className="text-center">
+                      <span className="text-[11px] text-white/80 bg-midnight/60 backdrop-blur-md px-3 py-1 rounded-full">
+                        Keep upper body upright in natural lighting
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Single-sign readiness countdown */}
-            {countdown !== null && countdown > 0 && (
-              <div
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55 backdrop-blur-sm pointer-events-none"
-                role="status"
-                aria-live="polite"
-                aria-label={`Get ready — capturing in ${countdown}`}
-              >
-                <span className="text-7xl font-black text-white drop-shadow-lg tabular-nums">
-                  {countdown}
-                </span>
-                <span className="mt-2 text-sm font-semibold tracking-wider text-brand-200 uppercase">
-                  Get ready — hold your sign
-                </span>
-              </div>
+                {/* Single-sign readiness countdown */}
+                {countdown !== null && countdown > 0 && (
+                  <div
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-midnight/65 backdrop-blur-sm pointer-events-none"
+                    role="status"
+                    aria-live="polite"
+                    aria-label={`Get ready — capturing in ${countdown}`}
+                  >
+                    <span className="text-7xl font-bold text-white drop-shadow-md tabular-nums">
+                      {countdown}
+                    </span>
+                    <span className="mt-2 text-sm font-semibold tracking-wider text-seafoam dark:text-sky-400 uppercase">
+                      Get ready — hold your sign
+                    </span>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
 
             {/* State pill */}
-            <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-bold text-white border border-white/10 z-10">
-              State: <span className="text-brand-400">{state}</span>
+            <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-midnight/80 backdrop-blur-md text-xs font-semibold text-white border border-white/10 z-10">
+              State: <span className="text-seafoam dark:text-sky-400 font-mono">{state}</span>
             </div>
           </div>
 
-          {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Action Toolbar on Left Side */}
+          <div className="flex flex-wrap items-center gap-2.5">
             {!camOn ? (
               <button
                 type="button"
                 onClick={() => enableCamera()}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition"
+                className="px-5 py-2.5 rounded-xl bg-teal-deep dark:bg-brand-600 hover:bg-deep-teal-hover dark:hover:bg-brand-700 text-white font-semibold text-sm transition shadow-xs"
               >
                 Enable Camera
               </button>
@@ -1183,7 +1216,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
               <button
                 type="button"
                 onClick={stopCamera}
-                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-sm transition"
+                className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-semibold text-sm transition shadow-xs"
               >
                 Stop Camera
               </button>
@@ -1195,18 +1228,19 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 type="button"
                 onClick={startContinuous}
                 disabled={!camOn || Boolean(busy)}
-                className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-sm shadow-md transition flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-slate-700 border border-card-border disabled:opacity-40 text-midnight dark:text-white font-semibold text-sm shadow-xs transition flex items-center gap-2"
               >
-                <CameraIcon className="w-4 h-4" />
-                Start Continuous
+                <CameraIcon className="w-4 h-4 text-teal-deep dark:text-sky-400" />
+                <span>Start Continuous</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={stopContinuous}
-                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-md transition flex items-center gap-2 animate-pulse"
+                className="px-5 py-2.5 rounded-xl bg-amber-muted hover:bg-[#c99557] text-midnight font-bold text-sm shadow-xs transition flex items-center gap-2"
               >
-                <span>⏹ Stop Recognition</span>
+                <span className="w-2 h-2 rounded-full bg-midnight animate-pulse"></span>
+                <span>Stop Recognition</span>
               </button>
             )}
 
@@ -1215,7 +1249,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
               type="button"
               onClick={startSingle}
               disabled={!camOn || Boolean(busy) || isContinuousRunning}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-800 dark:text-slate-200 font-medium text-sm transition"
+              className="px-4 py-2.5 rounded-xl bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-slate-700 border border-card-border disabled:opacity-40 text-midnight dark:text-white font-medium text-sm transition"
               title="Perform one sign during a 3.5 s capture window"
             >
               Single Sign
@@ -1229,7 +1263,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 setNote("");
                 setLatency(null);
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium text-sm transition flex items-center gap-1.5"
+              className="px-3.5 py-2.5 rounded-xl bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-slate-700 border border-card-border text-text-secondary hover:text-midnight dark:hover:text-white font-medium text-sm transition flex items-center gap-1.5"
               title="Clear single frame output"
             >
               <RefreshIcon className="w-4 h-4" />
@@ -1258,14 +1292,14 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
           )}
         </div>
 
-        {/* Prediction Results & Translation Cards (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Prediction Results & Translation Cards (col-span-5) */}
+        <div className="lg:col-span-5 space-y-4">
           {/* Section: Continuous Recognized Signs Buffer */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="p-5 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary flex items-center gap-2">
                 <span>Recognized Signs Sequence</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono font-bold">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-seafoam-light dark:bg-seafoam/20 text-teal-deep dark:text-seafoam font-mono font-semibold">
                   {recognizedSequence.length}
                 </span>
               </h3>
@@ -1273,7 +1307,7 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 <button
                   type="button"
                   onClick={handleClearSentence}
-                  className="text-xs text-rose-600 dark:text-rose-400 hover:underline font-semibold"
+                  className="text-xs text-rose-700 dark:text-rose-400 hover:underline font-semibold"
                 >
                   Clear Sequence
                 </button>
@@ -1285,13 +1319,13 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 {recognizedSequence.map((sign, idx) => (
                   <span
                     key={`${sign}-${idx}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-extrabold uppercase bg-brand-500 text-white shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase bg-teal-deep text-white border border-seafoam/30 shadow-2xs"
                   >
                     <span>{sign}</span>
                     <button
                       type="button"
                       onClick={() => removeSignAtIndex(idx)}
-                      className="hover:opacity-75 text-xs font-normal"
+                      className="hover:text-seafoam text-xs font-normal"
                       title="Remove sign"
                       aria-label={`Remove sign ${sign}`}
                     >
@@ -1301,28 +1335,28 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic py-2">
+              <p className="text-xs text-text-secondary italic py-2">
                 Perform signs to accumulate a continuous sequence (e.g. GO → WATER → DRINK).
               </p>
             )}
           </div>
 
           {/* Section: Natural English Sentence (Gemini AI) */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white border border-slate-800 shadow-lg space-y-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-midnight border border-card-border text-midnight dark:text-white shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-300 flex items-center gap-2">
-                <SparklesIcon className="w-4 h-4 text-brand-400" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-teal-deep dark:text-seafoam flex items-center gap-2">
+                <SparklesIcon className="w-4 h-4 text-seafoam" />
                 <span>Generated Sentence (Gemini AI)</span>
               </h3>
               <div className="flex items-center gap-2">
                 {isGenerating && (
-                  <span className="text-xs font-semibold text-brand-300 flex items-center gap-1.5">
-                    <span className="w-3 h-3 border-2 border-brand-400 border-t-transparent rounded-full animate-spin"></span>
+                  <span className="text-xs font-semibold text-teal-deep dark:text-seafoam flex items-center gap-1.5">
+                    <span className="w-3 h-3 border-2 border-seafoam border-t-transparent rounded-full animate-spin"></span>
                     Auto-Translating...
                   </span>
                 )}
                 {isSpeaking && (
-                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 animate-pulse">
+                  <span className="text-xs font-semibold text-teal-deep dark:text-seafoam flex items-center gap-1.5 animate-pulse">
                     <span>🔊</span>
                     Speaking ({MOODS.find((m) => m.id === selectedMood)?.label})...
                   </span>
@@ -1332,9 +1366,12 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
 
             <div className="min-h-[50px] flex items-center">
               {generatedSentence ? (
-                <div className="space-y-1.5 w-full">
-                  <p className="text-xl md:text-2xl font-bold tracking-tight text-white leading-snug">
-                    &ldquo;{generatedSentence}&rdquo;
+                <div className="space-y-2 w-full p-4 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border/70">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-teal-deep dark:text-seafoam">
+                    English Interpretation
+                  </span>
+                  <p className="text-xl sm:text-2xl font-bold tracking-tight text-midnight dark:text-white leading-snug">
+                    “{generatedSentence}”
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <span
@@ -1345,13 +1382,13 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                       <span>{MOODS.find((m) => m.id === selectedMood)?.emoji}</span>
                       <span>{MOODS.find((m) => m.id === selectedMood)?.label} Tone</span>
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-text-secondary">
                       ⚡ Hands-free auto-speak enabled
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-400 text-xs">
+                <p className="text-text-secondary text-xs">
                   {recognizedSequence.length > 0
                     ? "✨ Hands-free active: translating and speaking automatically as you sign..."
                     : "Accumulate recognized signs above. Sentence interpretation and speech happen automatically."}
@@ -1360,15 +1397,15 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
             </div>
 
             {/* Quick Actions (Replay / Manual Generate / Clear) */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-card-border/60">
               <button
                 type="button"
                 onClick={() => handleGenerateSentence()}
                 disabled={recognizedSequence.length === 0 || isGenerating}
-                className="px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white text-xs font-bold shadow-md transition flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-teal-deep hover:bg-deep-teal-hover disabled:opacity-40 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2"
               >
-                <SparklesIcon className="w-4 h-4" />
-                {isGenerating ? "Translating..." : "Regenerate"}
+                <SparklesIcon className="w-4 h-4 text-seafoam" />
+                <span>{isGenerating ? "Translating..." : "Regenerate"}</span>
               </button>
 
               {generatedSentence && (
@@ -1376,10 +1413,10 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                   type="button"
                   onClick={() => speakSentence(generatedSentence, selectedMood)}
                   disabled={isSpeaking}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 transition flex items-center gap-2"
+                  className="px-3.5 py-2.5 rounded-xl bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-[#253f54] text-midnight dark:text-white text-xs font-semibold border border-card-border transition flex items-center gap-2 shadow-2xs"
                 >
-                  <VolumeUpIcon className="w-4 h-4" />
-                  {isSpeaking ? "Speaking..." : "🔊 Replay Speech"}
+                  <VolumeUpIcon className="w-4 h-4 text-teal-deep dark:text-seafoam" />
+                  <span>{isSpeaking ? "Speaking..." : "🔊 Replay Speech"}</span>
                 </button>
               )}
 
@@ -1387,19 +1424,19 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                 type="button"
                 onClick={handleClearSentence}
                 disabled={recognizedSequence.length === 0 && !generatedSentence}
-                className="px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 hover:text-white text-xs font-semibold transition"
+                className="px-3 py-2.5 rounded-xl bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-[#253f54] text-text-secondary hover:text-midnight dark:hover:text-white border border-card-border text-xs font-semibold transition"
               >
                 Clear Sentence
               </button>
             </div>
 
             {/* Emotional Mood Selection (Normal, Happy, Sad, Angry) */}
-            <div className="pt-3 border-t border-white/10 space-y-2">
+            <div className="pt-3 border-t border-card-border/60 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Select Speech Mood & Emotion:
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                  Speech Mood & Emotion:
                 </span>
-                <span className="text-[11px] text-brand-300 font-medium">
+                <span className="text-[11px] text-teal-deep dark:text-seafoam font-medium">
                   {MOODS.find((m) => m.id === selectedMood)?.description}
                 </span>
               </div>
@@ -1409,22 +1446,22 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                     key={m.id}
                     type="button"
                     onClick={() => handleMoodSelect(m.id)}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border ${
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 border ${
                       selectedMood === m.id
-                        ? `${m.activeClass} border-transparent scale-[1.02]`
-                        : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/60"
+                        ? "bg-teal-deep text-white border-seafoam/40 shadow-xs"
+                        : "bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-[#253f54] text-text-secondary dark:text-slate-300 border-card-border"
                     }`}
                     title={m.description}
                   >
-                    <span className="text-base">{m.emoji}</span>
-                    <span>{m.label} Mood</span>
+                    <span>{m.emoji}</span>
+                    <span>{m.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {generationError && (
-              <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-200 text-xs flex items-center justify-between">
+              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between">
                 <span>{generationError}</span>
                 <button
                   type="button"
@@ -1438,52 +1475,52 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
           </div>
 
           {/* Section: Latest Single-Frame Output Details */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="p-5 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-text-secondary">
               <span>Latest Sign Frame</span>
               {latency !== null && (
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">{latency} ms</span>
+                <span className="font-mono text-teal-deep dark:text-seafoam font-semibold">{latency} ms</span>
               )}
             </div>
 
-            <div className="py-3 text-center rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
+            <div className="py-3 text-center rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border/60">
               {result && state === "Recognized" ? (
                 <div className="space-y-2">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white uppercase block">
+                  <span className="text-2xl font-bold text-midnight dark:text-white uppercase block tracking-tight">
                     {result.label}
                   </span>
-                  <p className="text-xs text-slate-400 font-mono">Class: {result.class_id}</p>
+                  <p className="text-xs text-text-secondary font-mono">Class: {result.class_id}</p>
                   {result.class_id && (
                     <div className="pt-1">
                       <img
                         src={`/assets/${result.class_id}.jpg`}
                         alt={`${result.label} ISL sign`}
                         loading="lazy"
-                        className="w-20 h-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700 mx-auto shadow-sm"
+                        className="w-20 h-20 object-cover rounded-xl border border-card-border mx-auto shadow-2xs"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}
                       />
-                      <span className="text-[10px] text-slate-400 mt-1 block">Reference Sign Demonstration</span>
+                      <span className="text-[10px] text-text-secondary mt-1 block">Reference Sign Demonstration</span>
                     </div>
                   )}
                 </div>
               ) : result && state === "Provisional" ? (
                 <div>
-                  <span className="text-xl font-extrabold text-sky-600 dark:text-sky-400 uppercase">
+                  <span className="text-xl font-bold text-teal-deep dark:text-seafoam uppercase">
                     {result.label} …
                   </span>
-                  <p className="text-xs text-sky-500">Provisional Prediction — not added</p>
+                  <p className="text-xs text-text-secondary">Provisional Prediction — not added</p>
                 </div>
               ) : result && state === "Uncertain" ? (
                 <div>
-                  <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 uppercase">
+                  <span className="text-xl font-bold text-amber-muted uppercase">
                     {result.label} ?
                   </span>
-                  <p className="text-xs text-amber-500">Uncertain Prediction</p>
+                  <p className="text-xs text-amber-muted">Uncertain Prediction</p>
                 </div>
               ) : (
-                <div className="text-slate-400 py-2 text-xs">
+                <div className="text-text-secondary py-2 text-xs">
                   {camOn ? "Waiting for sign gesture..." : "Enable camera to start"}
                 </div>
               )}
@@ -1493,17 +1530,17 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
             {result && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Confidence</span>
-                  <span className="text-brand-600 dark:text-brand-400">{confidencePercentage}%</span>
+                  <span className="text-text-secondary">Confidence</span>
+                  <span className="text-teal-deep dark:text-seafoam">{confidencePercentage}%</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-card-border/50 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
                       confidencePercentage >= 70
-                        ? "bg-emerald-500"
+                        ? "bg-seafoam"
                         : confidencePercentage >= 40
-                        ? "bg-amber-500"
-                        : "bg-rose-500"
+                        ? "bg-amber-muted"
+                        : "bg-rose-600"
                     }`}
                     style={{ width: `${confidencePercentage}%` }}
                   ></div>
@@ -1513,30 +1550,31 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
 
             {/* Uncertainty panel — real model top-k only, never invented. */}
             {showConfirmPanel && candidates.length > 0 && (
-              <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+              <div className="rounded-xl border border-card-border bg-soft-surface dark:bg-midnight-light p-3.5 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-muted">
                   Recognition uncertain
                 </p>
-                <p className="text-[11px] text-amber-800/90 dark:text-amber-200/90">
-                  Primary: <strong>{candidates[0].label}</strong> ({(candidates[0].confidence * 100).toFixed(1)}%)
+                <p className="text-[11px] text-text-secondary dark:text-slate-300">
+                  Primary (Option 1): <strong className="text-midnight dark:text-white">{candidates[0].label}</strong> ({(candidates[0].confidence * 100).toFixed(1)}%)
                 </p>
                 {candidates.length > 1 && (
                   <div>
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Other possible candidates:
+                    <p className="text-[11px] font-semibold text-text-secondary mb-1">
+                      Other possible options:
                     </p>
                     <ul className="space-y-1">
-                      {candidates.slice(1, 4).map((c) => (
+                      {candidates.slice(1, 4).map((c, idx) => (
                         <li key={c.class_id}>
                           <button
                             type="button"
                             onClick={() => confirmUserSelection(c)}
-                            className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-brand-500 hover:shadow-sm transition"
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs bg-white dark:bg-midnight border border-card-border hover:border-teal-deep dark:hover:border-seafoam hover:shadow-2xs transition"
                           >
-                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                            <span className="font-semibold text-midnight dark:text-white">
+                              <span className="text-text-secondary font-mono mr-1.5">{idx + 2}.</span>
                               {c.label}
                             </span>
-                            <span className="font-mono text-slate-400">
+                            <span className="font-mono text-text-secondary">
                               {(c.confidence * 100).toFixed(1)}%
                             </span>
                           </button>
@@ -1549,49 +1587,49 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                   <button
                     type="button"
                     onClick={() => confirmUserSelection(candidates[0])}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold bg-brand-500 text-white hover:bg-brand-600 transition"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-teal-deep text-white hover:bg-deep-teal-hover transition shadow-2xs"
                   >
-                    Confirm {candidates[0].label}
+                    1. Confirm {candidates[0].label}
                   </button>
                   <button
                     type="button"
                     onClick={() => dismissCandidates("retry")}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition"
                   >
-                    Try again
+                    None of these — Sign it again
                   </button>
                   <button
                     type="button"
                     onClick={() => dismissCandidates("dismiss")}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-card-border text-text-secondary hover:text-midnight dark:hover:text-white bg-white dark:bg-midnight hover:bg-soft-surface transition"
                   >
                     Dismiss
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] text-text-secondary">
                   A confirmed word is a user selection, not proof the model auto-recognized it.
                 </p>
               </div>
             )}
 
             {lastUserConfirmed && recognizedSequence.length > 0 && (
-              <p className="text-[11px] text-sky-600 dark:text-sky-400">
+              <p className="text-[11px] text-teal-deep dark:text-seafoam font-medium">
                 Last word added by user confirmation.
               </p>
             )}
 
             {result && result.prediction_id && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Frame feedback:</span>
+              <div className="pt-2 border-t border-card-border/60 flex items-center justify-between text-xs">
+                <span className="text-text-secondary">Frame feedback:</span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => submitFeedback(1)}
                     disabled={feedbackSent !== null}
-                    className={`px-2 py-0.5 rounded border text-xs ${
+                    className={`px-2 py-0.5 rounded-lg border border-card-border text-xs ${
                       feedbackSent === "up"
-                        ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-700"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-seafoam-light dark:bg-seafoam/20 text-teal-deep dark:text-seafoam font-semibold"
+                        : "hover:bg-soft-surface dark:hover:bg-midnight-light"
                     }`}
                   >
                     👍
@@ -1600,10 +1638,10 @@ const releaseStreakRef = useRef<number>(0); // consecutive non-accepted windows
                     type="button"
                     onClick={() => submitFeedback(-1)}
                     disabled={feedbackSent !== null}
-                    className={`px-2 py-0.5 rounded border text-xs ${
+                    className={`px-2 py-0.5 rounded-lg border border-card-border text-xs ${
                       feedbackSent === "down"
-                        ? "bg-rose-100 dark:bg-rose-900 text-rose-700"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-rose-50 text-rose-700 font-semibold"
+                        : "hover:bg-soft-surface dark:hover:bg-midnight-light"
                     }`}
                   >
                     👎

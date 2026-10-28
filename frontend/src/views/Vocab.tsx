@@ -136,41 +136,41 @@ export default function Vocab() {
   });
 
   return (
-    <div className="space-y-6 max-w-6xl animate-in fade-in duration-200">
+    <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-200">
       {/* Header & Overview Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-brand-950 to-slate-900 text-white shadow-xl border border-slate-800 space-y-4">
+      <div className="p-6 md:p-8 rounded-2xl bg-white dark:bg-midnight text-midnight dark:text-white shadow-xs border border-card-border space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 mb-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              SBAI-MDL-ISL-4.0.0 • SOFTMAX(109) ACTIVE
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-seafoam-light dark:bg-seafoam/20 text-teal-deep dark:text-seafoam border border-seafoam/30 mb-2">
+              <span className="w-2 h-2 rounded-full bg-seafoam animate-pulse"></span>
+              Verified ISL Reference Lexicon • Softmax(109) Active
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
-              <BookOpenIcon className="w-8 h-8 text-brand-400" />
-              <span>ISL-109 Vocabulary & Photo Explorer</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-midnight dark:text-white tracking-tight flex items-center gap-3">
+              <BookOpenIcon className="w-7 h-7 text-teal-deep dark:text-seafoam" />
+              <span>ISL-109 Vocabulary &amp; Photo Explorer</span>
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Explore all 109 registered Indian Sign Language dynamic signs with reference keyframes, pronunciation, and neural model class mappings. Blank or duplicate placeholders are labeled as needing a verified reference.
+            <p className="text-sm text-text-secondary mt-1 max-w-2xl leading-relaxed">
+              Explore all 109 registered Indian Sign Language dynamic signs with reference keyframes, pronunciation, and neural model class mappings.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 text-center min-w-[100px]">
-              <span className="text-2xl font-black text-brand-300 block">{classes.length || 109}</span>
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Signs</span>
+            <div className="bg-soft-surface dark:bg-midnight-light border border-card-border rounded-xl p-3.5 text-center min-w-[100px] shadow-2xs">
+              <span className="text-2xl font-bold text-teal-deep dark:text-seafoam block">{classes.length || 109}</span>
+              <span className="text-[10px] uppercase font-semibold text-text-secondary tracking-wider">Total Signs</span>
             </div>
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 text-center min-w-[100px]">
-              <span className="text-2xl font-black text-emerald-400 block">
+            <div className="bg-soft-surface dark:bg-midnight-light border border-card-border rounded-xl p-3.5 text-center min-w-[100px] shadow-2xs">
+              <span className="text-2xl font-bold text-teal-deep dark:text-seafoam block">
                 {classes.length ? Math.round((classes.filter((c) => c.asset_status !== "needs_verified_reference").length / classes.length) * 100) : 0}%
               </span>
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Photo Ref</span>
+              <span className="text-[10px] uppercase font-semibold text-text-secondary tracking-wider">Photo Ref</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="p-5 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="relative flex-1 w-full">
             <input
@@ -179,13 +179,13 @@ export default function Vocab() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search sign word, meaning, gloss, or ID (e.g. Hello, Doctor, ISL_001)..."
               aria-label="vocab-search"
-              className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-card-border bg-soft-surface dark:bg-midnight-light text-sm text-midnight dark:text-white placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-teal-deep/30 focus:border-teal-deep"
             />
             {q && (
               <button
                 type="button"
                 onClick={() => setQ("")}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+                className="absolute right-3 top-3 text-text-secondary hover:text-midnight dark:hover:text-white text-xs"
               >
                 ✕
               </button>
@@ -197,7 +197,7 @@ export default function Vocab() {
             <select
               value={handednessFilter}
               onChange={(e) => setHandednessFilter(e.target.value as any)}
-              className="px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none"
+              className="px-3 py-2.5 rounded-xl border border-card-border bg-soft-surface dark:bg-midnight-light text-xs font-semibold text-text-secondary dark:text-slate-200 focus:outline-none"
             >
               <option value="all">All Handedness</option>
               <option value="Both">👐 Both Hands</option>
@@ -208,7 +208,7 @@ export default function Vocab() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none"
+              className="px-3 py-2.5 rounded-xl border border-card-border bg-soft-surface dark:bg-midnight-light text-xs font-semibold text-text-secondary dark:text-slate-200 focus:outline-none"
             >
               <option value="all">All Sign Types</option>
               <option value="Dynamic">Dynamic Signs</option>
@@ -225,12 +225,12 @@ export default function Vocab() {
               type="button"
               onClick={() => setCategory(t.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border ${category === t.id
-                  ? "bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-500/25"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
+                  ? "bg-teal-deep text-white border-seafoam/30 shadow-xs"
+                  : "bg-soft-surface dark:bg-midnight-light text-text-secondary dark:text-slate-300 border-card-border hover:bg-[#eae6dc] dark:hover:bg-[#253f54] hover:text-midnight dark:hover:text-white"
                 }`}
             >
               <span>{t.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === t.id ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === t.id ? "bg-white/20 text-white" : "bg-card-border/50 text-text-secondary"
                 }`}>
                 {categoryCounts[t.id] ?? 0}
               </span>
@@ -280,27 +280,27 @@ export default function Vocab() {
               <div
                 key={c.class_id}
                 onClick={() => setSelectedSign(c)}
-                className="group cursor-pointer p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-lg transition-all duration-200 flex flex-col justify-between space-y-2.5"
+                className="group cursor-pointer p-3.5 rounded-2xl bg-white dark:bg-midnight border border-card-border hover:border-teal-deep dark:hover:border-seafoam hover:shadow-xs transition-all duration-200 flex flex-col justify-between space-y-2.5"
               >
                 {/* Card Top: ID and Type Badge */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="font-mono font-bold text-brand-600 dark:text-brand-400">{c.class_id}</span>
+                <div className="flex items-center justify-between text-[11px] text-text-secondary">
+                  <span className="font-mono font-bold text-teal-deep dark:text-seafoam">{c.class_id}</span>
                   <div className="flex items-center gap-1">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-300">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-soft-surface dark:bg-midnight-light text-text-secondary border border-card-border/60">
                       {c.sign_type || "Dynamic"}
                     </span>
                   </div>
                 </div>
 
                 {/* Card Center: High-Res Reference Photo */}
-                <div className="relative aspect-[4/3] w-full bg-slate-100 dark:bg-slate-800/60 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                <div className="relative aspect-[4/3] w-full bg-soft-surface dark:bg-midnight-light rounded-xl overflow-hidden border border-card-border/60 flex items-center justify-center">
                   {showImageFallback(c) ? (
                     <div className="flex flex-col items-center justify-center gap-1 p-4 text-center">
-                      <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block">
+                      <span className="text-lg font-bold text-midnight dark:text-white uppercase tracking-tight block">
                         {c.label}
                       </span>
                       {needsVerifiedRef(c) && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200">
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-muted/20 text-amber-muted border border-amber-muted/30">
                           Verified reference needed
                         </span>
                       )}
@@ -319,9 +319,9 @@ export default function Vocab() {
                   <button
                     type="button"
                     onClick={(e) => speakLabel(c.label, c.class_id, e)}
-                    className={`absolute bottom-2 right-2 p-1.5 rounded-lg backdrop-blur-md transition shadow-sm ${isSpeaking
-                        ? "bg-emerald-500 text-white animate-pulse"
-                        : "bg-black/50 hover:bg-brand-600 text-white opacity-85 group-hover:opacity-100"
+                    className={`absolute bottom-2 right-2 p-1.5 rounded-lg backdrop-blur-md transition shadow-2xs ${isSpeaking
+                        ? "bg-seafoam text-midnight animate-pulse"
+                        : "bg-midnight/70 hover:bg-teal-deep text-white opacity-85 group-hover:opacity-100"
                       }`}
                     title={`Pronounce ${c.label}`}
                     aria-label={`Pronounce ${c.label}`}
@@ -333,15 +333,15 @@ export default function Vocab() {
                 {/* Card Bottom: Word Label & Context */}
                 <div className="pt-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate block group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                    <span className="text-sm font-bold text-midnight dark:text-white truncate block group-hover:text-teal-deep dark:group-hover:text-seafoam transition-colors">
                       {c.label}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                    <span className="text-[10px] text-text-secondary font-mono shrink-0">
                       {c.handedness === "Right" ? "✋ Right" : "👐 Both"}
                     </span>
                   </div>
                   {c.meaning && (
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                    <span className="text-[11px] text-text-secondary truncate block mt-0.5">
                       {c.meaning}
                     </span>
                   )}
@@ -355,26 +355,26 @@ export default function Vocab() {
       {/* Sign Detail Modal */}
       {selectedSign && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight/60 backdrop-blur-sm animate-in fade-in duration-150"
           onClick={() => setSelectedSign(null)}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 md:p-8 space-y-5 animate-in zoom-in-95 duration-150"
+            className="w-full max-w-lg bg-white dark:bg-midnight rounded-3xl border border-card-border shadow-xl p-6 md:p-8 space-y-5 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/80 px-2 py-0.5 rounded">
+                <span className="text-xs font-mono font-bold text-teal-deep dark:text-seafoam bg-seafoam-light dark:bg-seafoam/20 px-2 py-0.5 rounded border border-seafoam/30">
                   {selectedSign.class_id} • {selectedSign.sign_type || "Dynamic"}
                 </span>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1.5 flex items-center gap-2">
+                <h3 className="text-2xl font-bold text-midnight dark:text-white mt-1.5 flex items-center gap-2">
                   <span>{selectedSign.label}</span>
                   <button
                     type="button"
                     onClick={() => speakLabel(selectedSign.label, selectedSign.class_id)}
-                    className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950 transition"
+                    className="p-1.5 rounded-lg text-teal-deep dark:text-seafoam hover:bg-soft-surface dark:hover:bg-midnight-light transition"
                     title="Speak word"
                   >
                     <VolumeUpIcon className="w-5 h-5" />
@@ -384,7 +384,7 @@ export default function Vocab() {
               <button
                 type="button"
                 onClick={() => setSelectedSign(null)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2 rounded-xl text-lg font-bold"
+                className="text-text-secondary hover:text-midnight dark:hover:text-white p-2 rounded-xl text-lg font-bold"
                 aria-label="Close modal"
               >
                 ✕
@@ -392,15 +392,15 @@ export default function Vocab() {
             </div>
 
             {/* Modal Image */}
-            <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+            <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden bg-soft-surface dark:bg-midnight-light border border-card-border flex items-center justify-center">
               {showImageFallback(selectedSign) ? (
                 <div className="flex flex-col items-center justify-center gap-2 p-6 text-center">
-                  <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight block">
+                  <span className="text-lg font-bold text-midnight dark:text-white uppercase tracking-tight block">
                     {selectedSign.label}
                   </span>
                   {needsVerifiedRef(selectedSign) && (
-                    <span className="text-[11px] font-semibold px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200">
-                      Verified ISL reference pending — label shown instead of a blank/duplicate image
+                    <span className="text-[11px] font-semibold px-2 py-1 rounded bg-amber-muted/20 text-amber-muted border border-amber-muted/30">
+                      Verified ISL reference pending
                     </span>
                   )}
                 </div>
@@ -416,27 +416,27 @@ export default function Vocab() {
 
             {/* Metadata Badges & Info */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Handedness</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+              <div className="p-3 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Handedness</span>
+                <span className="font-semibold text-midnight dark:text-white text-sm">
                   {selectedSign.handedness === "Right" ? "✋ Right Hand Only" : "👐 Both Hands Active"}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Context / Domain</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+              <div className="p-3 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Context / Domain</span>
+                <span className="font-semibold text-midnight dark:text-white text-sm">
                   {selectedSign.meaning || "Everyday Vocabulary"}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gloss Token</span>
-                <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+              <div className="p-3 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Gloss Token</span>
+                <span className="font-mono font-semibold text-midnight dark:text-white">
                   {selectedSign.gloss || selectedSign.label.toUpperCase()}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Neural Head</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              <div className="p-3 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Active Neural Head</span>
+                <span className="font-semibold text-teal-deep dark:text-seafoam">
                   Softmax(109) Class {selectedSign.class_id.replace("ISL_", "")}
                 </span>
               </div>
@@ -446,7 +446,7 @@ export default function Vocab() {
               <button
                 type="button"
                 onClick={() => setSelectedSign(null)}
-                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                className="px-5 py-2.5 rounded-xl bg-teal-deep text-white font-semibold text-xs hover:bg-deep-teal-hover transition shadow-xs"
               >
                 Done
               </button>

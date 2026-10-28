@@ -1,0 +1,393 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "warm-ivory": "#F5F3ED",
+            "midnight": "#172A3A",
+            "midnight-light": "#223B4E",
+            "deep-teal": "#123C43",
+            "deep-teal-hover": "#0e2f35",
+            "seafoam": "#62B6A5",
+            "seafoam-light": "#E9F6F3",
+            "card-border": "#E2DFD6",
+            "muted-text": "#667570",
+            "soft-surface": "#FAF8F4"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-warm-ivory text-midnight antialiased min-h-screen">
+<!-- Midnight Navy Sidebar -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-midnight text-white z-50 flex flex-col justify-between select-none border-r border-midnight-light/50">
+<div class="flex flex-col">
+<!-- App Brand Logo Header -->
+<div class="p-6 flex items-center justify-between border-b border-midnight-light/40">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-deep-teal flex items-center justify-center border border-seafoam/30 text-seafoam">
+<span class="material-symbols-outlined text-xl">sign_language</span>
+</div>
+<div class="flex flex-col">
+<span class="text-base font-bold tracking-tight text-white leading-none">SignBridge</span>
+<span class="text-[11px] text-seafoam font-medium tracking-wide mt-1">ISL Assistant</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-midnight-light text-[11px] font-semibold text-seafoam">v2.4</span>
+</div>
+<!-- Navigation Links -->
+<nav class="flex flex-col gap-1.5 px-3 py-6" data-active-classes="bg-deep-teal text-white font-semibold rounded-lg shadow-sm">
+<a aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-deep-teal text-white font-semibold transition-all border border-seafoam/20" data-path="dashboard" href="#">
+<span class="material-symbols-outlined text-[20px] text-seafoam">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:bg-midnight-light/60 hover:text-white transition-colors" data-path="live-translation" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400">videocam</span>
+<span class="text-sm">Live Translation</span>
+</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-seafoam/20 text-seafoam text-[10px] font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-seafoam animate-pulse"></span>
+            LIVE
+          </span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-300 hover:bg-midnight-light/60 hover:text-white transition-colors" data-path="isl-vocabulary" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">menu_book</span>
+<span class="text-sm">ISL Vocabulary</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-300 hover:bg-midnight-light/60 hover:text-white transition-colors" data-path="session-history" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">history</span>
+<span class="text-sm">Session History</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-300 hover:bg-midnight-light/60 hover:text-white transition-colors" data-path="settings" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">tune</span>
+<span class="text-sm">Settings</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Bottom Status Card -->
+<div class="p-4 m-3 rounded-xl bg-midnight-light/50 border border-midnight-light text-slate-300">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Engine State</span>
+<span class="inline-flex items-center gap-1.5 text-xs text-seafoam font-medium">
+<span class="w-2 h-2 rounded-full bg-seafoam"></span>
+          Ready
+        </span>
+</div>
+<p class="text-xs text-slate-400 leading-relaxed">
+        Spatial translation pipeline active with low latency.
+      </p>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="pl-64 flex flex-col min-h-screen">
+<!-- Clean Minimalist Header -->
+<header class="h-16 bg-white/90 backdrop-blur-md border-b border-card-border sticky top-0 z-40 flex items-center justify-between px-8">
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium text-muted-text">Workspace</span>
+<span class="material-symbols-outlined text-xs text-muted-text">chevron_right</span>
+<span class="text-sm font-semibold text-midnight">Overview</span>
+</div>
+<div class="flex items-center gap-4">
+<!-- Live Camera Top CTA -->
+<a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-deep-teal text-white hover:bg-deep-teal-hover text-xs font-semibold tracking-wide transition-all shadow-sm" data-path="live-translation" href="#">
+<span class="material-symbols-outlined text-base">videocam</span>
+          Live Camera
+        </a>
+<!-- Notifications -->
+<button class="w-9 h-9 rounded-lg border border-card-border flex items-center justify-center text-muted-text hover:text-midnight hover:bg-soft-surface transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-lg">notifications</span>
+</button>
+<div class="h-6 w-px bg-card-border"></div>
+<!-- User Profile Pill -->
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-deep-teal text-seafoam font-semibold flex items-center justify-center text-xs border border-card-border">
+            AM
+          </div>
+<div class="hidden md:flex flex-col">
+<span class="text-xs font-semibold text-midnight leading-tight">Arjun Mehta</span>
+<span class="text-[11px] text-muted-text leading-tight">Translation Lead</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 px-8 py-8 max-w-7xl w-full mx-auto">
+<!-- Welcoming Warm Banner -->
+<section class="rounded-2xl bg-white border border-card-border p-7 mb-8 shadow-sm relative overflow-hidden">
+<div class="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-seafoam-light/50 to-transparent pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="max-w-xl">
+<div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-seafoam-light border border-seafoam/20 text-deep-teal text-xs font-medium mb-3">
+<span class="w-2 h-2 rounded-full bg-seafoam"></span>
+              Indian Sign Language Assistant
+            </div>
+<h1 class="text-2xl sm:text-3xl font-bold text-midnight tracking-tight mb-2">
+              Welcome back, Arjun
+            </h1>
+<p class="text-muted-text text-sm sm:text-base leading-relaxed">
+              Your translation workspace is ready. Start a session now or look through recently learned signs and completed conversations.
+            </p>
+</div>
+<!-- CTAs -->
+<div class="flex items-center gap-3 shrink-0 flex-wrap">
+<a class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-deep-teal hover:bg-deep-teal-hover text-white font-semibold text-sm transition-all shadow-sm hover:shadow" data-path="live-translation" href="#">
+<span class="material-symbols-outlined text-lg text-seafoam">videocam</span>
+<span>Start Live Translation</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-soft-surface hover:bg-warm-ivory border border-card-border text-midnight font-medium text-sm transition-colors" data-path="isl-vocabulary" href="#">
+<span class="material-symbols-outlined text-lg text-muted-text">menu_book</span>
+<span>Browse ISL Signs</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 4 Essential Metric Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+<!-- Card 1: Supported Signs -->
+<div class="bg-white rounded-xl border border-card-border p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs font-semibold text-muted-text uppercase tracking-wider">Supported Signs</span>
+<div class="w-8 h-8 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined text-lg">sign_language</span>
+</div>
+</div>
+<div>
+<div class="text-2xl font-bold text-midnight tracking-tight">850+</div>
+<p class="text-xs text-muted-text mt-1">Common ISL gestures &amp; phrases</p>
+</div>
+</div>
+<!-- Card 2: Today's Sessions -->
+<div class="bg-white rounded-xl border border-card-border p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs font-semibold text-muted-text uppercase tracking-wider">Today's Sessions</span>
+<div class="w-8 h-8 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined text-lg">forum</span>
+</div>
+</div>
+<div>
+<div class="text-2xl font-bold text-midnight tracking-tight">12</div>
+<p class="text-xs text-muted-text mt-1">Completed translations today</p>
+</div>
+</div>
+<!-- Card 3: Translation Accuracy -->
+<div class="bg-white rounded-xl border border-card-border p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs font-semibold text-muted-text uppercase tracking-wider">Translation Accuracy</span>
+<div class="w-8 h-8 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined text-lg">auto_awesome</span>
+</div>
+</div>
+<div>
+<div class="text-2xl font-bold text-midnight tracking-tight">98.4%</div>
+<p class="text-xs text-muted-text mt-1">Average real-time recognition</p>
+</div>
+</div>
+<!-- Card 4: System Status -->
+<div class="bg-white rounded-xl border border-card-border p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs font-semibold text-muted-text uppercase tracking-wider">System Status</span>
+<div class="w-8 h-8 rounded-lg bg-seafoam-light border border-seafoam/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined text-lg text-seafoam">check_circle</span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-seafoam animate-pulse"></span>
+<span class="text-lg font-bold text-midnight tracking-tight">Operational &amp; Ready</span>
+</div>
+<p class="text-xs text-muted-text mt-1">All gesture models initialized</p>
+</div>
+</div>
+</section>
+<!-- Main Layout: Recent Activity (Left) & Camera Readiness (Right) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Recent Activity List (8 Columns) -->
+<div class="lg:col-span-8 bg-white rounded-xl border border-card-border p-6 shadow-sm">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-card-border">
+<div>
+<h2 class="text-base font-bold text-midnight">Recent Translation Sessions</h2>
+<p class="text-xs text-muted-text mt-0.5">Summary of today's completed sign translations</p>
+</div>
+<a class="inline-flex items-center gap-1 text-xs font-semibold text-deep-teal hover:underline" data-path="session-history" href="#">
+              View full history
+              <span class="material-symbols-outlined text-xs">arrow_forward</span>
+</a>
+</div>
+<!-- Session Items List -->
+<div class="divide-y divide-card-border">
+<!-- Session 1 -->
+<div class="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal shrink-0">
+<span class="material-symbols-outlined text-xl">translate</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-midnight">General Consultation</span>
+<span class="px-2 py-0.5 rounded-full bg-seafoam-light text-deep-teal text-[11px] font-medium border border-seafoam/20">Completed</span>
+</div>
+<div class="text-xs text-muted-text mt-0.5 flex items-center gap-2">
+<span>10:42 AM</span>
+<span>•</span>
+<span>28 signs translated</span>
+<span>•</span>
+<span class="text-deep-teal font-medium">99.1% accuracy</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-muted-text">04m 15s</span>
+</div>
+</div>
+<!-- Session 2 -->
+<div class="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal shrink-0">
+<span class="material-symbols-outlined text-xl">school</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-midnight">Classroom Instruction</span>
+<span class="px-2 py-0.5 rounded-full bg-seafoam-light text-deep-teal text-[11px] font-medium border border-seafoam/20">Completed</span>
+</div>
+<div class="text-xs text-muted-text mt-0.5 flex items-center gap-2">
+<span>09:15 AM</span>
+<span>•</span>
+<span>54 signs translated</span>
+<span>•</span>
+<span class="text-deep-teal font-medium">98.6% accuracy</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-muted-text">12m 30s</span>
+</div>
+</div>
+<!-- Session 3 -->
+<div class="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal shrink-0">
+<span class="material-symbols-outlined text-xl">support_agent</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-midnight">Help Desk Inquiry</span>
+<span class="px-2 py-0.5 rounded-full bg-seafoam-light text-deep-teal text-[11px] font-medium border border-seafoam/20">Completed</span>
+</div>
+<div class="text-xs text-muted-text mt-0.5 flex items-center gap-2">
+<span>Yesterday, 04:20 PM</span>
+<span>•</span>
+<span>19 signs translated</span>
+<span>•</span>
+<span class="text-deep-teal font-medium">97.9% accuracy</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-muted-text">03m 50s</span>
+</div>
+</div>
+<!-- Session 4 -->
+<div class="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-soft-surface border border-card-border flex items-center justify-center text-deep-teal shrink-0">
+<span class="material-symbols-outlined text-xl">medical_services</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-midnight">Healthcare Triage</span>
+<span class="px-2 py-0.5 rounded-full bg-seafoam-light text-deep-teal text-[11px] font-medium border border-seafoam/20">Completed</span>
+</div>
+<div class="text-xs text-muted-text mt-0.5 flex items-center gap-2">
+<span>Yesterday, 02:10 PM</span>
+<span>•</span>
+<span>32 signs translated</span>
+<span>•</span>
+<span class="text-deep-teal font-medium">99.4% accuracy</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-muted-text">06m 12s</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Camera Readiness Check Card (4 Columns) -->
+<div class="lg:col-span-4 bg-white rounded-xl border border-card-border p-6 shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4 pb-3 border-b border-card-border">
+<div>
+<h3 class="text-base font-bold text-midnight">Camera Readiness</h3>
+<p class="text-xs text-muted-text mt-0.5">Quick setup check before translation</p>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-seafoam"></span>
+</div>
+<!-- 3 Reassuring Checks -->
+<div class="space-y-3 mb-6">
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-soft-surface border border-card-border/70">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-seafoam text-lg">videocam</span>
+<span class="text-xs font-medium text-midnight">Camera connected</span>
+</div>
+<span class="material-symbols-outlined text-seafoam text-base">check_circle</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-soft-surface border border-card-border/70">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-seafoam text-lg">light_mode</span>
+<span class="text-xs font-medium text-midnight">Good room lighting</span>
+</div>
+<span class="material-symbols-outlined text-seafoam text-base">check_circle</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-soft-surface border border-card-border/70">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-seafoam text-lg">pan_tool</span>
+<span class="text-xs font-medium text-midnight">Hand visibility clear</span>
+</div>
+<span class="material-symbols-outlined text-seafoam text-base">check_circle</span>
+</div>
+</div>
+<p class="text-xs text-muted-text leading-relaxed mb-6">
+              Position yourself 2–3 feet from the screen with both hands comfortably visible in frame.
+            </p>
+</div>
+<!-- Bottom Action -->
+<a class="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-soft-surface hover:bg-card-border/40 border border-card-border text-midnight text-xs font-semibold transition-colors" data-path="live-translation" href="#">
+<span class="material-symbols-outlined text-base text-deep-teal">center_focus_strong</span>
+            Open Camera Preview
+          </a>
+</div>
+</div>
+</main>
+</div>
+</body></html>

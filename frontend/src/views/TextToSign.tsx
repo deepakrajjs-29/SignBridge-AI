@@ -8,6 +8,7 @@ import {
   VolumeUpIcon,
   AlertCircleIcon,
   CheckCircleIcon,
+  ExternalLinkIcon,
 } from "../components/Icons";
 
 export interface MoodProfile {
@@ -444,28 +445,42 @@ export default function TextToSign() {
   const activeMoodProfile = MOODS.find((m) => m.id === selectedMood) || MOODS[0];
 
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <SparklesIcon className="w-6 h-6 text-brand-600 dark:text-brand-400" />
-          Text & Voice to Indian Sign Language (ISL)
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Type or speak everyday phrases to translate them into structured ISL sign sequences against the 109-class vocabulary, with emotional voice synthesis.
-        </p>
+    <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
+      <div className="pb-2 border-b border-card-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-midnight dark:text-white flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-seafoam flex items-center justify-center text-midnight font-bold">
+              <SparklesIcon className="w-5 h-5 text-midnight" />
+            </span>
+            Text &amp; Voice to Indian Sign Language (ISL)
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
+            Type or speak everyday phrases to translate them into structured ISL sign sequences against the 109-class vocabulary, with emotional voice synthesis.
+          </p>
+        </div>
+        <a
+          href="https://rylo.com/sign/translate/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-deep hover:bg-deep-teal-hover text-white text-xs sm:text-sm font-semibold transition shadow-xs self-start sm:self-center shrink-0 border border-teal-light/20"
+          title="Open Rylo Sign Translate in a new tab"
+        >
+          <span>Rylo Translator</span>
+          <ExternalLinkIcon className="w-4 h-4 text-seafoam" />
+        </a>
       </div>
 
       {/* Mood Selector Controls */}
-      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+      <div className="p-5 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Voice Tone & Emotional Mood
+          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            Voice Tone &amp; Emotional Mood
           </span>
-          <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${activeMoodProfile.badgeClass}`}>
+          <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-seafoam-light text-seafoam-dark border border-seafoam/30">
             Active: {activeMoodProfile.emoji} {activeMoodProfile.label}
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
           {MOODS.map((m) => {
             const isSelected = selectedMood === m.id;
             return (
@@ -473,19 +488,19 @@ export default function TextToSign() {
                 key={m.id}
                 type="button"
                 onClick={() => handleMoodChange(m.id)}
-                className={`p-3 rounded-lg border text-left transition flex flex-col gap-1 ${
+                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 shadow-xs ${
                   isSelected
-                    ? m.activeClass
-                    : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200"
+                    ? "bg-teal-deep text-white border-seafoam/40 shadow-sm"
+                    : "bg-soft-surface dark:bg-midnight-light border-card-border hover:border-seafoam/50 text-midnight dark:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{m.emoji}</span>
+                  <span className="text-xl">{m.emoji}</span>
                   <span className="text-sm font-bold">{m.label}</span>
                 </div>
                 <span
                   className={`text-[11px] leading-snug line-clamp-1 ${
-                    isSelected ? "text-white/90" : "text-slate-500 dark:text-slate-400"
+                    isSelected ? "text-seafoam-light" : "text-text-secondary"
                   }`}
                 >
                   {m.description}
@@ -497,11 +512,11 @@ export default function TextToSign() {
       </div>
 
       {/* Input Box & Actions */}
-      <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <label htmlFor="phrase-input" className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+      <div className="p-6 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-4">
+        <label htmlFor="phrase-input" className="block text-xs font-semibold uppercase tracking-wider text-text-secondary">
           Enter Phrase or Question
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2.5">
           <input
             id="phrase-input"
             type="text"
@@ -509,43 +524,55 @@ export default function TextToSign() {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleConvert()}
             placeholder="e.g. Hello doctor, please help! Where is water?"
-            className="flex-1 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-base focus:ring-2 focus:ring-brand-500"
+            className="flex-1 px-4 py-3 rounded-xl border border-card-border bg-soft-surface dark:bg-midnight-light text-midnight dark:text-white text-sm sm:text-base focus:outline-none focus:border-seafoam focus:ring-1 focus:ring-seafoam shadow-xs transition"
           />
-          <button
-            type="button"
-            onClick={() => handleConvert()}
-            disabled={loading || !inputText.trim()}
-            className="px-6 py-3 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold transition flex items-center gap-2"
-          >
-            {loading ? (
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            ) : (
-              <SparklesIcon className="w-5 h-5" />
-            )}
-            Translate
-          </button>
-          {speechSupported && (
+          <div className="flex flex-wrap sm:flex-nowrap gap-2">
             <button
               type="button"
-              onClick={startVoiceInput}
-              disabled={isListening}
-              className={`px-4 py-3 rounded-lg border font-medium transition flex items-center gap-2 ${
-                isListening
-                  ? "bg-rose-50 dark:bg-rose-950/80 border-rose-400 text-rose-600 animate-pulse"
-                  : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-              title="Speak into microphone"
-              aria-label="Microphone input"
+              onClick={() => handleConvert()}
+              disabled={loading || !inputText.trim()}
+              className="px-6 py-3 rounded-xl bg-teal-deep hover:bg-deep-teal-hover disabled:opacity-50 text-white font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs shrink-0"
             >
-              <MicrophoneIcon className="w-5 h-5" />
-              {isListening ? "Listening…" : "Voice"}
+              {loading ? (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              ) : (
+                <SparklesIcon className="w-4 h-4 text-seafoam" />
+              )}
+              Translate
             </button>
-          )}
+            {speechSupported && (
+              <button
+                type="button"
+                onClick={startVoiceInput}
+                disabled={isListening}
+                className={`px-4 py-3 rounded-xl border font-medium transition flex items-center justify-center gap-2 shadow-xs shrink-0 ${
+                  isListening
+                    ? "bg-rose-50 dark:bg-rose-950/80 border-rose-400 text-rose-600 animate-pulse"
+                    : "bg-white dark:bg-midnight border-card-border text-midnight dark:text-white hover:bg-soft-surface dark:hover:bg-midnight-light"
+                }`}
+                title="Speak into microphone"
+                aria-label="Microphone input"
+              >
+                <MicrophoneIcon className="w-4 h-4 text-deep-teal dark:text-seafoam" />
+                <span className="text-xs font-semibold">{isListening ? "Listening…" : "Voice"}</span>
+              </button>
+            )}
+            <a
+              href="https://rylo.com/sign/translate/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-3 rounded-xl border border-seafoam/40 bg-seafoam/10 hover:bg-seafoam/20 dark:bg-seafoam/15 dark:hover:bg-seafoam/25 text-teal-deep dark:text-seafoam font-semibold transition flex items-center justify-center gap-2 shadow-xs shrink-0"
+              title="Open Rylo Sign Translate in a new tab"
+            >
+              <ExternalLinkIcon className="w-4 h-4" />
+              <span className="text-xs sm:text-sm">Rylo Translate</span>
+            </a>
+          </div>
         </div>
 
         {/* Quick Sample Prompts */}
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-xs text-slate-400 font-medium">Quick examples:</span>
+          <span className="text-xs text-text-secondary font-medium">Quick examples:</span>
           {SAMPLE_PHRASES.map((sample) => (
             <button
               key={sample}
@@ -554,7 +581,7 @@ export default function TextToSign() {
                 setInputText(sample);
                 handleConvert(sample);
               }}
-              className="text-xs px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-brand-950/40 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 transition"
+              className="text-xs px-3 py-1.5 rounded-lg bg-soft-surface dark:bg-midnight-light hover:bg-white dark:hover:bg-midnight border border-card-border text-text-secondary hover:text-midnight dark:hover:text-white transition shadow-xs"
             >
               {sample}
             </button>
@@ -562,8 +589,8 @@ export default function TextToSign() {
         </div>
 
         {errorNote && (
-          <div role="alert" className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-2">
-            <AlertCircleIcon className="w-4 h-4 shrink-0" />
+          <div role="alert" className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-center gap-2 shadow-xs">
+            <AlertCircleIcon className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
             <span>{errorNote}</span>
           </div>
         )}
@@ -573,9 +600,9 @@ export default function TextToSign() {
       {items && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-midnight dark:text-white flex items-center gap-2">
               <span>ISL Sign Sequence</span>
-              <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-seafoam-light text-seafoam-dark border border-seafoam/30">
                 {items.length} signs
               </span>
             </h3>
@@ -588,20 +615,20 @@ export default function TextToSign() {
                     selectedMood
                   )
                 }
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition flex items-center gap-1.5 ${
+                className={`text-xs font-semibold px-3.5 py-2 rounded-xl border border-card-border transition shadow-xs flex items-center gap-2 ${
                   isSpeaking
-                    ? "bg-brand-500 text-white border-brand-500 animate-pulse"
-                    : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    ? "bg-teal-deep text-white animate-pulse"
+                    : "bg-white dark:bg-midnight text-midnight dark:text-white hover:bg-soft-surface dark:hover:bg-midnight-light"
                 }`}
               >
-                <VolumeUpIcon className="w-4 h-4" />
+                <VolumeUpIcon className="w-3.5 h-3.5 text-deep-teal dark:text-seafoam" />
                 {isSpeaking ? `Speaking (${activeMoodProfile.emoji})…` : `Speak in ${activeMoodProfile.label} Tone`}
               </button>
             </div>
           </div>
 
           {items.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-300 dark:border-slate-700 text-slate-500">
+            <div className="p-8 text-center rounded-2xl bg-white dark:bg-midnight border border-dashed border-card-border text-text-secondary text-sm">
               No matching ISL signs found for this phrase. Try words like &ldquo;hello&rdquo;, &ldquo;help&rdquo;, &ldquo;water&rdquo;, &ldquo;doctor&rdquo;, or &ldquo;thank you&rdquo;.
             </div>
           ) : (
@@ -609,17 +636,17 @@ export default function TextToSign() {
               {items.map((it, idx) => (
                 <div
                   key={`${it.word}-${idx}`}
-                  className={`p-4 rounded-xl border transition shadow-sm space-y-2 group hover:border-brand-500 ${
+                  className={`p-4 rounded-2xl border transition shadow-xs space-y-3 group ${
                     it.supported
-                      ? "bg-white dark:bg-slate-900 border-brand-200 dark:border-slate-700"
-                      : "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/60"
+                      ? "bg-white dark:bg-midnight border-card-border hover:border-seafoam"
+                      : "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/60"
                   }`}
                 >
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-mono font-bold text-brand-600 dark:text-brand-400">#{idx + 1}</span>
-                    <span className="font-mono">{it.class_id || "UNMAPPED"}</span>
+                  <div className="flex items-center justify-between text-xs text-text-secondary">
+                    <span className="font-mono font-bold text-deep-teal dark:text-seafoam">#{idx + 1}</span>
+                    <span className="font-mono text-[11px]">{it.class_id || "UNMAPPED"}</span>
                   </div>
-                  <div className="text-center py-4 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="text-center py-4 bg-soft-surface dark:bg-midnight-light rounded-xl border border-card-border flex flex-col items-center justify-center relative overflow-hidden">
                     {(it.asset_uri || it.class_id) && (
                       <img
                         src={it.asset_uri || `/assets/${it.class_id}.jpg`}
@@ -628,36 +655,36 @@ export default function TextToSign() {
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
-                        className="w-full h-24 object-cover mb-2"
+                        className="w-full h-24 object-cover mb-2 rounded-lg"
                       />
                     )}
-                    <span className="text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-wide">
+                    <span className="text-lg font-bold text-midnight dark:text-white uppercase tracking-wide">
                       {it.label || it.word}
                     </span>
                     <button
                       type="button"
                       onClick={() => speakText(it.label || it.word, selectedMood)}
-                      className="mt-2 text-xs text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 opacity-80 group-hover:opacity-100 transition"
+                      className="mt-2 text-xs text-text-secondary hover:text-teal-deep dark:hover:text-seafoam flex items-center gap-1 opacity-80 group-hover:opacity-100 transition"
                       title="Speak sign"
                     >
-                      <VolumeUpIcon className="w-3.5 h-3.5" />
+                      <VolumeUpIcon className="w-3 h-3" />
                       <span>Listen</span>
                     </button>
                   </div>
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[90px]">
+                    <span className="text-xs text-text-secondary truncate max-w-[90px]">
                       &ldquo;{it.word}&rdquo;
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                         it.supported
-                          ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300"
-                          : "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300"
+                          ? "bg-seafoam-light text-seafoam-dark border border-seafoam/30"
+                          : "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                       }`}
                     >
                       {it.supported ? (
                         <>
-                          <CheckCircleIcon className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <CheckCircleIcon className="w-3 h-3 text-seafoam-dark" />
                           Supported
                         </>
                       ) : (
@@ -671,12 +698,12 @@ export default function TextToSign() {
           )}
 
           {unsupported.length > 0 && (
-            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm space-y-1">
-              <p className="font-semibold flex items-center gap-2">
+            <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs sm:text-sm space-y-1 shadow-xs">
+              <p className="font-bold flex items-center gap-2">
                 <AlertCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 Vocabulary Notice:
               </p>
-              <p className="text-xs text-amber-700 dark:text-amber-300">
+              <p className="text-xs text-amber-800 dark:text-amber-300">
                 The words <strong>{unsupported.join(", ")}</strong> are auxiliary grammar words or outside the 100 Indian Sign Language classes. The core signs have been structured above.
               </p>
             </div>
@@ -686,3 +713,4 @@ export default function TextToSign() {
     </div>
   );
 }
+

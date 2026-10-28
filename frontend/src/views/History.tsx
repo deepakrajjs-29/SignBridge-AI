@@ -207,31 +207,31 @@ export default function History() {
   const totalSignsCount = sentences.reduce((acc, s) => acc + s.signs.length, 0);
 
   return (
-    <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
+    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <HistoryIcon className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-2xl font-bold text-midnight dark:text-white tracking-tight flex items-center gap-2">
+            <HistoryIcon className="w-6 h-6 text-teal-deep dark:text-seafoam" />
             Sentence Translation History
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-text-secondary mt-1">
             Complete natural language sentences interpreted by AI from Indian Sign Language sequences.
           </p>
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700/80 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 bg-soft-surface dark:bg-midnight-light p-1 rounded-xl border border-card-border self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setActiveTab("sentences")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
               activeTab === "sentences"
-                ? "bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-teal-deep text-white shadow-xs border border-seafoam/20"
+                : "text-text-secondary hover:text-midnight dark:hover:text-white"
             }`}
           >
-            <SparklesIcon className="w-3.5 h-3.5" />
+            <SparklesIcon className="w-3.5 h-3.5 text-seafoam" />
             Complete Sentences ({sentences.length})
           </button>
           <button
@@ -239,8 +239,8 @@ export default function History() {
             onClick={() => setActiveTab("rawWords")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
               activeTab === "rawWords"
-                ? "bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-teal-deep text-white shadow-xs border border-seafoam/20"
+                : "text-text-secondary hover:text-midnight dark:hover:text-white"
             }`}
           >
             <HistoryIcon className="w-3.5 h-3.5" />
@@ -254,63 +254,63 @@ export default function History() {
         <div className="space-y-6">
           {/* Top Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-white dark:bg-midnight border border-card-border shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-400 tracking-wider">
+                <p className="text-xs font-semibold uppercase text-text-secondary tracking-wider">
                   Total Sentences
                 </p>
-                <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
+                <p className="text-3xl font-bold text-midnight dark:text-white mt-1">
                   {sentences.length}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border text-teal-deep dark:text-seafoam flex items-center justify-center">
                 <SparklesIcon className="w-5 h-5" />
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-white dark:bg-midnight border border-card-border shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-400 tracking-wider">
+                <p className="text-xs font-semibold uppercase text-text-secondary tracking-wider">
                   Signs Interpreted
                 </p>
-                <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                <p className="text-3xl font-bold text-teal-deep dark:text-seafoam mt-1">
                   {totalSignsCount}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-seafoam-light dark:bg-seafoam/20 border border-seafoam/30 text-teal-deep dark:text-seafoam flex items-center justify-center">
                 <CheckCircleIcon className="w-5 h-5" />
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-white dark:bg-midnight border border-card-border shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-400 tracking-wider">
+                <p className="text-xs font-semibold uppercase text-text-secondary tracking-wider">
                   Voice Synthesis
                 </p>
-                <p className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-1 flex items-center gap-1.5">
+                <p className="text-base font-bold text-midnight dark:text-white mt-1 flex items-center gap-1.5">
                   <span>🔊 4 Emotional Tones</span>
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-soft-surface dark:bg-midnight-light border border-card-border text-amber-muted flex items-center justify-center">
                 <VolumeUpIcon className="w-5 h-5" />
               </div>
             </div>
           </div>
 
           {/* Filter Bar & Export Actions */}
-          <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-xl bg-white dark:bg-midnight border border-card-border shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search sentences or signs (e.g. doctor, family, water)..."
-                className="flex-1 px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500"
+                className="flex-1 px-3.5 py-2 rounded-lg border border-card-border bg-soft-surface dark:bg-midnight-light text-midnight dark:text-white placeholder:text-text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-teal-deep/30 focus:border-teal-deep"
               />
               <select
                 value={selectedMoodFilter}
                 onChange={(e) => setSelectedMoodFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                className="px-3 py-2 rounded-lg border border-card-border bg-soft-surface dark:bg-midnight-light text-text-secondary dark:text-slate-200 text-sm focus:outline-none"
               >
                 <option value="all">All Moods</option>
                 <option value="normal">😐 Normal Tone</option>
@@ -324,14 +324,14 @@ export default function History() {
               <button
                 type="button"
                 onClick={exportSentencesCSV}
-                className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+                className="px-3 py-2 rounded-lg border border-card-border bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-[#253f54] text-xs font-semibold text-midnight dark:text-white transition shadow-2xs"
               >
                 Export CSV
               </button>
               <button
                 type="button"
                 onClick={exportSentencesJSON}
-                className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+                className="px-3 py-2 rounded-lg border border-card-border bg-soft-surface dark:bg-midnight-light hover:bg-[#eae6dc] dark:hover:bg-[#253f54] text-xs font-semibold text-midnight dark:text-white transition shadow-2xs"
               >
                 Export JSON
               </button>
@@ -339,7 +339,7 @@ export default function History() {
                 <button
                   type="button"
                   onClick={() => setClearModalOpen(true)}
-                  className="px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-xs font-semibold text-rose-600 dark:text-rose-400 transition"
+                  className="px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-xs font-semibold text-rose-700 dark:text-rose-400 transition"
                 >
                   Clear All
                 </button>
@@ -349,12 +349,12 @@ export default function History() {
 
           {/* Sentence Cards List */}
           {filteredSentences.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-              <SparklesIcon className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-200">
+            <div className="p-12 text-center rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs space-y-3">
+              <SparklesIcon className="w-10 h-10 text-card-border mx-auto" />
+              <p className="text-base font-semibold text-midnight dark:text-white">
                 No matching sentences found.
               </p>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <p className="text-xs text-text-secondary max-w-md mx-auto">
                 Perform signs in the Live Translator to accumulate sentence sequences, or translate phrases in Text to Sign to build your sentence history.
               </p>
             </div>
@@ -367,7 +367,7 @@ export default function History() {
                 return (
                   <div
                     key={rec.id}
-                    className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border ${moodCfg.border} shadow-sm transition hover:shadow-md space-y-3`}
+                    className="p-5 rounded-2xl bg-white dark:bg-midnight border border-card-border shadow-xs transition hover:shadow-sm space-y-3"
                   >
                     {/* Top Row: Meta & Badges */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">

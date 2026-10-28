@@ -83,6 +83,9 @@ export async function createLandmarker(
         baseOptions: { modelAssetPath: MODEL_URL, delegate },
         runningMode: "VIDEO",
         numHands: 2,
+        minHandDetectionConfidence: 0.35,
+        minHandPresenceConfidence: 0.35,
+        minTrackingConfidence: 0.35,
       });
     } catch {
       // Try the next delegate (GPU failure falls through to CPU).
@@ -143,7 +146,7 @@ export const CAPTURE_DEADLINE_MS = 60000;
 export const CAPTURE_WINDOW_MS = 3500;
 /** Minimum unique camera frames before a sequence can be trusted (toSequence
  * pads beyond 45 rows for slow cameras; below this the window caught no sign). */
-export const MIN_CAPTURE_FRAMES = 30;
+export const MIN_CAPTURE_FRAMES = 12;
 
 export class MediaPipeProvider implements LandmarkProvider {
   readonly name = "mediapipe-handlandmarker (on-device)";
@@ -249,9 +252,15 @@ export class MediaPipeProvider implements LandmarkProvider {
     } finally {
       this.progress = "";
     }
-    if (raw.length < MIN_CAPTURE_FRAMES || raw.every((f) => f.flat(2).every((v) => v === 0))) {
+    const handsDetected = raw.some((f) => f.flat(2).some((v) => v !== 0));
+    if (!handsDetected) {
       this.status = "error";
-      this.error = "No hands detected during capture — move closer, improve light, reframe.";
+      this.error = "No hands detected during capture — please show your hands clearly and sign it again.";
+      throw new Error(this.error);
+    }
+    if (raw.length < MIN_CAPTURE_FRAMES) {
+      this.status = "error";
+      this.error = "Camera feed too slow / frame dropped — please keep hands in frame and sign it again.";
       throw new Error(this.error);
     }
     this.status = "ready";

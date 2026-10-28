@@ -25,6 +25,11 @@ export default function App() {
     return (localStorage.getItem("sb_theme") as "dark" | "light" | "system") || "dark";
   });
 
+  const [hue, setHue] = useState<number>(() => {
+    const saved = localStorage.getItem("sb_theme_hue");
+    return saved !== null ? parseInt(saved, 10) : 188;
+  });
+
   useEffect(() => {
     const root = document.documentElement;
     const isDark =
@@ -37,6 +42,11 @@ export default function App() {
     }
     localStorage.setItem("sb_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--hue", hue.toString());
+    localStorage.setItem("sb_theme_hue", hue.toString());
+  }, [hue]);
 
   function addToast(type: "success" | "error" | "info", text: string) {
     const id = Math.random().toString(36).substring(2, 9);
@@ -104,7 +114,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
+    <div className="min-h-screen bg-page-bg dark:bg-midnight-dark text-midnight dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Top Application Header */}
       <Header
         backendOnline={backendOnline}
@@ -147,6 +157,8 @@ export default function App() {
             <Settings
               currentTheme={theme}
               onThemeChange={setTheme}
+              currentHue={hue}
+              onHueChange={setHue}
             />
           )}
 
